@@ -7,6 +7,12 @@ function App() {
   const [activeExtras, setActiveExtras] = useState({});
   const [guestCount, setGuestCount] = useState(10);
 
+  const [clientName, setClientName] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventStartTime, setEventStartTime] = useState('');
+  const [eventEndTime, setEventEndTime] = useState('');
+  const [eventLocation, setEventLocation] = useState('');
+
   // Mouse Parallax Logic
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -134,7 +140,7 @@ function App() {
   }, [selectedPackageId, activeExtras, dynamicExtras]);
 
   const generateWhatsappLink = () => {
-    const text = `Hola, me interesa una cotización para el evento.\n\nInvitados: ${guestCount}\nPaquete: ${selectedPackage ? `${selectedPackage.name} ($${selectedPackage.price.toLocaleString()})` : 'Ninguno'}\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price.toLocaleString()}`).join('\n')}\n\nTotal estimado: $${totalPrice.toLocaleString()}`;
+    const text = `Hola, me interesa una cotización para el evento.\n\nCliente: ${clientName}\nFecha: ${eventDate}\nHorario: ${eventStartTime} - ${eventEndTime}\nUbicación: ${eventLocation}\nInvitados: ${guestCount}\nPaquete: ${selectedPackage ? `${selectedPackage.name} ($${selectedPackage.price.toLocaleString()})` : 'Ninguno'}\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price.toLocaleString()}`).join('\n')}\n\nTotal estimado: $${totalPrice.toLocaleString()}`;
     return `https://wa.me/1234567890?text=${encodeURIComponent(text)}`;
   };
 
@@ -165,6 +171,81 @@ function App() {
 
 
       <main className="container">
+        <section className="event-intake fade-in">
+          <h2 className="section-title">Cuéntanos acerca de tu evento</h2>
+          <div className="intake-form">
+            <div className="form-group">
+              <label>Nombre del cliente</label>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Tu nombre completo"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Fecha del evento</label>
+              <input
+                type="date"
+                className="input-field"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Franja horaria del evento</label>
+              <div className="time-inputs">
+                <input
+                  type="time"
+                  className="input-field"
+                  value={eventStartTime}
+                  onChange={(e) => setEventStartTime(e.target.value)}
+                />
+                <span className="time-separator">a</span>
+                <input
+                  type="time"
+                  className="input-field"
+                  value={eventEndTime}
+                  onChange={(e) => setEventEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Ciudad y dirección</label>
+              <div className="location-input-wrapper">
+                <input
+                  type="text"
+                  className="input-field location-input"
+                  placeholder="Ej: Cartagena, Bocagrande..."
+                  value={eventLocation}
+                  onChange={(e) => setEventLocation(e.target.value)}
+                />
+                <span className="location-icon">📍</span>
+              </div>
+            </div>
+
+            <div className="form-group guest-group">
+              <label>Cantidad de invitados</label>
+              <div className="guest-input-wrapper">
+                <input
+                  type="range"
+                  min="10"
+                  max="300"
+                  step="5"
+                  value={guestCount}
+                  onChange={(e) => setGuestCount(Number(e.target.value))}
+                  className="guest-slider"
+                />
+                <span className="guest-number">{guestCount}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="packages-grid fade-in">
           {packages.map((pkg) => (
             <div
@@ -184,30 +265,6 @@ function App() {
               </button>
             </div>
           ))}
-        </section>
-
-        <section className="event-details fade-in">
-          <h2 className="section-title">Datos del Evento</h2>
-          <div className="details-card">
-            <div className="guest-control">
-              <label>Número de Invitados</label>
-              <div className="guest-input-wrapper">
-                <input
-                  type="range"
-                  min="10"
-                  max="300"
-                  step="5"
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(Number(e.target.value))}
-                  className="guest-slider"
-                />
-                <span className="guest-number">{guestCount}</span>
-              </div>
-              <p className="guest-hint">
-                Recomendamos el paquete de accesorios <strong>{getRecommendedAccessory()}</strong>
-              </p>
-            </div>
-          </div>
         </section>
 
         <section className="customization fade-in">

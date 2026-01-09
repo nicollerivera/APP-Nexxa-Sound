@@ -381,7 +381,95 @@ input:checked+.slider:before {
   transition: transform 0.2s;
 }
 
-/* Event Details */
+/* Event Intake Form */
+.event-intake {
+  margin-bottom: 60px;
+  background: var(--surface-color);
+  padding: 30px;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.intake-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.input-field {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 15px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: var(--transition-speed);
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 10px rgba(157, 78, 221, 0.2);
+}
+
+/* Time Inputs */
+.time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.time-inputs .input-field {
+  flex: 1;
+}
+
+.time-separator {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Location Input */
+.location-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.location-input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.location-icon {
+  position: absolute;
+  right: 12px;
+  font-size: 1.2rem;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Guest Slider in Form */
+.guest-group {
+  margin-top: 10px;
+}
+
+/* Event Details (Legacy support if needed, but updated for form usage) */
 .event-details {
   margin-bottom: 60px;
 }
@@ -398,11 +486,22 @@ input:checked+.slider:before {
   flex-direction: column;
   align-items: center;
   gap: 15px;
+  width: 100%;
 }
 
 .guest-control label {
   font-size: 1.2rem;
   font-weight: 600;
+  display: none; /* Hidden in form context since label is above */
+}
+
+/* Specific overrides for guest slider inside form group */
+.guest-group label {
+  display: block; /* Show the standard form label */
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-align: left;
 }
 
 .guest-input-wrapper {
@@ -410,7 +509,7 @@ input:checked+.slider:before {
   align-items: center;
   gap: 20px;
   width: 100%;
-  max-width: 500px;
+  /* Max width removed to fill form */
 }
 
 .guest-slider {
