@@ -3,7 +3,7 @@ import './App.css';
 import { packages, extras } from './data';
 
 function App() {
-  const [selectedPackageId, setSelectedPackageId] = useState('essential');
+  const [selectedPackageId, setSelectedPackageId] = useState(null);
   const [activeExtras, setActiveExtras] = useState({});
   const [guestCount, setGuestCount] = useState(10);
 
@@ -134,7 +134,7 @@ function App() {
   }, [selectedPackageId, activeExtras, dynamicExtras]);
 
   const generateWhatsappLink = () => {
-    const text = `Hola, me interesa una cotización para el evento.\n\nInvitados: ${guestCount}\nPaquete: ${selectedPackage?.name} ($${selectedPackage?.price})\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price}`).join('\n')}\n\nTotal estimado: $${totalPrice}`;
+    const text = `Hola, me interesa una cotización para el evento.\n\nInvitados: ${guestCount}\nPaquete: ${selectedPackage ? `${selectedPackage.name} ($${selectedPackage.price.toLocaleString()})` : 'Ninguno'}\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price.toLocaleString()}`).join('\n')}\n\nTotal estimado: $${totalPrice.toLocaleString()}`;
     return `https://wa.me/1234567890?text=${encodeURIComponent(text)}`;
   };
 
