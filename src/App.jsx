@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import './App.css';
 import { packages, extras } from './data';
 
@@ -28,7 +28,6 @@ function useLocalStorage(key, initialValue) {
 }
 
 // Simple Error Boundary to catch crashes
-import React from 'react';
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
