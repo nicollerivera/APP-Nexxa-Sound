@@ -545,13 +545,7 @@ function App() {
                       <label htmlFor={`extra-${extra.id}`}>{extra.name}</label>
                       {extra.desc && <span className="extra-desc">{extra.desc}</span>}
 
-                      {extra.id === 'extra_hour' && activeExtras['extra_hour'] && (
-                        <div className="makeup-counter">
-                          <button className="counter-btn" onClick={() => setExtraHourCount(c => Math.max(1, c - 1))}>-</button>
-                          <span className="counter-value">{extraHourCount} Horas</span>
-                          <button className="counter-btn" onClick={() => setExtraHourCount(c => c + 1)}>+</button>
-                        </div>
-                      )}
+
 
                       {extra.id === 'makeup' && activeExtras['makeup'] && (
                         <div className="makeup-counter">
