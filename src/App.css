@@ -61,20 +61,36 @@
 }
 
 /* Packages Grid */
+/* Packages Grid */
 .packages-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  overflow-x: auto;
   gap: 20px;
   margin-bottom: 60px;
+  padding-bottom: 20px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* Optional: Hide scrollbar Firefox */
+}
+
+.packages-grid::-webkit-scrollbar {
+  display: none;
+  /* Optional: Hide scrollbar Chrome/Safari */
 }
 
 @media(min-width: 768px) {
   .packages-grid {
+    display: grid;
     grid-template-columns: repeat(3, 1fr);
+    overflow-x: visible;
+    padding-bottom: 0;
   }
 }
 
 .package-card {
+  min-width: 90%;
+  scroll-snap-align: center;
   background: var(--surface-color);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--border-radius);
@@ -88,6 +104,12 @@
   cursor: pointer;
   text-align: center;
   /* Center everything */
+}
+
+@media(min-width: 768px) {
+  .package-card {
+    min-width: auto;
+  }
 }
 
 .package-card:hover {
