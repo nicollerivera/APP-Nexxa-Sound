@@ -2,19 +2,44 @@ import { useState, useMemo, useEffect } from 'react';
 import './App.css';
 import { packages, extras } from './data';
 
-function App() {
-  const [selectedPackageId, setSelectedPackageId] = useState(null);
-  const [activeExtras, setActiveExtras] = useState({});
-  const [guestCount, setGuestCount] = useState(10);
+// Custom hook for local storage persistence
+function useLocalStorage(key, initialValue) {
+  const [storedValue, setStoredValue] = useState(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(error);
+      return initialValue;
+    }
+  });
 
-  const [clientName, setClientName] = useState('');
-  const [eventDate, setEventDate] = useState('');
-  const [eventStartTime, setEventStartTime] = useState('');
-  const [eventEndTime, setEventEndTime] = useState('');
-  const [startAmPm, setStartAmPm] = useState('PM');
-  const [endAmPm, setEndAmPm] = useState('AM');
-  const [eventNeighborhood, setEventNeighborhood] = useState('');
-  const [eventAddress, setEventAddress] = useState('');
+  const setValue = (value) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return [storedValue, setValue];
+}
+
+function App() {
+  const [selectedPackageId, setSelectedPackageId] = useLocalStorage('nexxa_pkg', null);
+  const [activeExtras, setActiveExtras] = useLocalStorage('nexxa_extras', {});
+  const [guestCount, setGuestCount] = useLocalStorage('nexxa_guests', 10);
+
+  const [clientName, setClientName] = useLocalStorage('nexxa_client', '');
+  const [eventDate, setEventDate] = useLocalStorage('nexxa_date', '');
+  const [eventStartTime, setEventStartTime] = useLocalStorage('nexxa_start', '');
+  const [eventEndTime, setEventEndTime] = useLocalStorage('nexxa_end', '');
+  const [startAmPm, setStartAmPm] = useLocalStorage('nexxa_start_ampm', 'PM');
+  const [endAmPm, setEndAmPm] = useLocalStorage('nexxa_end_ampm', 'AM');
+  const [eventNeighborhood, setEventNeighborhood] = useLocalStorage('nexxa_neighborhood', '');
+  const [eventAddress, setEventAddress] = useLocalStorage('nexxa_address', '');
   const [isLocating, setIsLocating] = useState(false);
 
   const handleUseCurrentLocation = () => {
