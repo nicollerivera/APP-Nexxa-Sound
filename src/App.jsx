@@ -16,16 +16,40 @@ function App() {
   const [eventLocation, setEventLocation] = useState('');
 
   const formatTimeInput = (val, setter) => {
-    // Remove non-numbers
-    const clean = val.replace(/[^0-9]/g, '');
-    if (clean.length > 4) return; // Max 4 digits
+    // 1. Clean input: allow digits and one colon
+    const clean = val.replace(/[^0-9:]/g, '');
+    if ((clean.match(/:/g) || []).length > 1) return; // Prevent double colon or more
+    if (clean.length > 5) return;
 
-    // Auto-add colon
-    if (clean.length > 2) {
-      setter(`${clean.slice(0, 2)}:${clean.slice(2)}`);
-    } else {
+    // 2. If user typed a colon, let them drive
+    if (clean.includes(':')) {
       setter(clean);
+      return;
     }
+
+    // 3. Auto-format logic for pure numbers
+    if (clean.length === 2) {
+      const num = parseInt(clean);
+      // If > 12, it must be H:M (e.g. 13 -> 1:3). 
+      // Note: Typing '10', '11', '12' waits for 3rd digit.
+      if (num > 12) {
+        setter(`${clean[0]}:${clean[1]}`);
+        return;
+      }
+    } else if (clean.length > 2) {
+      // Logic for 3+ digits
+      const firstTwo = parseInt(clean.slice(0, 2));
+      // If 10, 11, 12 -> Assume HH:MM (10:xx, 11:xx, 12:xx)
+      // Otherwise assume H:MM (e.g. 800 -> 8:00, 130 -> 1:30)
+      if (firstTwo >= 10 && firstTwo <= 12) {
+        setter(`${clean.slice(0, 2)}:${clean.slice(2)}`);
+      } else {
+        setter(`${clean[0]}:${clean.slice(1)}`);
+      }
+      return;
+    }
+
+    setter(clean);
   };
 
   // Mouse Parallax Logic
