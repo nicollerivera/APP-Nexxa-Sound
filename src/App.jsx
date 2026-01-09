@@ -42,8 +42,12 @@ function App() {
   const [eventAddress, setEventAddress] = useLocalStorage('nexxa_address', '');
   const [isLocating, setIsLocating] = useState(false);
 
+  // Wizard Step State
+  const [currentStep, setCurrentStep] = useState(1);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentStep(1); // Reset to first step on edit
   };
 
   const handleUseCurrentLocation = () => {
@@ -298,203 +302,234 @@ function App() {
 
 
       <main className="container">
-        <section id="block-details" className="event-intake fade-in">
-          <h2 className="section-title">Cuéntanos acerca de tu evento</h2>
-          <div className="intake-form">
-            <div className="form-group">
-              <label>Nombre del cliente</label>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="Tu nombre completo"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Fecha del evento</label>
-              <input
-                type="date"
-                className="input-field"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Franja horaria del evento</label>
-              <div className="time-inputs">
-                <div className="time-input-group">
-                  <input
-                    type="text"
-                    className="input-field time-text"
-                    placeholder="Inicio (08:00)"
-                    value={eventStartTime}
-                    onChange={(e) => formatTimeInput(e.target.value, setEventStartTime)}
-                    maxLength={5}
-                  />
-                  <select
-                    className="input-field ampm-select"
-                    value={startAmPm}
-                    onChange={(e) => setStartAmPm(e.target.value)}
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
-                </div>
-                <span className="time-separator">a</span>
-                <div className="time-input-group">
-                  <input
-                    type="text"
-                    className="input-field time-text"
-                    placeholder="Fin (02:00)"
-                    value={eventEndTime}
-                    onChange={(e) => formatTimeInput(e.target.value, setEventEndTime)}
-                    maxLength={5}
-                  />
-                  <select
-                    className="input-field ampm-select"
-                    value={endAmPm}
-                    onChange={(e) => setEndAmPm(e.target.value)}
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Barrio</label>
-              <div className="location-input-wrapper">
+        {currentStep === 1 && (
+          <section id="block-details" className="event-intake fade-in">
+            <h2 className="section-title">Cuéntanos acerca de tu evento</h2>
+            <div className="intake-form">
+              <div className="form-group">
+                <label>Nombre del cliente</label>
                 <input
                   type="text"
-                  className="input-field location-input"
-                  placeholder="Ej: Bocagrande, Manga..."
-                  value={eventNeighborhood}
-                  onChange={(e) => setEventNeighborhood(e.target.value)}
+                  className="input-field"
+                  placeholder="Tu nombre completo"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
                 />
-                <span className="location-icon">📍</span>
               </div>
-            </div>
 
-            <div className="form-group">
-              <div className="label-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label>Dirección</label>
-                <button
-                  className="location-btn"
-                  onClick={handleUseCurrentLocation}
-                  disabled={isLocating}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#00d4ff',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    textDecoration: 'underline'
-                  }}
-                >
-                  {isLocating ? '📍 Buscando...' : '📍 Usar ubicación actual'}
-                </button>
-              </div>
-              <div className="location-input-wrapper">
+              <div className="form-group">
+                <label>Fecha del evento</label>
                 <input
-                  type="text"
-                  className="input-field location-input"
-                  placeholder="Ej: Calle 5 # 4-32 Edificio..."
-                  value={eventAddress}
-                  onChange={(e) => setEventAddress(e.target.value)}
+                  type="date"
+                  className="input-field"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
                 />
-                <span className="location-icon">🏠</span>
               </div>
-            </div>
 
-            <div className="form-group guest-group">
-              <label>Cantidad de invitados</label>
-              <div className="guest-input-wrapper">
-                <input
-                  type="range"
-                  min="10"
-                  max="300"
-                  step="5"
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(Number(e.target.value))}
-                  className="guest-slider"
-                />
-                <span className="guest-number">{guestCount}</span>
+              <div className="form-group">
+                <label>Franja horaria del evento</label>
+                <div className="time-inputs">
+                  <div className="time-input-group">
+                    <input
+                      type="text"
+                      className="input-field time-text"
+                      placeholder="Inicio (08:00)"
+                      value={eventStartTime}
+                      onChange={(e) => formatTimeInput(e.target.value, setEventStartTime)}
+                      maxLength={5}
+                    />
+                    <select
+                      className="input-field ampm-select"
+                      value={startAmPm}
+                      onChange={(e) => setStartAmPm(e.target.value)}
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                  <span className="time-separator">a</span>
+                  <div className="time-input-group">
+                    <input
+                      type="text"
+                      className="input-field time-text"
+                      placeholder="Fin (02:00)"
+                      value={eventEndTime}
+                      onChange={(e) => formatTimeInput(e.target.value, setEventEndTime)}
+                      maxLength={5}
+                    />
+                    <select
+                      className="input-field ampm-select"
+                      value={endAmPm}
+                      onChange={(e) => setEndAmPm(e.target.value)}
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
 
-        <section id="block-packages" className="packages-grid fade-in">
-          {computedPackages.map((pkg) => (
-            <div
-              key={pkg.id}
-              className={`package-card ${selectedPackageId === pkg.id ? 'selected' : ''}`}
-              onClick={() => setSelectedPackageId(pkg.id)}
-            >
-              <h3 className="package-name">{pkg.name}</h3>
-              <ul className="features-list">
-                {pkg.features.map((feature, idx) => (
-                  <li key={idx} dangerouslySetInnerHTML={{ __html: feature }} />
-                ))}
-                {pkg.extraHoursInfo && (
-                  <li><strong>+ {pkg.extraHoursInfo}</strong></li>
-                )}
-              </ul>
-              <div className="package-price">
-                ${pkg.computedPrice.toLocaleString()}
-                {pkg.computedPrice > pkg.price && <span style={{ display: 'block', fontSize: '0.8rem', color: '#888' }}>Incluye horas extra</span>}
+              <div className="form-group">
+                <label>Barrio</label>
+                <div className="location-input-wrapper">
+                  <input
+                    type="text"
+                    className="input-field location-input"
+                    placeholder="Ej: Bocagrande, Manga..."
+                    value={eventNeighborhood}
+                    onChange={(e) => setEventNeighborhood(e.target.value)}
+                  />
+                  <span className="location-icon">📍</span>
+                </div>
               </div>
-              <button className="select-btn">
-                {selectedPackageId === pkg.id ? 'Seleccionado' : 'Seleccionar'}
+
+              <div className="form-group">
+                <div className="label-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>Dirección</label>
+                  <button
+                    className="location-btn"
+                    onClick={handleUseCurrentLocation}
+                    disabled={isLocating}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#00d4ff',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    {isLocating ? '📍 Buscando...' : '📍 Usar ubicación actual'}
+                  </button>
+                </div>
+                <div className="location-input-wrapper">
+                  <input
+                    type="text"
+                    className="input-field location-input"
+                    placeholder="Ej: Calle 5 # 4-32 Edificio..."
+                    value={eventAddress}
+                    onChange={(e) => setEventAddress(e.target.value)}
+                  />
+                  <span className="location-icon">🏠</span>
+                </div>
+              </div>
+
+              <div className="form-group guest-group">
+                <label>Cantidad de invitados</label>
+                <div className="guest-input-wrapper">
+                  <input
+                    type="range"
+                    min="10"
+                    max="300"
+                    step="5"
+                    value={guestCount}
+                    onChange={(e) => setGuestCount(Number(e.target.value))}
+                    className="guest-slider"
+                  />
+                  <span className="guest-number">{guestCount}</span>
+                </div>
+              </div>
+
+              <button
+                className="action-btn"
+                style={{ marginTop: '20px', width: '100%', padding: '15px', background: 'var(--brand-gradient)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 5px 15px rgba(157, 78, 221, 0.4)' }}
+                onClick={() => {
+                  setCurrentStep(2);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                Siguiente: Ver Paquetes 👉
               </button>
             </div>
-          ))}
-        </section>
+          </section>
+        )}
 
-        <section id="block-extras" className="customization fade-in">
-          <h2 className="section-title">Personaliza tu Experiencia</h2>
-          <div className="extras-list">
-            {dynamicExtras.map((extra) => (
-              <div key={extra.id} className="extra-item">
-                <div className="extra-info">
-                  <label htmlFor={`extra-${extra.id}`}>{extra.name}</label>
-                  {extra.desc && <span className="extra-desc">{extra.desc}</span>}
-
-                  {extra.id === 'extra_hour' && activeExtras['extra_hour'] && (
-                    <div className="makeup-counter">
-                      <button className="counter-btn" onClick={() => setExtraHourCount(c => Math.max(1, c - 1))}>-</button>
-                      <span className="counter-value">{extraHourCount} Horas</span>
-                      <button className="counter-btn" onClick={() => setExtraHourCount(c => c + 1)}>+</button>
-                    </div>
-                  )}
-
-                  {extra.id === 'makeup' && activeExtras['makeup'] && (
-                    <div className="makeup-counter">
-                      <button className="counter-btn" onClick={() => setMakeupCount(c => Math.max(1, c - 1))}>-</button>
-                      <span className="counter-value">{makeupCount} Maquilladores</span>
-                      <button className="counter-btn" onClick={() => setMakeupCount(c => c + 1)}>+</button>
-                    </div>
-                  )}
-
-                  <span className="extra-price">+ ${extra.price.toLocaleString()}</span>
+        {currentStep === 2 && (
+          <section id="block-packages" className="packages-grid-container fade-in">
+            <h2 className="section-title">Selecciona tu Paquete</h2>
+            <div className="packages-grid">
+              {computedPackages.map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className={`package-card ${selectedPackageId === pkg.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedPackageId(pkg.id)}
+                >
+                  <h3 className="package-name">{pkg.name}</h3>
+                  <ul className="features-list">
+                    {pkg.features.map((feature, idx) => (
+                      <li key={idx} dangerouslySetInnerHTML={{ __html: feature }} />
+                    ))}
+                    {pkg.extraHoursInfo && (
+                      <li><strong>+ {pkg.extraHoursInfo}</strong></li>
+                    )}
+                  </ul>
+                  <div className="package-price">
+                    ${pkg.computedPrice.toLocaleString()}
+                    {pkg.computedPrice > pkg.price && <span style={{ display: 'block', fontSize: '0.8rem', color: '#888' }}>Incluye horas extra</span>}
+                  </div>
+                  <button className="select-btn">
+                    {selectedPackageId === pkg.id ? 'Seleccionado' : 'Seleccionar'}
+                  </button>
                 </div>
-                <label className="switch">
-                  <input
-                    type="checkbox"
-                    id={`extra-${extra.id}`}
-                    checked={!!activeExtras[extra.id]}
-                    onChange={() => toggleExtra(extra.id)}
-                  />
-                  <span className="slider"></span>
-                </label>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+
+            <button
+              className="action-btn"
+              style={{ margin: '30px auto', display: 'block', width: '90%', maxWidth: '400px', padding: '15px', background: 'var(--surface-color)', border: '1px solid var(--primary-color)', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer' }}
+              onClick={() => {
+                setCurrentStep(3);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              Confirmar y Personalizar Extras 👇
+            </button>
+          </section>
+        )}
+
+        {currentStep === 3 && (
+          <section id="block-extras" className="customization fade-in">
+            <h2 className="section-title">Personaliza tu Experiencia</h2>
+            <div className="extras-list">
+              {dynamicExtras.map((extra) => (
+                <div key={extra.id} className="extra-item">
+                  <div className="extra-info">
+                    <label htmlFor={`extra-${extra.id}`}>{extra.name}</label>
+                    {extra.desc && <span className="extra-desc">{extra.desc}</span>}
+
+                    {extra.id === 'extra_hour' && activeExtras['extra_hour'] && (
+                      <div className="makeup-counter">
+                        <button className="counter-btn" onClick={() => setExtraHourCount(c => Math.max(1, c - 1))}>-</button>
+                        <span className="counter-value">{extraHourCount} Horas</span>
+                        <button className="counter-btn" onClick={() => setExtraHourCount(c => c + 1)}>+</button>
+                      </div>
+                    )}
+
+                    {extra.id === 'makeup' && activeExtras['makeup'] && (
+                      <div className="makeup-counter">
+                        <button className="counter-btn" onClick={() => setMakeupCount(c => Math.max(1, c - 1))}>-</button>
+                        <span className="counter-value">{makeupCount} Maquilladores</span>
+                        <button className="counter-btn" onClick={() => setMakeupCount(c => c + 1)}>+</button>
+                      </div>
+                    )}
+
+                    <span className="extra-price">+ ${extra.price.toLocaleString()}</span>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      id={`extra-${extra.id}`}
+                      checked={!!activeExtras[extra.id]}
+                      onChange={() => toggleExtra(extra.id)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       <footer className="summary-bar">

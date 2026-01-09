@@ -70,22 +70,24 @@
   padding-bottom: 20px;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  /* Optional: Hide scrollbar Firefox */
+  /* Scrollbar visible on PC */
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) var(--bg-color);
 }
 
 .packages-grid::-webkit-scrollbar {
-  display: none;
-  /* Optional: Hide scrollbar Chrome/Safari */
+  height: 8px;
+  display: block;
 }
 
-@media(min-width: 768px) {
-  .packages-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    overflow-x: visible;
-    padding-bottom: 0;
-  }
+.packages-grid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.packages-grid::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
 }
 
 .package-card {
@@ -95,7 +97,6 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--border-radius);
   padding: 20px;
-  /* Reduced padding */
   transition: var(--transition-speed);
   display: flex;
   flex-direction: column;
@@ -103,12 +104,12 @@
   overflow: hidden;
   cursor: pointer;
   text-align: center;
-  /* Center everything */
 }
 
 @media(min-width: 768px) {
   .package-card {
-    min-width: auto;
+    min-width: 380px;
+    /* Fixed width for desktop to show multiple cards */
   }
 }
 
