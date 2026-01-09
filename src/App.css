@@ -68,6 +68,9 @@
   gap: 20px;
   touch-action: pan-x;
   /* Explicitly allow horizontal pan */
+  width: 100%;
+  /* Force width to constrain children */
+  overscroll-behavior-x: contain;
   margin-bottom: 60px;
   padding-bottom: 20px;
   scroll-snap-type: x mandatory;
