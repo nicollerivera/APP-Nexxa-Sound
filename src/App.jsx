@@ -15,6 +15,43 @@ function App() {
   const [endAmPm, setEndAmPm] = useState('AM');
   const [eventNeighborhood, setEventNeighborhood] = useState('');
   const [eventAddress, setEventAddress] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocalización no soportada en este navegador');
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const { latitude, longitude } = position.coords;
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+        const data = await response.json();
+
+        if (data && data.address) {
+          const road = data.address.road || '';
+          const houseNumber = data.address.house_number || '';
+          const suburb = data.address.suburb || data.address.neighbourhood || data.address.quarter || '';
+
+          if (road) setEventAddress(`${road} ${houseNumber}`.trim());
+          if (suburb) setEventNeighborhood(suburb);
+        } else {
+          setEventAddress(`${latitude}, ${longitude}`); // Fallback
+        }
+      } catch (error) {
+        console.error("Error fetching address:", error);
+        setEventAddress(`${latitude}, ${longitude}`);
+      } finally {
+        setIsLocating(false);
+      }
+    }, (error) => {
+      console.error(error);
+      setIsLocating(false);
+      alert('No pudimos acceder a tu ubicación. Por favor ingrésala manualmente.');
+    });
+  };
 
   const formatTimeInput = (val, setter) => {
     // 1. Clean input: allow digits and one colon
@@ -293,7 +330,24 @@ function App() {
             </div>
 
             <div className="form-group">
-              <label>Dirección</label>
+              <div className="label-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label>Dirección</label>
+                <button
+                  className="location-btn"
+                  onClick={handleUseCurrentLocation}
+                  disabled={isLocating}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#00d4ff',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  {isLocating ? '📍 Buscando...' : '📍 Usar ubicación actual'}
+                </button>
+              </div>
               <div className="location-input-wrapper">
                 <input
                   type="text"
