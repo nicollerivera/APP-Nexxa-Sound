@@ -66,6 +66,8 @@
   display: flex;
   overflow-x: auto;
   gap: 20px;
+  touch-action: pan-x;
+  /* Explicitly allow horizontal pan */
   margin-bottom: 60px;
   padding-bottom: 20px;
   scroll-snap-type: x mandatory;
