@@ -435,11 +435,25 @@ input:checked+.slider:before {
   gap: 10px;
 }
 
-.time-inputs .input-field {
+.time-input-group {
+  display: flex;
   flex: 1;
+  gap: 5px;
 }
 
-.time-select option {
+.time-text {
+  flex: 2;
+  min-width: 0;
+}
+
+.ampm-select {
+  flex: 1;
+  min-width: 60px;
+  padding: 12px 5px;
+  text-align: center;
+}
+
+.ampm-select option {
   background-color: var(--bg-color);
   color: var(--text-primary);
 }

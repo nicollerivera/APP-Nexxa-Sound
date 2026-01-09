@@ -11,6 +11,8 @@ function App() {
   const [eventDate, setEventDate] = useState('');
   const [eventStartTime, setEventStartTime] = useState('');
   const [eventEndTime, setEventEndTime] = useState('');
+  const [startAmPm, setStartAmPm] = useState('PM');
+  const [endAmPm, setEndAmPm] = useState('AM');
   const [eventLocation, setEventLocation] = useState('');
 
   // Mouse Parallax Logic
@@ -140,7 +142,7 @@ function App() {
   }, [selectedPackageId, activeExtras, dynamicExtras]);
 
   const generateWhatsappLink = () => {
-    const text = `Hola, me interesa una cotización para el evento.\n\nCliente: ${clientName}\nFecha: ${eventDate}\nHorario: ${eventStartTime} - ${eventEndTime}\nUbicación: ${eventLocation}\nInvitados: ${guestCount}\nPaquete: ${selectedPackage ? `${selectedPackage.name} ($${selectedPackage.price.toLocaleString()})` : 'Ninguno'}\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price.toLocaleString()}`).join('\n')}\n\nTotal estimado: $${totalPrice.toLocaleString()}`;
+    const text = `Hola, me interesa una cotización para el evento.\n\nCliente: ${clientName}\nFecha: ${eventDate}\nHorario: ${eventStartTime} ${startAmPm} - ${eventEndTime} ${endAmPm}\nUbicación: ${eventLocation}\nInvitados: ${guestCount}\nPaquete: ${selectedPackage ? `${selectedPackage.name} ($${selectedPackage.price.toLocaleString()})` : 'Ninguno'}\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price.toLocaleString()}`).join('\n')}\n\nTotal estimado: $${totalPrice.toLocaleString()}`;
     return `https://wa.me/1234567890?text=${encodeURIComponent(text)}`;
   };
 
@@ -198,21 +200,41 @@ function App() {
             <div className="form-group">
               <label>Franja horaria del evento</label>
               <div className="time-inputs">
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Inicio (Ej: 8:00 PM)"
-                  value={eventStartTime}
-                  onChange={(e) => setEventStartTime(e.target.value)}
-                />
-                <span className="time-separator">hasta</span>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Fin (Ej: 2:00 AM)"
-                  value={eventEndTime}
-                  onChange={(e) => setEventEndTime(e.target.value)}
-                />
+                <div className="time-input-group">
+                  <input
+                    type="text"
+                    className="input-field time-text"
+                    placeholder="Inicio (8:00)"
+                    value={eventStartTime}
+                    onChange={(e) => setEventStartTime(e.target.value)}
+                  />
+                  <select
+                    className="input-field ampm-select"
+                    value={startAmPm}
+                    onChange={(e) => setStartAmPm(e.target.value)}
+                  >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
+                <span className="time-separator">a</span>
+                <div className="time-input-group">
+                  <input
+                    type="text"
+                    className="input-field time-text"
+                    placeholder="Fin (2:00)"
+                    value={eventEndTime}
+                    onChange={(e) => setEventEndTime(e.target.value)}
+                  />
+                  <select
+                    className="input-field ampm-select"
+                    value={endAmPm}
+                    onChange={(e) => setEndAmPm(e.target.value)}
+                  >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
               </div>
             </div>
 
