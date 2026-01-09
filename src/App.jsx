@@ -15,6 +15,19 @@ function App() {
   const [endAmPm, setEndAmPm] = useState('AM');
   const [eventLocation, setEventLocation] = useState('');
 
+  const formatTimeInput = (val, setter) => {
+    // Remove non-numbers
+    const clean = val.replace(/[^0-9]/g, '');
+    if (clean.length > 4) return; // Max 4 digits
+
+    // Auto-add colon
+    if (clean.length > 2) {
+      setter(`${clean.slice(0, 2)}:${clean.slice(2)}`);
+    } else {
+      setter(clean);
+    }
+  };
+
   // Mouse Parallax Logic
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -204,9 +217,10 @@ function App() {
                   <input
                     type="text"
                     className="input-field time-text"
-                    placeholder="Inicio (8:00)"
+                    placeholder="Inicio (08:00)"
                     value={eventStartTime}
-                    onChange={(e) => setEventStartTime(e.target.value)}
+                    onChange={(e) => formatTimeInput(e.target.value, setEventStartTime)}
+                    maxLength={5}
                   />
                   <select
                     className="input-field ampm-select"
@@ -222,9 +236,10 @@ function App() {
                   <input
                     type="text"
                     className="input-field time-text"
-                    placeholder="Fin (2:00)"
+                    placeholder="Fin (02:00)"
                     value={eventEndTime}
-                    onChange={(e) => setEventEndTime(e.target.value)}
+                    onChange={(e) => formatTimeInput(e.target.value, setEventEndTime)}
+                    maxLength={5}
                   />
                   <select
                     className="input-field ampm-select"
