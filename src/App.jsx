@@ -198,43 +198,21 @@ function App() {
             <div className="form-group">
               <label>Franja horaria del evento</label>
               <div className="time-inputs">
-                <select
-                  className="input-field time-select"
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Inicio (Ej: 8:00 PM)"
                   value={eventStartTime}
                   onChange={(e) => setEventStartTime(e.target.value)}
-                >
-                  <option value="">Inicio</option>
-                  {[...Array(48)].map((_, i) => {
-                    const totalMins = i * 30;
-                    const hours = Math.floor(totalMins / 60);
-                    const mins = totalMins % 60;
-                    const ampm = hours >= 12 ? 'PM' : 'AM';
-                    const displayHours = hours % 12 || 12;
-                    const displayTime = `${displayHours}:${mins === 0 ? '00' : '30'} ${ampm}`;
-                    return (
-                      <option key={i} value={displayTime}>{displayTime}</option>
-                    );
-                  })}
-                </select>
+                />
                 <span className="time-separator">hasta</span>
-                <select
-                  className="input-field time-select"
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="Fin (Ej: 2:00 AM)"
                   value={eventEndTime}
                   onChange={(e) => setEventEndTime(e.target.value)}
-                >
-                  <option value="">Fin</option>
-                  {[...Array(48)].map((_, i) => {
-                    const totalMins = i * 30;
-                    const hours = Math.floor(totalMins / 60);
-                    const mins = totalMins % 60;
-                    const ampm = hours >= 12 ? 'PM' : 'AM';
-                    const displayHours = hours % 12 || 12;
-                    const displayTime = `${displayHours}:${mins === 0 ? '00' : '30'} ${ampm}`;
-                    return (
-                      <option key={i} value={displayTime}>{displayTime}</option>
-                    );
-                  })}
-                </select>
+                />
               </div>
             </div>
 
