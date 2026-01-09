@@ -3,9 +3,9 @@ import './App.css';
 import { packages, extras } from './data';
 
 function App() {
-  const [selectedPackageId, setSelectedPackageId] = useState('memories');
+  const [selectedPackageId, setSelectedPackageId] = useState('essential');
   const [activeExtras, setActiveExtras] = useState({});
-  const [guestCount, setGuestCount] = useState(50);
+  const [guestCount, setGuestCount] = useState(10);
 
   // Mouse Parallax Logic
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
