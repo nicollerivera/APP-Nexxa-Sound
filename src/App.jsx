@@ -160,7 +160,7 @@ function App() {
         <div className="slogan">Sound Level Productions</div>
       </nav>
       <header className="container hero fade-in">
-        <h1>Escoge tu paquete y diseña cada detalle</h1>
+        <h1>Escoge tu paquete y diseña cada detalle </h1>
       </header>
 
 
