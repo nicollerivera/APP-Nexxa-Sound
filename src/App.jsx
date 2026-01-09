@@ -13,7 +13,8 @@ function App() {
   const [eventEndTime, setEventEndTime] = useState('');
   const [startAmPm, setStartAmPm] = useState('PM');
   const [endAmPm, setEndAmPm] = useState('AM');
-  const [eventLocation, setEventLocation] = useState('');
+  const [eventNeighborhood, setEventNeighborhood] = useState('');
+  const [eventAddress, setEventAddress] = useState('');
 
   const formatTimeInput = (val, setter) => {
     // 1. Clean input: allow digits and one colon
@@ -179,7 +180,7 @@ function App() {
   }, [selectedPackageId, activeExtras, dynamicExtras]);
 
   const generateWhatsappLink = () => {
-    const text = `Hola, me interesa una cotización para el evento.\n\nCliente: ${clientName}\nFecha: ${eventDate}\nHorario: ${eventStartTime} ${startAmPm} - ${eventEndTime} ${endAmPm}\nUbicación: ${eventLocation}\nInvitados: ${guestCount}\nPaquete: ${selectedPackage ? `${selectedPackage.name} ($${selectedPackage.price.toLocaleString()})` : 'Ninguno'}\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price.toLocaleString()}`).join('\n')}\n\nTotal estimado: $${totalPrice.toLocaleString()}`;
+    const text = `Hola, me interesa una cotización para el evento.\n\nCliente: ${clientName}\nFecha: ${eventDate}\nHorario: ${eventStartTime} ${startAmPm} - ${eventEndTime} ${endAmPm}\nUbicación: ${eventNeighborhood}, ${eventAddress}\nInvitados: ${guestCount}\nPaquete: ${selectedPackage ? `${selectedPackage.name} ($${selectedPackage.price.toLocaleString()})` : 'Ninguno'}\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price.toLocaleString()}`).join('\n')}\n\nTotal estimado: $${totalPrice.toLocaleString()}`;
     return `https://wa.me/1234567890?text=${encodeURIComponent(text)}`;
   };
 
@@ -278,16 +279,30 @@ function App() {
             </div>
 
             <div className="form-group">
-              <label>Ciudad y dirección</label>
+              <label>Barrio</label>
               <div className="location-input-wrapper">
                 <input
                   type="text"
                   className="input-field location-input"
-                  placeholder="Ej: Cartagena, Bocagrande..."
-                  value={eventLocation}
-                  onChange={(e) => setEventLocation(e.target.value)}
+                  placeholder="Ej: Bocagrande, Manga..."
+                  value={eventNeighborhood}
+                  onChange={(e) => setEventNeighborhood(e.target.value)}
                 />
                 <span className="location-icon">📍</span>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Dirección</label>
+              <div className="location-input-wrapper">
+                <input
+                  type="text"
+                  className="input-field location-input"
+                  placeholder="Ej: Calle 5 # 4-32 Edificio..."
+                  value={eventAddress}
+                  onChange={(e) => setEventAddress(e.target.value)}
+                />
+                <span className="location-icon">🏠</span>
               </div>
             </div>
 
