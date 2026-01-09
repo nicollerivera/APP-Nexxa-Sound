@@ -439,6 +439,11 @@ input:checked+.slider:before {
   flex: 1;
 }
 
+.time-select option {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+}
+
 .time-separator {
   color: var(--text-secondary);
   font-size: 0.9rem;
@@ -492,12 +497,14 @@ input:checked+.slider:before {
 .guest-control label {
   font-size: 1.2rem;
   font-weight: 600;
-  display: none; /* Hidden in form context since label is above */
+  display: none;
+  /* Hidden in form context since label is above */
 }
 
 /* Specific overrides for guest slider inside form group */
 .guest-group label {
-  display: block; /* Show the standard form label */
+  display: block;
+  /* Show the standard form label */
   font-size: 0.95rem;
   color: var(--text-secondary);
   font-weight: 500;
