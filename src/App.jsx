@@ -143,37 +143,50 @@ function App() {
     }));
   };
 
-  const [makeupCount, setMakeupCount] = useState(1);
-  const [extraHourCount, setExtraHourCount] = useState(1);
+  const calculateDuration = () => {
+    if (!eventStartTime || !eventEndTime) return 0;
 
-  // Auto-calculate recommended makeup artists when guests change
-  useEffect(() => {
-    const recommended = Math.ceil(guestCount / 50) || 1;
-    setMakeupCount(recommended);
-  }, [guestCount]);
+    // Parse start
+    const [startH, startM] = eventStartTime.split(':').map(Number);
+    let startVal = (startH % 12) + (startAmPm === 'PM' ? 12 : 0) + (startM ? startM / 60 : 0);
 
-  // No auto-select effect needed anymore as per user request to just update quantities
+    // Parse end
+    const [endH, endM] = eventEndTime.split(':').map(Number);
+    let endVal = (endH % 12) + (endAmPm === 'PM' ? 12 : 0) + (endM ? endM / 60 : 0);
 
+    // Handle crossing midnight
+    if (endVal < startVal) {
+      endVal += 24;
+    }
+
+    const diff = endVal - startVal;
+    return diff > 0 ? diff : 0;
+  };
+
+  const eventDuration = useMemo(() => calculateDuration(), [eventStartTime, eventEndTime, startAmPm, endAmPm]);
+
+  const computedPackages = useMemo(() => {
+    const extraHours = Math.max(0, Math.ceil(eventDuration - 4));
+
+    return packages.map(pkg => {
+      let extraHourPrice = 155000;
+      if (pkg.id === 'essential') extraHourPrice = 85000;
+
+      const additionalCost = extraHours * extraHourPrice;
+
+      return {
+        ...pkg,
+        computedPrice: pkg.price + additionalCost,
+        extraHoursInfo: extraHours > 0 ? `Include ${extraHours}h extra(s)` : null
+      };
+    });
+  }, [eventDuration]);
+
+  // Filter out extra_hour from being manually selectable, handle others
   const dynamicExtras = useMemo(() => {
     return extras
+      .filter(e => e.id !== 'extra_hour')
       .map(extra => {
-        // Extra Hour Logic
-        if (extra.id === 'extra_hour') {
-          let unitPrice = 155000;
-          let descText = 'Sonido, Luces, DJ y Foto';
-
-          if (selectedPackageId === 'essential') {
-            unitPrice = 85000;
-            descText = 'Sonido, Luces y DJ';
-          }
-
-          return {
-            ...extra,
-            price: unitPrice * extraHourCount,
-            desc: `Extiende ${descText} (+${extraHourCount} ${extraHourCount === 1 ? 'hora' : 'horas'})`
-          };
-        }
-
         if (!['acc_essential', 'acc_memories', 'acc_celebration'].includes(extra.id)) {
           // Dynamic Makeup Logic
           if (extra.id === 'makeup') {
@@ -227,22 +240,22 @@ function App() {
           desc: newDesc
         };
       });
-  }, [guestCount, selectedPackageId, makeupCount, extraHourCount]);
+  }, [guestCount, makeupCount]); // Removed extraHourCount dependency
 
-  const selectedPackage = packages.find(p => p.id === selectedPackageId);
+  const selectedComputedPackage = computedPackages.find(p => p.id === selectedPackageId);
 
   const totalPrice = useMemo(() => {
-    let total = selectedPackage ? selectedPackage.price : 0;
+    let total = selectedComputedPackage ? selectedComputedPackage.computedPrice : 0;
     dynamicExtras.forEach(extra => {
       if (activeExtras[extra.id]) {
         total += extra.price;
       }
     });
     return total;
-  }, [selectedPackageId, activeExtras, dynamicExtras]);
+  }, [selectedComputedPackage, activeExtras, dynamicExtras]);
 
   const generateWhatsappLink = () => {
-    const text = `Hola, me interesa una cotización para el evento.\n\nCliente: ${clientName}\nFecha: ${eventDate}\nHorario: ${eventStartTime} ${startAmPm} - ${eventEndTime} ${endAmPm}\nUbicación: ${eventNeighborhood}, ${eventAddress}\nInvitados: ${guestCount}\nPaquete: ${selectedPackage ? `${selectedPackage.name} ($${selectedPackage.price.toLocaleString()})` : 'Ninguno'}\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price.toLocaleString()}`).join('\n')}\n\nTotal estimado: $${totalPrice.toLocaleString()}`;
+    const text = `Hola, me interesa una cotización para el evento.\n\nCliente: ${clientName}\nFecha: ${eventDate}\nHorario: ${eventStartTime} ${startAmPm} - ${eventEndTime} ${endAmPm} (${eventDuration.toFixed(1)} hrs)\nUbicación: ${eventNeighborhood}, ${eventAddress}\nInvitados: ${guestCount}\nPaquete: ${selectedComputedPackage ? `${selectedComputedPackage.name} ($${selectedComputedPackage.computedPrice.toLocaleString()})` : 'Ninguno'}\nExtras:\n${dynamicExtras.filter(e => activeExtras[e.id]).map(e => `- ${e.name} (${e.desc}) - $${e.price.toLocaleString()}`).join('\n')}\n\nTotal estimado: $${totalPrice.toLocaleString()}`;
     return `https://wa.me/1234567890?text=${encodeURIComponent(text)}`;
   };
 
@@ -404,7 +417,7 @@ function App() {
         </section>
 
         <section className="packages-grid fade-in">
-          {packages.map((pkg) => (
+          {computedPackages.map((pkg) => (
             <div
               key={pkg.id}
               className={`package-card ${selectedPackageId === pkg.id ? 'selected' : ''}`}
@@ -415,8 +428,14 @@ function App() {
                 {pkg.features.map((feature, idx) => (
                   <li key={idx} dangerouslySetInnerHTML={{ __html: feature }} />
                 ))}
+                {pkg.extraHoursInfo && (
+                  <li><strong>+ {pkg.extraHoursInfo}</strong></li>
+                )}
               </ul>
-              <div className="package-price">${pkg.price.toLocaleString()}</div>
+              <div className="package-price">
+                ${pkg.computedPrice.toLocaleString()}
+                {pkg.computedPrice > pkg.price && <span style={{ display: 'block', fontSize: '0.8rem', color: '#888' }}>Incluye horas extra</span>}
+              </div>
               <button className="select-btn">
                 {selectedPackageId === pkg.id ? 'Seleccionado' : 'Seleccionar'}
               </button>
