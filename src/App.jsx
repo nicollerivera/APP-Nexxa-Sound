@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import './App.css';
 import { packages, extras } from './data';
 
@@ -28,6 +28,25 @@ function useLocalStorage(key, initialValue) {
 }
 
 function App() {
+  const packagesContainerRef = useRef(null);
+
+  // Enable horizontal scrolling with mouse wheel
+  useEffect(() => {
+    const el = packagesContainerRef.current;
+    if (el) {
+      const onWheel = (e) => {
+        if (e.deltaY === 0) return;
+        e.preventDefault();
+        el.scrollTo({
+          left: el.scrollLeft + e.deltaY,
+          behavior: 'smooth'
+        });
+      };
+      el.addEventListener('wheel', onWheel);
+      return () => el.removeEventListener('wheel', onWheel);
+    }
+  }, [currentStep]); // Re-bind when step changes (and container appears)
+
   const [selectedPackageId, setSelectedPackageId] = useLocalStorage('nexxa_pkg', null);
   const [activeExtras, setActiveExtras] = useLocalStorage('nexxa_extras', {});
   const [guestCount, setGuestCount] = useLocalStorage('nexxa_guests', 10);
@@ -448,7 +467,7 @@ function App() {
         {currentStep === 2 && (
           <section id="block-packages" className="packages-grid-container fade-in">
             <h2 className="section-title">Selecciona tu Paquete</h2>
-            <div className="packages-grid">
+            <div className="packages-grid" ref={packagesContainerRef}>
               {computedPackages.map((pkg) => (
                 <div
                   key={pkg.id}
