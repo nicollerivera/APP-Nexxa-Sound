@@ -147,6 +147,14 @@ function App() {
     }));
   };
 
+  const [makeupCount, setMakeupCount] = useLocalStorage('nexxa_makeup', 1);
+
+  // Auto-calculate recommended makeup artists when guests change
+  useEffect(() => {
+    const recommended = Math.ceil(guestCount / 50) || 1;
+    setMakeupCount(recommended);
+  }, [guestCount]);
+
   const calculateDuration = () => {
     if (!eventStartTime || !eventEndTime) return 0;
 
