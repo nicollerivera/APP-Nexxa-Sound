@@ -191,16 +191,18 @@ select {
 }
 
 .event-card {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: linear-gradient(135deg, rgba(20, 20, 20, 0.9) 0%, rgba(10, 10, 10, 0.95) 100%);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  /* Cyan border */
   border-radius: 16px;
   padding: 15px;
   display: flex;
   align-items: center;
   gap: 15px;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: var(--shadow-sm);
+  transition: all 0.3s;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+  /* Subtle cyan glow */
   position: relative;
   /* Ensure z-index works */
   z-index: 100;
@@ -215,7 +217,8 @@ select {
 
 .event-card:active {
   transform: scale(0.98);
-  background: var(--glass-highlight);
+  border-color: rgba(0, 212, 255, 0.8);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
 }
 
 .card-date {
@@ -308,12 +311,14 @@ select {
 }
 
 .hero-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  padding: 25px;
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.6) 0%, rgba(20, 20, 20, 0.9) 100%);
+  border: 1px solid rgba(157, 78, 221, 0.3);
+  /* Purple border for Header */
+  border-radius: 24px;
+  padding: 30px;
   text-align: center;
   margin-bottom: 25px;
+  box-shadow: 0 0 20px rgba(157, 78, 221, 0.15);
 }
 
 .hero-card h1 {
@@ -560,22 +565,26 @@ select:focus {
 }
 
 .flow-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #333;
   color: var(--text-secondary);
-  padding: 15px 10px;
+  padding: 16px 10px;
   border-radius: 12px;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s;
   text-align: center;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
 .flow-btn.done {
-  background: rgba(0, 255, 157, 0.15);
-  border-color: rgba(0, 255, 157, 0.4);
-  color: #00ff9d;
+  background: rgba(0, 212, 255, 0.1);
+  /* Cyan tint */
+  border-color: #00d4ff;
+  color: #00d4ff;
   font-weight: bold;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+  text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
 }
 
 .checklist-container {
@@ -588,12 +597,13 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 15px;
-  background: var(--glass-bg);
-  padding: 15px;
+  background: rgba(20, 20, 20, 0.6);
+  padding: 16px;
   border-radius: 12px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  /* Subtle cyan border */
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .checklist-item:active {
