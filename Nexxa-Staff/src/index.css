@@ -201,6 +201,16 @@ select {
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: var(--shadow-sm);
+  position: relative;
+  /* Ensure z-index works */
+  z-index: 100;
+  /* Force above background/overlays */
+  touch-action: manipulation;
+  /* Improve touch response */
+  user-select: none;
+  /* Prevent text selection on tap */
+  -webkit-tap-highlight-color: transparent;
+  /* Remove mobile highlight box */
 }
 
 .event-card:active {
