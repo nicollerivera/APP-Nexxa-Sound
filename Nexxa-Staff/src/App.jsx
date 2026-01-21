@@ -1627,6 +1627,9 @@ function App() {
             <div className="event-status-badge">{evt.status}</div>
           </div>
         </div>
+        <div style={{ textAlign: 'right', fontSize: '0.7rem', color: '#555', marginTop: '-20px', marginBottom: '20px' }}>
+          v2.5 Purple Update 💜
+        </div>
 
         <div className="card hero-card">
           <h1>{evt.client.name}</h1>
