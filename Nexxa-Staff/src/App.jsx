@@ -2112,11 +2112,17 @@ function App() {
                   setSelectedEventId(evt.id);
                   setView('detail');
                 } else {
-                  // Fallback for events without ID (Temporary Fix)
                   console.warn("Event with no ID clicked", evt);
                 }
               }}
-              style={{ cursor: 'pointer' }}
+              style={{
+                cursor: 'pointer',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                touchAction: 'manipulation',
+                position: 'relative',
+                zIndex: 999
+              }}
             >
               <div className="card-date">
                 <span className="day">{evt.eventDetails.date ? evt.eventDetails.date.split('-')[2] : '??'}</span>
