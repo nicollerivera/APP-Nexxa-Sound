@@ -17,195 +17,32 @@ const formatPeso = (amount) => {
 };
 
 // --- TIME COMPONENT ---
-// --- TIME COMPONENT ---
+// --- TIME COMPONENT (NATIVE) ---
 const TimeInput = ({ value, onChange, label }) => {
-  // Value is 24h (e.g. "14:30") or empty
-  const [localText, setLocalText] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
-
-  // Helper: Parse 24h "HH:MM" -> { h12, m, isPm } for display
-  const parseValue = (val24) => {
-    if (!val24) return { h12: '', m: '', isPm: false };
-    const [hStr, mStr] = val24.split(':');
-    let h = parseInt(hStr || '0', 10);
-    let m = mStr || '00';
-    const isPm = h >= 12;
-    if (h > 12) h -= 12;
-    if (h === 0) h = 12; // 12 AM/PM
-    return { h12: String(h).padStart(2, '0'), m: String(m).padStart(2, '0'), isPm };
-  };
-
-  // Sync external value -> local text (Only when NOT editing)
-  useEffect(() => {
-    if (!isFocused) {
-      if (!value) {
-        setLocalText("");
-      } else {
-        const { h12, m } = parseValue(value);
-        setLocalText(`${h12}:${m}`);
-      }
-    }
-    // eslint-disable-next-line
-  }, [value]);
-
-  const handleFocus = () => setIsFocused(true);
-
-  const handleChange = (e) => {
-    // Just filter digits/colon, don't format/validate yet
-    let val = e.target.value.replace(/[^0-9:]/g, '');
-    if (val.length > 5) val = val.slice(0, 5);
-    setLocalText(val);
-
-    // If empty, update parent immediately to empty
-    if (val === "") {
-      onChange("");
-    }
-  };
-
-  const commitChange = (finalVal24) => {
-    onChange(finalVal24);
-    // Also update local text to match new reality immediately (optional but good for syncing)
-    const { h12, m } = parseValue(finalVal24);
-    setLocalText(`${h12}:${m}`);
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-    let val = localText;
-
-    if (!val) {
-      onChange('');
-      return;
-    }
-
-    // Try to be smart about inputs like "200" -> "02:00" or "1400" -> "14:00"
-    if (!val.includes(':') && val.length >= 3) {
-      // Treat as HHMM
-      const hPart = val.slice(0, val.length - 2);
-      const mPart = val.slice(val.length - 2);
-      val = `${hPart}:${mPart}`;
-    }
-
-    let [hStr, mStr] = val.split(':');
-    let h = parseInt(hStr || '0', 10);
-    let m = parseInt(mStr || '0', 10);
-
-    // Basic clamps
-    if (h > 23) h = 23;
-    if (m > 59) m = 59;
-
-    // We are editing visually in 12h mode typically, OR user typed raw 24h?
-    // Let's assume user types in 12h format IF they are simple numbers (1-12).
-    // But wait, our AM/PM logic depends on context. 
-    // Simplified strategy: Treat input as Visual 12h, preserving existing AM/PM if possible.
-
-    const { isPm: currentIsPm } = parseValue(value);
-
-    // However, if user types "14:00", they clearly mean 24h 14:00 (2 PM).
-    // If user types "02:00", is it AM or PM? We stick to "currentIsPm".
-
-    let isExplicit24 = h > 12;
-
-    let finalH24 = h;
-
-    if (isExplicit24) {
-      // User typed 13+, so they mean 24h.
-      finalH24 = h;
-    } else {
-      // User typed 0-12. Respect the AM/PM toggle state.
-      // Logic: If currently PM and h!=12 -> h+12. If PM and h=12 -> 12.
-      // If AM and h=12 -> 0.
-      if (currentIsPm && h !== 12) finalH24 = h + 12;
-      if (!currentIsPm && h === 12) finalH24 = 0;
-    }
-
-    const hh = String(finalH24).padStart(2, '0');
-    const mm = String(m).padStart(2, '0');
-    commitChange(`${hh}:${mm}`);
-  };
-
-  const setAmpm = (targetPm) => {
-    // Current 24h value
-    let current24 = value;
-    if (!current24) current24 = "08:00"; // Default seed
-
-    const { h12, m, isPm } = parseValue(current24);
-    if (targetPm === isPm) return; // No change
-
-    // Flip logic
-    let h = parseInt(h12, 10);
-    let h24 = h;
-
-    if (targetPm) { // Becoming PM
-      if (h !== 12) h24 = h + 12;
-      else h24 = 12;
-    } else { // Becoming AM
-      if (h === 12) h24 = 0;
-      else h24 = h;
-    }
-
-    const hh = String(h24).padStart(2, '0');
-    const newVal = `${hh}:${m}`;
-    commitChange(newVal);
-  };
-
-  const { isPm } = parseValue(value);
-
   return (
     <div style={{ flex: 1, background: '#222', padding: '10px', borderRadius: '12px', border: '1px solid #333' }}>
       <label style={{ fontSize: '0.75rem', color: '#aaa', display: 'block', marginBottom: '5px' }}>{label}</label>
-      <div style={{ display: 'flex', gap: '5px' }}>
+      <div style={{ position: 'relative', height: '40px', display: 'flex', alignItems: 'center' }}>
         <input
-          type="text"
-          placeholder="--:--"
-          maxLength={5}
+          type="time"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           style={{
-            width: '60%',
+            width: '100%',
             background: 'transparent',
             border: 'none',
             borderBottom: '2px solid #00d4ff',
             color: 'white',
-            fontSize: '1.2rem',
+            fontSize: '1.4rem',
             textAlign: 'center',
             fontWeight: 'bold',
-            outline: 'none'
+            outline: 'none',
+            appearance: 'none',
+            WebkitAppearance: 'none' // Some browsers need this for styling
           }}
-          value={localText}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onChange={handleChange}
+          className="native-time-input"
         />
-
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()} // Prevent blur of input if clicking buttons
-          onClick={() => setAmpm(false)}
-          style={{
-            flex: 1,
-            background: !isPm ? '#00d4ff' : '#333',
-            color: !isPm ? 'black' : '#888',
-            border: 'none',
-            borderRadius: '6px',
-            fontWeight: 'bold',
-            cursor: 'pointer'
-          }}>
-          AM
-        </button>
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setAmpm(true)}
-          style={{
-            flex: 1,
-            background: isPm ? '#00d4ff' : '#333',
-            color: isPm ? 'black' : '#888',
-            border: 'none',
-            borderRadius: '6px',
-            fontWeight: 'bold',
-            cursor: 'pointer'
-          }}>
-          PM
-        </button>
+        {/* Fallback Icon for clarity usually not needed as clickable area is full */}
       </div>
     </div>
   );
