@@ -1700,36 +1700,36 @@ function App() {
         {/* --- SECTION: FINANCIALS (THEMED RECAUDO) --- */}
         <div className="sheet-section" style={{ marginBottom: '50px' }}>
 
-          {/* Main Recaudo Card (Nexxa Theme: Pink/Purple) */}
+          {/* Main Recaudo Card (Nexxa Theme: Cyan) */}
           <div style={{
-            background: 'linear-gradient(180deg, rgba(50, 0, 30, 0.6) 0%, rgba(20, 0, 10, 0.9) 100%)',
-            border: '1px solid #ff007a',
+            background: 'linear-gradient(180deg, rgba(0, 50, 60, 0.6) 0%, rgba(0, 20, 30, 0.9) 100%)',
+            border: '1px solid #00d4ff',
             borderRadius: '20px',
             padding: '20px',
-            boxShadow: '0 0 15px rgba(255, 0, 122, 0.2)',
+            boxShadow: '0 0 15px rgba(0, 212, 255, 0.2)',
             position: 'relative',
             overflow: 'hidden'
           }}>
             {/* Background texture effect */}
             <div style={{
               position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-              backgroundImage: 'radial-gradient(#ff007a 1px, transparent 1px)',
+              backgroundImage: 'radial-gradient(#00d4ff 1px, transparent 1px)',
               backgroundSize: '20px 20px',
               opacity: 0.1,
               pointerEvents: 'none'
             }}></div>
 
-            <h3 style={{ color: '#ff007a', fontSize: '0.9rem', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            <h3 style={{ color: '#00d4ff', fontSize: '0.9rem', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
               Objetivo de Recaudo
             </h3>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0' }}>
-              <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#ff007a', textShadow: '0 0 15px rgba(255, 0, 122, 0.5)' }}>
+              <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#00d4ff', textShadow: '0 0 15px rgba(0, 212, 255, 0.5)' }}>
                 {formatPeso(evt.financials.balance)}
               </div>
               <div style={{
                 fontSize: '2.5rem',
-                background: '#ff007a',
+                background: '#00d4ff',
                 color: 'black',
                 width: '60px',
                 height: '60px',
@@ -1738,7 +1738,7 @@ function App() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 'bold',
-                boxShadow: '0 0 10px #ff007a'
+                boxShadow: '0 0 10px #00d4ff'
               }}>$</div>
             </div>
 
@@ -1748,7 +1748,7 @@ function App() {
 
             {/* Accounts Grid */}
             {/* Accounts Grid */}
-            <h4 style={{ color: '#ff007a', fontSize: '0.8rem', marginBottom: '10px', textTransform: 'uppercase' }}>Cuentas Autorizadas</h4>
+            <h4 style={{ color: '#00d4ff', fontSize: '0.8rem', marginBottom: '10px', textTransform: 'uppercase' }}>Cuentas Autorizadas</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               {[
                 { name: 'NEQUI', val: '300 000 0000' },
@@ -1765,14 +1765,14 @@ function App() {
                   }}
                   style={{
                     background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid #ff007a',
+                    border: '1px solid #00d4ff',
                     borderRadius: '10px',
                     padding: '10px',
                     cursor: 'pointer',
                     transition: 'background 0.2s',
                     position: 'relative'
                   }}
-                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 0, 122, 0.1)'}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'}
                   onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
                 >
                   <strong style={{ display: 'block', color: 'white', fontSize: '0.9rem' }}>{acc.name}</strong>
