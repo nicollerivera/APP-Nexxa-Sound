@@ -4,7 +4,6 @@ export const packages = [
     name: 'ESSENTIAL',
     price: 450000,
     features: [
-      '<strong>Servicio por 4 Horas</strong>',
       '2 Cabinas de Sonido Potenciadas',
       'DJ Crossover (Mezcla en vivo)',
       '4 Luces Rítmicas LED',
@@ -18,7 +17,6 @@ export const packages = [
     name: 'MEMORIES',
     price: 650000,
     features: [
-      '<strong>Servicio por 4 Horas</strong>',
       '2 Cabinas de Sonido Potenciadas',
       'DJ Crossover (Mezcla en vivo)',
       '4 Luces Rítmicas LED',
@@ -33,7 +31,6 @@ export const packages = [
     name: 'CELEBRATION',
     price: 850000,
     features: [
-      '<strong>Servicio por 4 Horas</strong>',
       '2 Cabinas de Sonido Potenciadas',
       'DJ Crossover (Mezcla en vivo)',
       '4 Luces Rítmicas LED',

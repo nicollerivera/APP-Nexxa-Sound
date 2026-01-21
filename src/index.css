@@ -18,9 +18,21 @@
   --primary-glow: rgba(157, 78, 221, 0.4);
 
   --text-primary: #FFFFFF;
-  --text-secondary: #B0B0B5;
-  --border-radius: 16px;
-  --transition-speed: 0.3s;
+  --text-secondary: #E0E0E0;
+  --border-radius: 12px;
+  --transition-speed: 0.3s ease;
+  --carousel-tz: 400px;
+  /* Desktop 3D Radius */
+  --pkg-carousel-tz: 450px;
+  /* Reduced to fix "too big" on PC */
+}
+
+@media (max-width: 600px) {
+  :root {
+    --carousel-tz: 180px;
+    --pkg-carousel-tz: 160px;
+    /* Highly compact mobile package radius */
+  }
 }
 
 * {
