@@ -746,11 +746,10 @@ function App() {
         const col1X = margin + 10;
         const col2X = margin + 80;
 
-        doc.text('NEQUI: 300 XXX XXXX', col1X, boxY + 14);
-        doc.text('DAVIPLATA: 300 XXX XXXX', col1X, boxY + 22);
+        doc.text('NEQUI: 300 000 0000', col1X, boxY + 14);
+        doc.text('DAVIPLATA: 300 000 0000', col1X, boxY + 22);
 
-        doc.text('BANCOLOMBIA: AH - 123456789', col2X, boxY + 14);
-        doc.text('EFECTIVO: Contra Entrega', col2X, boxY + 22);
+        doc.text('EFECTIVO: Contra Entrega', col2X, boxY + 18);
       }
 
       // --- SAVE (Explicit Binary Blob Strategy) ---
@@ -1733,9 +1732,8 @@ function App() {
             <h4 style={{ color: '#2eff7b', fontSize: '0.8rem', marginBottom: '10px', textTransform: 'uppercase' }}>Cuentas Autorizadas</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               {[
-                { name: 'NEQUI', val: '300 123 4567' },
-                { name: 'DAVIPLATA', val: '300 123 4567' },
-                { name: 'BANCOLOMBIA', val: 'AH - 123456789' },
+                { name: 'NEQUI', val: '300 000 0000' },
+                { name: 'DAVIPLATA', val: '300 000 0000' },
                 { name: 'EFECTIVO', val: 'Contra Entrega' }
               ].map((acc, idx) => (
                 <div
