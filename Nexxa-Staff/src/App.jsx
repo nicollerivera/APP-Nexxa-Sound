@@ -1703,7 +1703,7 @@ function App() {
         {/* --- SECTION: FINANCIALS (THEMED RECAUDO) --- */}
         <div className="sheet-section" style={{ marginBottom: '50px' }}>
 
-          {/* Main Recaudo Card (Nexxa Theme: Purple) */}
+          {/* Main Recaudo Card (Nexxa Theme: Purple) - RE-WRITTEN SAFE VERSION */}
           <div style={{
             background: 'linear-gradient(180deg, rgba(60, 0, 90, 0.6) 0%, rgba(30, 0, 50, 0.9) 100%)',
             border: '1px solid #9d4edd',
@@ -1713,20 +1713,20 @@ function App() {
             position: 'relative',
             overflow: 'hidden'
           }}>
-            {/* Background texture effect */}
+            {/* Background texture */}
             <div style={{
               position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-              backgroundImage: 'radial-gradient(#9d4edd 1px, transparent 1px)',
+              opacity: 0.05,
+              background: 'radial-gradient(#9d4edd 1px, transparent 1px)',
               backgroundSize: '20px 20px',
-              opacity: 0.1,
               pointerEvents: 'none'
-            }}></div>
+            }} />
 
-            <h3 style={{ color: '#9d4edd', fontSize: '0.9rem', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            <h3 style={{ color: '#9d4edd', fontSize: '0.9rem', margin: '0 0 15px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>
               Objetivo de Recaudo
             </h3>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
               <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#9d4edd', textShadow: '0 0 15px rgba(157, 78, 221, 0.5)' }}>
                 {formatPeso(evt.financials.balance)}
               </div>
@@ -1742,14 +1742,15 @@ function App() {
                 justifyContent: 'center',
                 fontWeight: 'bold',
                 boxShadow: '0 0 10px #9d4edd'
-              }}>$</div>
+              }}>
+                $
+              </div>
             </div>
 
             <p style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '25px' }}>
               {evt.financials.balance > 0 ? 'Debe cobrarse al cliente al inicio.' : '✅ Todo al día. No se requiere cobro.'}
             </p>
 
-            {/* Accounts Grid */}
             {/* Accounts Grid */}
             <h4 style={{ color: '#9d4edd', fontSize: '0.8rem', marginBottom: '10px', textTransform: 'uppercase' }}>Cuentas Autorizadas</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -1772,7 +1773,7 @@ function App() {
                     borderRadius: '10px',
                     padding: '10px',
                     cursor: 'pointer',
-                    transition: 'background 0.2s',
+                    transition: 'all 0.2s',
                     position: 'relative'
                   }}
                   onMouseOver={(e) => e.currentTarget.style.background = 'rgba(157, 78, 221, 0.1)'}
@@ -1784,8 +1785,9 @@ function App() {
                 </div>
               ))}
             </div>
-
           </div>
+
+
 
           {/* Expenses List (Kept underneath implicitly or moved? Let's keep it minimal as in image context, maybe collapsed) */}
           <div className="expenses-list" style={{ marginTop: '25px', borderTop: '1px solid #333', paddingTop: '15px' }}>
@@ -1821,7 +1823,7 @@ function App() {
           </div>
         </div>
 
-      </div>
+      </div >
     );
   };
 
