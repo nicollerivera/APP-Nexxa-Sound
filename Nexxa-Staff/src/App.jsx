@@ -1627,8 +1627,8 @@ function App() {
             <div className="event-status-badge">{evt.status}</div>
           </div>
         </div>
-        <div style={{ textAlign: 'right', fontSize: '0.8rem', color: 'red', fontWeight: 'bold', marginTop: '-20px', marginBottom: '20px', border: '1px dashed red', padding: '5px' }}>
-          v3.0 - PURPLE MODE ACTIVE 💜
+        <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#9d4edd', fontWeight: 'bold', marginTop: '-20px', marginBottom: '20px', border: '1px solid #9d4edd', padding: '5px', background: 'rgba(157,78,221,0.1)' }}>
+          v4.0 - ULTRA PURPLE 💜
         </div>
 
         <div className="card hero-card">
