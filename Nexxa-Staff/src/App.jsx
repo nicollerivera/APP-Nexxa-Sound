@@ -1614,15 +1614,21 @@ function App() {
     return (
       <div className="fade-in container detail-view">
         {/* HEADER */}
+        {/* HEADER */}
         <div className="header-row">
-          <button onClick={() => setView('events')} className="icon-btn">← Volver</button>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="icon-btn" onClick={() => editEvent(evt)}>✏️ Editar</button>
+          <button onClick={() => setView('events')} className="nav-btn">
+            <span style={{ fontSize: '1.2rem' }}>←</span> Volver
+          </button>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button className="nav-btn" onClick={() => editEvent(evt)}>
+              ✏️ Editar
+            </button>
             <div className="event-status-badge">{evt.status}</div>
           </div>
         </div>
 
-        <div className="card hero-card compact">
+        <div className="card hero-card">
           <h1>{evt.client.name}</h1>
           <p className="subtitle">{evt.logistics.packName} • {evt.eventDetails.date}</p>
         </div>
