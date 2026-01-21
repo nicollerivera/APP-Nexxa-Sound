@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Actualización</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #9d4edd;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        a {
+            background: white;
+            color: #9d4edd;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>✅ ¡ACTUALIZACIÓN CONFIRMADA!</h1>
+    <p>Si ves esta pantalla morada, tu celular YA recibió los cambios.</p>
+    <br>
+    <p>Haz clic en el botón de abajo para entrar a la App limpia:</p>
+    <br>
+    <a id="cleanLink" href="/">ENTRAR A LA APP</a>
+
+    <script>
+        // Generar un link único para romper el caché
+        const uniqueId = Date.now();
+        document.getElementById('cleanLink').href = "/?nocache=" + uniqueId;
+    </script>
+</body>
+
+</html>
