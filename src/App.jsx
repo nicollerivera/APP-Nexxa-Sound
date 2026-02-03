@@ -41,6 +41,8 @@ function App() {
   const [makeupCount, setMakeupCount] = useLocalStorage('nexxa_makeup_v6', 1);
 
   const [clientName, setClientName] = useLocalStorage('nexxa_client_v6', '');
+  const [clientPhone, setClientPhone] = useLocalStorage('nexxa_phone_v6', '');
+  const [eventOccasion, setEventOccasion] = useLocalStorage('nexxa_occasion_v6', '');
   const [eventDate, setEventDate] = useLocalStorage('nexxa_date_v6', '');
   const [eventStartTime, setEventStartTime] = useLocalStorage('nexxa_start_v6', '');
   const [eventEndTime, setEventEndTime] = useLocalStorage('nexxa_end_v6', '');
@@ -58,7 +60,7 @@ function App() {
   const slides = [
     { src: '/party_hero.png', label: 'DJ Crossover' },
     { src: '/lights_hero.png', label: 'Set de Luces' },
-    { src: '/decor_hero.png', label: 'Decoración' }
+    { src: '/decor_hero_v2.png', label: 'Decoración' }
   ];
 
   // Touch handlers for carousel swipe
@@ -364,7 +366,8 @@ function App() {
     const activeIds = Object.keys(activeExtras).filter(k => activeExtras[k]);
 
     const text = `Hola, me interesa una cotización para el evento.\n\n` +
-      `👤 *Cliente:* ${clientName}\n` +
+      `👤 *Cliente:* ${clientName} (${clientPhone})\n` +
+      `🎉 *Ocasión:* ${eventOccasion}\n` +
       `📅 *Fecha:* ${eventDate}\n` +
       `⏰ *Horario:* ${eventStartTime} ${startAmPm} - ${eventEndTime} ${endAmPm} (${eventDuration.toFixed(1)} hrs)\n` +
       `📍 *Ubicación:* ${eventNeighborhood}, ${eventAddress}\n` +
@@ -373,7 +376,7 @@ function App() {
       `➕ *Extras:* ${activeIds.length ? activeIds.join(', ') : 'Ninguno'}\n\n` +
       `💰 *Total Estimado:* $${totalPrice.toLocaleString()}`;
 
-    return `https://wa.me/573000000000?text=${encodeURIComponent(text)}`;
+    return `https://wa.me/573002596935?text=${encodeURIComponent(text)}`;
   };
 
   // Admin Mode State (Hidden)
@@ -399,7 +402,7 @@ function App() {
       return;
     }
 
-    if (!clientName || !eventDate || !eventStartTime || !eventEndTime || !eventNeighborhood || !eventAddress) {
+    if (!clientName || !clientPhone || !eventOccasion || !eventDate || !eventStartTime || !eventEndTime || !eventNeighborhood || !eventAddress) {
       alert("Por favor completa todos los campos del evento para continuar.");
       return;
     }
@@ -434,7 +437,11 @@ function App() {
             alt="NEXXA Sound Level Productions"
             className="brand-logo"
             // Back button logic: Go back 1 step
-            onClick={() => { setCurrentStep(prev => Math.max(0, prev - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            onClick={() => {
+              handleLogoClick();
+              setCurrentStep(prev => Math.max(0, prev - 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         </nav>
       )}
@@ -451,7 +458,9 @@ function App() {
                   className="landing-logo-img"
                   onClick={handleLogoClick}
                 />
-                <p className="landing-subtitle">DJ · Sonido · Iluminación · Experiencias</p>
+                <p className="landing-subtitle" style={{ fontSize: '1rem', letterSpacing: '2px', fontWeight: 'bold', marginTop: '5px', textTransform: 'uppercase', color: '#ccc' }}>
+                  DJ · Sonido · Iluminación · Experiencias
+                </p>
               </div>
 
               <div
@@ -497,19 +506,20 @@ function App() {
 
 
               <div className="value-props-container">
-                <h3 className="value-props-header">Nexxa te ofrece:</h3>
-                <ul className="value-props">
+                <h3 className="value-props-header" style={{ color: 'var(--primary-cyan)', textTransform: 'uppercase', fontSize: '1rem', marginBottom: '10px' }}>NEXXA TE OFRECE:</h3>
+                <ul className="value-props" style={{ gap: '15px' }}>
                   <li>⏱️ Cotización en 60 segundos</li>
-                  <li>💰 Precios claros, sin llamadas</li>
+                  <li>💰 Cotiza y negocia con un asesor al instante</li>
                   <li>🎧 DJ + sonido + luces en un solo lugar</li>
                   <li>💬 Asesoría inmediata</li>
                 </ul>
               </div>
               <button
                 className="action-btn landing-btn"
+                style={{ width: '100%', maxWidth: '400px', padding: '18px', background: 'linear-gradient(90deg, #00d4ff 0%, #9d4edd 100%)', borderRadius: '30px', fontSize: '1.2rem', fontWeight: 'bold' }}
                 onClick={() => { setCurrentStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               >
-                Cotizar mi evento
+                COTIZAR MI EVENTO
               </button>
             </div>
           </section>
@@ -618,6 +628,16 @@ function App() {
               <div className="form-group">
                 <label>Nombre del cliente</label>
                 <input type="text" className="input-field" placeholder="Tu nombre completo" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+              </div>
+
+              <div className="form-group">
+                <label>Número de celular</label>
+                <input type="tel" className="input-field" placeholder="Ej: 3001234567" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} />
+              </div>
+
+              <div className="form-group">
+                <label>¿Qué ocasión celebras?</label>
+                <input type="text" className="input-field" placeholder="Ej: Cumpleaños, Boda, Fiesta de integración" value={eventOccasion} onChange={(e) => setEventOccasion(e.target.value)} />
               </div>
 
               <div className="form-group">
@@ -773,6 +793,10 @@ function App() {
                 <div className="summary-item">
                   <span className="summary-label">Cliente</span>
                   <span className="summary-value">{clientName || 'Cliente'}</span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Celular</span>
+                  <span className="summary-value">{clientPhone || '---'}</span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Fecha</span>
