@@ -509,6 +509,10 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  white-space: normal;
+  /* Allow wrap */
+  word-wrap: break-word;
+  /* Allow wrap */
 }
 
 .info-block {
@@ -566,32 +570,50 @@ body::after {
 
 .form-section {
   background: var(--glass-bg);
-  padding: 12px;
-  border-radius: 16px;
+  padding: 10px 10px 20px 10px;
+  /* Added 20px bottom padding for safety */
+  border-radius: 12px;
   border: 1px solid var(--glass-border);
+  margin-bottom: 8px;
+  height: auto !important;
+  /* Force auto height */
+  overflow: visible !important;
+  /* Prevent clipping */
+  display: flex;
+  flex-direction: column;
 }
 
 .form-section h3 {
-  margin: 0 0 15px 0;
-  font-size: 0.9rem;
+  margin: 0 0 8px 0;
+  /* Reduced from 15px */
+  font-size: 0.8rem;
+  /* Reduced from 0.9rem */
   color: var(--primary-cyan);
+}
+
+label {
+  white-space: normal;
+  word-wrap: break-word;
+  height: auto;
+  display: block;
 }
 
 input,
 select {
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   margin-bottom: 8px;
-  /* Reduced spacing for mobile */
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid #333;
   border-radius: 10px;
   color: white;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   box-sizing: border-box;
   appearance: none;
-  /* Fix for weird browser inputs */
   -webkit-appearance: none;
+  min-height: 42px;
+  /* Ensure visibility */
+  line-height: normal;
 }
 
 /* Time input specific fix */

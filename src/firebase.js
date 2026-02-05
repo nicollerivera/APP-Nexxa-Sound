@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCs-J5btEht71f9FRI-iXrY-7vSpc2CMz8",
+    apiKey: "AIzaSyAqEicD_akUzN74KpoLDbGgeavIZC9Qmoc",
     authDomain: "nexxa-staff.firebaseapp.com",
     projectId: "nexxa-staff",
     storageBucket: "nexxa-staff.firebasestorage.app",

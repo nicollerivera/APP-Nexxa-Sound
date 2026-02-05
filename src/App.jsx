@@ -3,6 +3,8 @@ import { AuroraBackground } from './AuroraBackground';
 import './App.css';
 import './ValueProps.css';
 import { packages, extras } from './data';
+import { db } from './firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 // Custom hook for local storage persistence
 function useLocalStorage(key, initialValue) {
@@ -362,21 +364,105 @@ function App() {
   };
 
   const generateWhatsappLink = () => {
-    // Build Text (Clean for Client)
     const activeIds = Object.keys(activeExtras).filter(k => activeExtras[k]);
 
-    const text = `Hola, me interesa una cotización para el evento.\n\n` +
-      `👤 *Cliente:* ${clientName} (${clientPhone})\n` +
-      `🎉 *Ocasión:* ${eventOccasion}\n` +
-      `📅 *Fecha:* ${eventDate}\n` +
-      `⏰ *Horario:* ${eventStartTime} ${startAmPm} - ${eventEndTime} ${endAmPm} (${eventDuration.toFixed(1)} hrs)\n` +
-      `📍 *Ubicación:* ${eventNeighborhood}, ${eventAddress}\n` +
-      `👥 *Invitados:* ${guestCount}\n` +
-      `📦 *Paquete:* ${selectedComputedPackage ? `${selectedComputedPackage.name}` : 'Ninguno'}\n` +
-      `➕ *Extras:* ${activeIds.length ? activeIds.join(', ') : 'Ninguno'}\n\n` +
-      `💰 *Total Estimado:* $${totalPrice.toLocaleString()}`;
+    // BUILD EXACT MESSAGE FORMAT REQUESTED
+    const text = `✨ NUEVA SOLICITUD DE COTIZACIÓN - NEXXA SOUND ✨\n\n` +
+      `¡Hola! He generado esta cotización desde la App y me gustaría recibir más información:\n\n` +
+      `👤 Cliente: ${clientName}\n` +
+      `📅 Fecha: ${eventDate}\n` +
+      `⏰ Horario: ${eventStartTime} ${startAmPm} - ${eventEndTime} ${endAmPm} (${eventDuration.toFixed(1)} hrs)\n` +
+      `📍 Ubicación: ${eventNeighborhood}, ${eventAddress}\n` +
+      `🎉 Ocasión: ${eventOccasion}\n` +
+      `👥 Invitados: ${guestCount}\n` +
+      `📦 Paquete: ${selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado'}\n` +
+      `➕ Extras: ${activeIds.length ? activeIds.join(', ') : 'Ninguno'}\n\n` +
+      `💰 Total Estimado: $${totalPrice.toLocaleString()}\n` +
+      `(El valor puede ajustarse según las necesidades reales del evento)\n\n` +
+      `👉 Quedo atento(a) para recibir recomendaciones y posibles ajustes.`;
 
-    return `https://wa.me/573002596935?text=${encodeURIComponent(text)}`;
+    const TARGET_PHONE = "573204863127";
+    return `https://wa.me/${TARGET_PHONE}?text=${encodeURIComponent(text)}`;
+  };
+
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSendQuotation = async () => {
+    if (isSending) return;
+    if (!clientName.trim()) {
+      alert("Por favor ingresa tu nombre para continuar.");
+      return;
+    }
+    setIsSending(true);
+
+    // 1. Prepare Object for Firestore
+    const activeIds = Object.keys(activeExtras).filter(k => activeExtras[k]);
+    const selectedExtrasObj = {};
+    activeIds.forEach(id => {
+      selectedExtrasObj[id] = true;
+    });
+
+    // Determine roles based on package
+    const roles = {
+      dj: true, // Always included
+      photographer: selectedPackageId === 'memories' || selectedPackageId === 'celebration',
+      decorator: selectedPackageId === 'celebration'
+    };
+
+    const quotationData = {
+      status: 'SENT',
+      createdAt: serverTimestamp(),
+      client: {
+        name: clientName,
+        phone: clientPhone,
+        phone2: ''
+      },
+      eventDetails: {
+        date: eventDate,
+        occasion: eventOccasion,
+        startTime: to24h(eventStartTime, startAmPm),
+        endTime: to24h(eventEndTime, endAmPm),
+        location: eventAddress,
+        neighborhood: eventNeighborhood,
+        guestCount: guestCount
+      },
+      financials: {
+        totalValue: totalPrice,
+        deposit: 0,
+        balance: totalPrice
+      },
+      logistics: {
+        packName: selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado',
+        selectedExtras: selectedExtrasObj,
+        makeupCount: makeupCount,
+        // New required fields for Staff App
+        rolesSchedule: roles,
+        materials: `Paquete ${selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado'} + ${activeIds.length} extras`
+      }
+    };
+
+    // Use the detailed WhatsApp link with all quote info
+    const waLink = generateWhatsappLink();
+
+    try {
+      // 2. SAVE TO FIREBASE (MANDATORY)
+      console.log("PREPARING TO SAVE:", quotationData);
+
+      const docRef = await addDoc(collection(db, "quotations"), quotationData);
+      console.log("FIREBASE SUCCESS - DOCUMENT ID:", docRef.id);
+
+      // Notify user of success before jumping to WhatsApp
+      alert("✅ ¡ÉXITO! Cotización registrada en sistema Staff.\nID: " + docRef.id + "\n\nAhora abriremos WhatsApp para que el pedido sea notificado.");
+
+      // 3. OPEN WHATSAPP ONLY ON SUCCESS
+      window.location.href = waLink;
+
+    } catch (error) {
+      console.error("FIREBASE ERROR:", error);
+      alert("❌ ERROR AL GUARDAR EN BASE DE DATOS:\n\n" + (error.message || "Error desconocido") + "\n\nPor favor, verifica tu conexión o intenta más tarde.");
+    } finally {
+      setTimeout(() => setIsSending(false), 2000);
+    }
   };
 
   // Admin Mode State (Hidden)
@@ -632,7 +718,7 @@ function App() {
 
               <div className="form-group">
                 <label>Número de celular</label>
-                <input type="tel" className="input-field" placeholder="Ej: 3001234567" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} />
+                <input type="tel" className="input-field" placeholder="Ej: 3204863127" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} />
               </div>
 
               <div className="form-group">
@@ -865,9 +951,26 @@ function App() {
 
             <div className="summary-footer">
               <button className="btn-secondary" onClick={() => setCurrentStep(3)}>Editar</button>
-              <a href={generateWhatsappLink()} target="_blank" rel="noopener noreferrer" className="action-btn">
-                Enviar a WhatsApp <svg style={{ marginLeft: '8px' }} width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.916c-.004 5.45-4.439 9.884-9.896 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-              </a>
+              <button
+                onClick={handleSendQuotation}
+                className="action-btn"
+                disabled={isSending}
+                style={{
+                  border: 'none',
+                  cursor: isSending ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: isSending ? 0.7 : 1
+                }}
+              >
+                {isSending ? 'Procesando...' : 'Enviar a WhatsApp'}
+                {!isSending && (
+                  <svg style={{ marginLeft: '8px' }} width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.916c-.004 5.45-4.439 9.884-9.896 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                  </svg>
+                )}
+              </button>
             </div>
 
           </div>

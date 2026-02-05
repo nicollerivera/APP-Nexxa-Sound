@@ -1,143 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import './accounting_styles.css';
-import './index.css';
+
+import QuotationsView from './components/QuotationsView';
+
+// --- IMPORTS MOVED ---
+import { formatPeso, months, getHours, parseFirestoreDate } from './utils/helpers';
+import {
+  IconArrowLeft, IconEdit, IconPhone, IconLocation, IconNeighborhood,
+  IconPDF, IconServices, IconFlow, IconRecaudo, IconCopy,
+  IconPayroll, IconCheck, IconUser, IconPlus, IconHistory,
+  IconWhatsApp, IconStaff, IconAlertTriangle, IconCalendar, IconInventory,
+  IconTrash, IconArrowRight, IconChecklist, IconCamera, IconSettings,
+  IconLogout, IconLogoNexxa, IconHome, IconBox, IconIndicator, IconFileText
+} from './components/Icons';
+import * as pdfService from './services/pdfService';
 import { db } from './firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc,
+  serverTimestamp, query, where, orderBy, getDocs
+} from 'firebase/firestore';
 
-// --- HELPERS ---
-const formatPeso = (amount) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
-};
+// --- HELPERS MOVED TO utils/helpers.js ---
+// --- ICONS MOVED TO components/Icons.jsx ---
 
-const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-
-const getHours = (start, end) => {
-  if (!start || !end) return 0;
-  const [h1, m1] = start.split(':').map(Number);
-  const [h2, m2] = end.split(':').map(Number);
-  let diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-  if (diffMinutes < 0) diffMinutes += 24 * 60;
-  return diffMinutes / 60;
-};
-
-const parseFirestoreDate = (date) => {
-  if (!date) return new Date();
-  if (date.toDate) return date.toDate();
-  return new Date(date);
-};
-
-
-// --- MINIMALIST ICONS (SVG) ---
-const IconArrowLeft = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-);
-const IconEdit = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
-);
-const IconPhone = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
-);
-const IconLocation = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-);
-const IconNeighborhood = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-);
-const IconPDF = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-);
-const IconServices = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12l4 6-10 12L2 9z" /><path d="M11 3L8 9l3 12" /><path d="M13 3l3 6-3 12" /></svg>
-);
-const IconFlow = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
-);
-const IconRecaudo = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
-);
-const IconCopy = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-);
-const IconPayroll = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-);
-const IconCheck = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-);
-const IconUser = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-);
-const IconPlus = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-);
-const IconHistory = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><polyline points="3 3 3 8 8 8" /><polyline points="12 8 12 12 16 14" /></svg>
-);
-const IconWhatsApp = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7l1.1 1.1" /><path d="M12 12h.01" /><path d="M17 12c.8-1.5 1-3.5-.5-4l-3 1c-1 1-1.5 2-1 3.5.5 1.5.5 1.5 2 2.5s2.5.5 3-.5l-1.5-1.5" /></svg>
-);
-const IconStaff = ({ size = 12 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-);
-const IconAlertTriangle = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-);
-const IconCalendar = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-);
-const IconInventory = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>
-);
-const IconTrash = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
-);
-const IconArrowRight = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-);
-const IconChecklist = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-);
-const IconCamera = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
-);
-const IconSettings = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
-);
-const IconLogout = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-);
-const IconLogoNexxa = ({ size = 24 }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-    <circle cx="50" cy="50" r="45" stroke="url(#logoGrad)" strokeWidth="8" />
-    <path d="M30 40 L50 60 L70 40" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-    <defs>
-      <linearGradient id="logoGrad" x1="0" y1="0" x2="100" y2="100">
-        <stop offset="0%" stopColor="#00d4ff" />
-        <stop offset="100%" stopColor="#9d4edd" />
-      </linearGradient>
-    </defs>
-  </svg>
-);
-
-const IconHome = ({ size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-);
-const IconBox = ({ size = 20 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2" /><path d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6" /><path d="M10 12h4" /></svg>
-);
-const IconIndicator = ({ size = 12 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" fill="currentColor" /></svg>
-);
-const IconFileText = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
-);
 
 // --- TIME COMPONENT ---
 // --- TIME COMPONENT (NATIVE) ---
@@ -303,9 +187,14 @@ function App() {
   // 1. SYNC EVENTS
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "events"), (snapshot) => {
-      const liveEvents = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })); // Ensure ID from doc
-      // Sort by date (descending or accordingly) could happen here
-      setEvents(liveEvents.sort((a, b) => b.id.localeCompare(a.id)));
+      const liveEvents = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      // Orden cronológico: Los eventos más cercanos a suceder aparecen primero
+      setEvents(liveEvents.sort((a, b) => {
+        const dateA = a.eventDetails?.date || '';
+        const dateB = b.eventDetails?.date || '';
+        if (dateA === dateB) return a.id.localeCompare(b.id);
+        return dateA.localeCompare(dateB);
+      }));
     });
     return () => unsubscribe();
   }, []);
@@ -314,7 +203,12 @@ function App() {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
       const liveQuo = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-      setQuotations(liveQuo.sort((a, b) => b.id.localeCompare(a.id)));
+      setQuotations(liveQuo.sort((a, b) => {
+        const dateA = parseFirestoreDate(a.createdAt);
+        const dateB = parseFirestoreDate(b.createdAt);
+        if (dateA.getTime() === dateB.getTime()) return b.id.localeCompare(a.id);
+        return dateB - dateA;
+      }));
     });
     return () => unsubscribe();
   }, []);
@@ -364,15 +258,18 @@ function App() {
   const [showMonthSelector, setShowMonthSelector] = useState(false);
   const [accountingTab, setAccountingTab] = useState('TESORERIA'); // TESORERIA | RESUMEN | METRICAS
   const [tradingTimeframe, setTradingTimeframe] = useState('W'); // H, D, W, M, Y
+  const [filterExecution, setFilterExecution] = useState('ALL'); // ALL, PENDING_STAFF, PENDING_WH, PENDING_CLOSURE
   const [staffPayModal, setStaffPayModal] = useState(null);
   const [whatsappModalQuo, setWhatsappModalQuo] = useState(null); // { quo, type }
+  const [sectionState, setSectionState] = useState({ s1: true, s2: true, s3: false, s4: true }); // Accordion State
+  const toggleSection = (key) => setSectionState(prev => ({ ...prev, [key]: !prev[key] }));
 
   // --- ESTADO: IDENTIDAD OPERATIVA (PERFIL) ---
   const [userProfile, setUserProfile] = useState({
     businessName: 'Nexxa Sound',
     nit: '',
     fiscalAddress: '',
-    whatsapp: '3001234567',
+    whatsapp: '3204863127',
     email: 'contacto@nexxasound.com',
     city: 'Bogotá D.C.',
     signature: 'Atte: El equipo de Nexxa Sound 🎧'
@@ -542,16 +439,58 @@ function App() {
   // --- QUOTATION LOGIC ---
   const handleCreateQuotation = async (status = 'SENT') => {
     if (!newEvent.clientName || !newEvent.date || !newEvent.totalValue) {
-      return alert('Faltan datos para crear la cotización.');
+      return alert('Faltan datos para procesar el evento.');
+    }
+
+    // Mandatory Roles based on Package
+    if (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') {
+      if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
+        return alert(`⚠️ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÍA.`);
+      }
+    }
+    if (newEvent.packName === 'Celebration') {
+      if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
+        return alert('⚠️ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
+      }
     }
 
     const total = Number(newEvent.totalValue) || 0;
-    const dateCode = newEvent.date ? newEvent.date.replace(/-/g, '').slice(2) : 'XXXXXX';
-    const dailyCount = quotations.filter(q => q.eventDetails.date === newEvent.date).length + 1;
-    const finalId = `QUO-${dateCode}-${String(dailyCount).padStart(2, '0')}`;
 
-    const quoObj = {
-      status: status,
+    // GENERATE QUOTATION ID
+    const dateCode = newEvent.date.replace(/-/g, '').slice(2);
+    const dailyCount = quotations.filter(q => q.eventDetails?.date === newEvent.date).length + 1;
+    const finalQuoId = `QUO-${dateCode}-${String(dailyCount).padStart(2, '0')}`;
+
+    // INITIAL ITEMS (Same logic as handleCreateEvent)
+    let defaultItems = [];
+    if (newEvent.packName === 'Essential') {
+      defaultItems = [
+        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
+        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Luces LED + Soporte Trípode', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Máquina Humo + Control + Líquido', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
+      ];
+    } else if (newEvent.packName === 'Memories') {
+      defaultItems = [
+        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
+        { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
+        { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
+        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
+      ];
+    } else if (newEvent.packName === 'Celebration') {
+      defaultItems = [
+        { name: 'Cabinas Activas 15" + Trípodes', qty: 4, status: 'PENDING', area: 'DJ' },
+        { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
+        { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
+        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
+      ];
+    }
+
+    const eventObj = {
+      status: status, // 'SENT'
+      createdAt: newEvent.createdAt || serverTimestamp(),
       client: {
         name: newEvent.clientName,
         phone: newEvent.clientPhone,
@@ -564,7 +503,11 @@ function App() {
         neighborhood: newEvent.neighborhood || '',
         startTime: newEvent.startTime,
         endTime: newEvent.endTime,
-        guestCount: newEvent.guestCount
+        guestCount: newEvent.guestCount,
+        photoStartTime: newEvent.photoStartTime || '',
+        photoEndTime: newEvent.photoEndTime || '',
+        decorStartTime: newEvent.decorStartTime || '',
+        decorEndTime: newEvent.decorEndTime || ''
       },
       financials: {
         totalValue: total,
@@ -574,26 +517,50 @@ function App() {
       logistics: {
         packName: newEvent.packName,
         selectedExtras: newEvent.selectedExtras || {},
-        makeupCount: newEvent.makeupCount
+        makeupCount: newEvent.makeupCount,
+        managerName: newEvent.managerName || 'Por asignar',
+        flow: { staffConfirmed: false, equipmentDelivered: false, equipmentReturned: false, staffPaid: false },
+        items: defaultItems
       }
     };
 
     try {
-      await setDoc(doc(db, "quotations", finalId), quoObj);
-      alert('✅ Cotización guardada');
+      // 1. SAVE AS QUOTATION
+      await setDoc(doc(db, "quotations", finalQuoId), eventObj);
+
+      // 2. GENERATE PDF
+      await generateQuotationPDF(eventObj);
+
+      alert('✅ Cotización Guardada y Enviada.');
       setView('quotations');
-      setNewEvent({ clientName: '', clientPhone: '', date: '', startTime: '', endTime: '', location: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '' });
+      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '' });
       localStorage.removeItem('nexxa_draft_event');
     } catch (err) {
       console.error(err);
-      alert('Error al guardar cotización');
+      alert('Error en la conversión: ' + err.message);
     }
   };
+
+  const [selectedRoleView, setSelectedRoleView] = useState('ALL');
+
+  // --- ACTIONS ---
 
   const approveQuotation = async (quo) => {
     if (!confirm('¿Aprobar esta cotización y convertarla en evento?')) return;
 
-    const eventId = quo.id.replace('QUO', 'EVT');
+    // Generate ID: YYYYMMDD-XX
+    const dateStr = quo.eventDetails?.date ? quo.eventDetails.date.replace(/-/g, '') : new Date().toISOString().slice(0, 10).replace(/-/g, '');
+
+    // Check local events state for count (assuming events are synced)
+    const todayEvents = events.filter(e => {
+      // Check if ID matches pattern EVT-YYYYMMDD
+      return e.id && e.id.includes(dateStr);
+    });
+
+    const count = todayEvents.length + 1;
+    const suffix = count.toString().padStart(2, '0');
+    const eventId = `EVT-${dateStr}-${suffix}`;
+
     const eventObj = {
       status: 'CONFIRMED',
       client: quo.client,
@@ -608,55 +575,48 @@ function App() {
           equipmentReturned: false,
           staffPaid: false
         },
-        items: [] // Will use default items based on pack in handleCreateEvent logic or similar
+        items: []
       }
     };
 
     // Need to generate default items
     let defaultItems = [];
     const packName = quo.logistics.packName;
+    const createItem = (name, qty, area) => ({ name, qty, area, status: 'PENDING', deliveredTime: null, returnedTime: null });
+
+    // --- INVENTORY DEFINITIONS (User Specified) ---
+    const djItems = [
+      createItem('CABINAS ACTIVAS 15 Pulgadas + TRÍPODES', packName === 'Celebration' ? 4 : 2, 'DJ'),
+      createItem('PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 a 1', 1, 'DJ'),
+      createItem('LUCES LED x4 + SOPORTE TRÍPODE', packName === 'Celebration' ? 2 : 1, 'DJ'),
+      createItem('MÁQUINA HUMO + CONTROL + LÍQUIDO', 1, 'DJ'),
+      createItem('KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', 1, 'DJ'),
+      createItem('MAQUILLAJE NEON (PINTURAS, PINCEL, MAQUILLADOR, 2H)', 1, 'DJ')
+    ];
+
+    const photoItems = [
+      createItem('CÁMARA', 1, 'PHOTO'),
+      createItem('MICRO SD', 1, 'PHOTO')
+    ];
+
+    const decorItems = [
+      createItem('BOMBAS', 50, 'DECOR'),
+      createItem('INFLADOR', 1, 'DECOR')
+    ];
+
+    // Assemble List
     if (packName === 'Essential') {
-      defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, checked: false, area: 'DJ' },
-        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Luces LED + Soporte Trípode', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Máquina Humo + Control + Líquido', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, checked: false, area: 'LOGÍSTICA' }
-      ];
+      defaultItems = [...djItems];
     } else if (packName === 'Memories') {
-      defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, checked: false, area: 'DJ' },
-        { name: 'Bajos 18" Activos', qty: 2, checked: false, area: 'DJ' },
-        { name: 'Estructura Portería Luces', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Cabeza Móvil Beam / Spot', qty: 2, checked: false, area: 'DJ' },
-        { name: 'Par LED RGBW', qty: 6, checked: false, area: 'DJ' },
-        { name: 'Cámara Pro + Lente + Flash', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'Controladora / Mixer DJ', qty: 1, checked: false, area: 'DJ' },
-        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Máquina Humo + Control + Líquido', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, checked: false, area: 'LOGÍSTICA' }
-      ];
+      defaultItems = [...djItems, ...photoItems];
     } else if (packName === 'Celebration') {
-      defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 4, checked: false, area: 'DJ' },
-        { name: 'Bajos 18" Activos', qty: 2, checked: false, area: 'DJ' },
-        { name: 'Cabina Retorno DJ', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Estructura Portería Luces 4m', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Cabeza Móvil Beam / Spot', qty: 4, checked: false, area: 'DJ' },
-        { name: 'Par LED RGBW', qty: 8, checked: false, area: 'DJ' },
-        { name: 'Cámara Pro + Lente + Flash', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Máquina Humo + Control + Líquido', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, checked: false, area: 'LOGÍSTICA' }
-      ];
+      defaultItems = [...djItems, ...photoItems, ...decorItems];
     } else {
-      defaultItems = [
-        { name: 'Kit Sonido Básico Nexxa', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Kit Iluminación Básico Nexxa', qty: 1, checked: false, area: 'DJ' },
-        { name: 'Cableado y Extensiones AC', qty: 1, checked: false, area: 'LOGÍSTICA' }
-      ];
+      // Personalizado / Fallback
+      defaultItems = [...djItems]; // Assume base kit
     }
     eventObj.logistics.items = defaultItems;
+
 
     try {
       await setDoc(doc(db, "events", eventId), eventObj);
@@ -796,9 +756,21 @@ function App() {
     if (e) e.preventDefault();
 
     // Validations (Skip for Drafts)
-    if (status === 'CONFIRMED') {
+    if (status === 'CONFIRMED' || status === 'SENT') {
       if (!newEvent.clientName || !newEvent.date || !newEvent.totalValue) {
-        return alert('Para confirmar, necesitas al menos: Cliente, Fecha y Valor Total.');
+        return alert('Para procesar, necesitas al menos: Cliente, Fecha y Valor Total.');
+      }
+
+      // Mandatory Roles based on Package
+      if (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') {
+        if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
+          return alert(`⚠️ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÍA.`);
+        }
+      }
+      if (newEvent.packName === 'Celebration') {
+        if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
+          return alert('⚠️ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
+        }
       }
 
       // Validate Minimum Duration
@@ -1065,13 +1037,14 @@ function App() {
     }
 
     if (step) {
-      const current = evt.logistics.flow[area]?.[step];
+      const current = evt.logistics?.flow?.[area]?.[step] || false;
       await updateDoc(doc(db, "events", evtId), {
         [`logistics.flow.${area}.${step}`]: !current
       });
     } else {
+      const current = evt.logistics?.flow?.[area] || false;
       await updateDoc(doc(db, "events", evtId), {
-        [`logistics.flow.${area}`]: !evt.logistics.flow[area]
+        [`logistics.flow.${area}`]: !current
       });
     }
   };
@@ -1104,850 +1077,57 @@ function App() {
     });
   };
 
-  // --- PDF GENERATOR (LOGISTICS MISSION) - STATE OF THE ART DESIGN ---
+
   const generateMissionPDF = async (evt, role = 'GENERAL') => {
+    alert(`Generando PDF: ${role}`); // Temporary debug alert
     try {
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = 297;
-      const margin = 15;
-
-      // --- HELPERS ---
-      const formatT = (t) => {
-        if (!t || typeof t !== 'string' || !t.includes(':')) return '--:--';
-        let [h, m] = t.split(':').map(Number);
-        if (isNaN(h) || isNaN(m)) return '--:--';
-        const ap = h >= 12 ? 'PM' : 'AM';
-        h = h % 12 || 12;
-        return `${h}:${String(m).padStart(2, '0')} ${ap}`;
-      };
-
-      const subtractMinutes = (timeStr, minutesToSub) => {
-        if (!timeStr || !timeStr.includes(':')) return '--:--';
-        let [h, m] = timeStr.split(':').map(Number);
-        if (isNaN(h) || isNaN(m)) return '--:--';
-        let totalMin = h * 60 + m;
-        totalMin -= minutesToSub;
-        if (totalMin < 0) totalMin += 24 * 60;
-        const newH = Math.floor(totalMin / 60);
-        const newM = totalMin % 60;
-        return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
-      };
-
-      const getBase64 = async (url) => {
-        try {
-          const response = await fetch(url);
-          if (!response.ok) throw new Error('Fetch error');
-          const blob = await response.blob();
-          return await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-        } catch (e) { return null; }
-      };
-
-      const logoData = await getBase64('/logo_staff_new.jpg');
-
-      const COLORS = {
-        DARK: [0, 0, 0],          // Pure Black
-        WHITE: [255, 255, 255],
-        ICE: [248, 249, 252],
-        CYAN: [0, 242, 255],      // Official Nexxa Cyan
-        PURPLE: [188, 111, 241],  // Official Nexxa Purple
-        PURPLE_SOFT: [245, 243, 255],
-        GREY_TEXT: [100, 110, 130],
-        BORDERS: [225, 230, 240]
-      };
-
-      // 0. BACKGROUND & STRUCTURE
-      doc.setFillColor(...COLORS.DARK);
-      doc.rect(0, 0, pageWidth, 50, 'F'); // Header block
-
-      doc.setFillColor(15, 15, 20); // Deep Dark Body
-      doc.rect(0, 50, pageWidth, pageHeight - 50, 'F');
-
-      // 1. BRANDING (HEADER)
-      if (logoData) {
-        doc.addImage(logoData, 'JPEG', margin, 10, 30, 30);
-        // Mask the "Gemini Star" or artifacts in the bottom right corner of the logo
-        doc.setFillColor(0, 0, 0);
-        doc.rect(margin + 26, 36, 4, 4, 'F');
-      }
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-
-      const titlePart1 = 'NEXXA SOUND ';
-      const titlePart2 = role === 'GENERAL' ? 'LEVEL PRODUCTIONS' : `MISIONES ${role}`;
-      const w2 = doc.getTextWidth(titlePart2);
-      const w1 = doc.getTextWidth(titlePart1);
-
-      // Right-aligned dual color title with Nexxa Colors
-      doc.setTextColor(...COLORS.PURPLE);
-      doc.text(titlePart2, pageWidth - margin, 25, { align: 'right' });
-      doc.setTextColor(...COLORS.CYAN);
-      doc.text(titlePart1, pageWidth - margin - w2, 25, { align: 'right' });
-
-      // Subtle premium accent line
-      doc.setDrawColor(...COLORS.CYAN);
-      doc.setLineWidth(0.5);
-      doc.line(pageWidth - margin - (w1 + w2), 28, pageWidth - margin - (w2 * 0.5), 28); // Short line
-
-      // Improved ID Logic: Sequential for the day
-      let displayId = 'N/A';
-      if (evt.eventDetails?.date) {
-        const dateStr = evt.eventDetails.date;
-        const shortDate = dateStr.replace(/-/g, '').substring(2); // YYMMDD
-        const sameDayEvents = (events || []).filter(e => e.eventDetails?.date === dateStr)
-          .sort((a, b) => (a.createdAt || a.id || '').localeCompare(b.createdAt || b.id || ''));
-        const index = sameDayEvents.findIndex(e => e.id === evt.id);
-        const sequence = index !== -1 ? index + 1 : sameDayEvents.length + 1;
-        displayId = `${shortDate}-${String(sequence).padStart(2, '0')}`;
-      } else {
-        displayId = (evt.id || '---').substring(0, 8);
-      }
-      doc.setTextColor(110, 110, 130);
-      doc.setFontSize(9);
-      doc.text(`ID: ${displayId} | ROL: ${role}`, pageWidth - margin, 37, { align: 'right' });
-
-      let y = 58;
-
-      // 2. LOGISTICS & DATE CARD (DARK)
-      doc.setFillColor(0, 0, 0);
-      doc.setDrawColor(40, 40, 50);
-      doc.roundedRect(margin, y, pageWidth - (margin * 2), 24, 2, 2, 'FD');
-
-      // Dynamic Times based on Role
-      let timeLlegada = evt.eventDetails?.warehouseTime || subtractMinutes(evt.eventDetails?.startTime, 150);
-      let timeLabel = 'LLEGADA A BODEGA';
-      let managerLabel = 'GESTOR OPERATIVO';
-
-      if (role === 'PHOTO') {
-        timeLlegada = evt.eventDetails?.photoStartTime ? subtractMinutes(evt.eventDetails.photoStartTime, 30) : evt.eventDetails?.startTime;
-        timeLabel = 'LLEGADA AL LUGAR';
-        managerLabel = 'COORDINADOR';
-      } else if (role === 'DECOR') {
-        timeLlegada = evt.eventDetails?.decorStartTime || evt.eventDetails?.startTime;
-        timeLabel = 'INICIO MONTAJE';
-      }
-
-      // Warehouse Col
-      doc.setTextColor(160, 160, 180);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'bold');
-      doc.text(timeLabel, margin + 7, y + 7);
-      doc.setTextColor(...COLORS.CYAN);
-      doc.setFontSize(13);
-      doc.text(formatT(timeLlegada), margin + 7, y + 16);
-
-      // Manager Col
-      doc.setTextColor(160, 160, 180);
-      doc.setFontSize(7);
-      doc.text(managerLabel, margin + 60, y + 7);
-      doc.setTextColor(...COLORS.WHITE);
-      doc.setFontSize(10);
-      doc.text(evt.logistics?.managerName?.toUpperCase() || 'POR ASIGNAR', margin + 60, y + 16);
-
-      // Extra Hour Col (Only relevant for General/DJ usually, but showing simple for all)
-      doc.setTextColor(160, 160, 180);
-      doc.setFontSize(7);
-      doc.text('VALOR HR EXTRA', margin + 115, y + 7);
-      doc.setTextColor(...COLORS.CYAN);
-      doc.setFontSize(10);
-      const ehPrice = evt.financials?.extraHourPrice || (evt.logistics?.packName === 'Essential' ? 85000 : 135000);
-      doc.text(formatPeso(ehPrice), margin + 115, y + 16);
-
-      // Date Col
-      doc.setTextColor(160, 160, 180);
-      doc.setFontSize(7);
-      doc.text('FECHA SERVICIO', pageWidth - margin - 7, y + 7, { align: 'right' });
-      doc.setTextColor(...COLORS.PURPLE);
-      doc.setFontSize(12);
-      doc.text(evt.eventDetails?.date || '---', pageWidth - margin - 7, y + 16, { align: 'right' });
-
-      y += 30;
-
-      // 3. CLIENT CARD (DARK)
-      doc.setFillColor(0, 0, 0);
-      doc.setDrawColor(...COLORS.PURPLE);
-      doc.roundedRect(margin, y, pageWidth - (margin * 2), 20, 1.5, 1.5, 'FD');
-
-      doc.setTextColor(...COLORS.PURPLE);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'bold');
-      doc.text('CLIENTE TITULAR / EVENTO', margin + 7, y + 7);
-
-      doc.setTextColor(...COLORS.WHITE);
-      doc.setFontSize(12);
-      const nameText = (evt.client?.name || 'Invitado').toUpperCase();
-      const occasionText = (evt.eventDetails?.occasion || '---').toUpperCase();
-      doc.text(`${nameText}  |  ${occasionText}`, margin + 7, y + 15);
-
-      // Client Phones & WhatsApp Link
-      const phone1 = evt.client?.phone || '';
-      const phone2 = evt.client?.phone2 || '';
-      if (phone1 || phone2) {
-        doc.setFontSize(12);
-        let phoneX = margin + 15 + doc.getTextWidth(`${nameText}  |  ${occasionText}`);
-        doc.setFontSize(8.5);
-        if (phone1) {
-          doc.setTextColor(...COLORS.CYAN);
-          const p1Label = `WP: ${phone1}`;
-          doc.text(p1Label, phoneX, y + 15, { link: { url: `https://wa.me/${phone1.replace(/\D/g, '')}` } });
-          const tw = doc.getTextWidth(p1Label);
-          doc.setDrawColor(...COLORS.CYAN);
-          doc.setLineWidth(0.2);
-          doc.line(phoneX, y + 16, phoneX + tw, y + 16);
-          phoneX += tw + 8;
-        }
-        if (phone2) {
-          doc.setTextColor(160, 160, 180);
-          doc.text(`|  CEL: ${phone2}`, phoneX, y + 15);
-        }
-      }
-
-      y += 28;
-
-      // 4. OPERATION TABLE (DARK THEME)
-      doc.setTextColor(200, 200, 220);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('LOCALIZACIÓN Y CRONOGRAMA', margin, y);
-      y += 5;
-
-      // Logic for ROLE SPECIFIC TIMES
-      let startT = evt.eventDetails?.startTime || '00:00';
-      let endT = evt.eventDetails?.endTime || '00:00';
-
-      if (role === 'PHOTO') {
-        startT = evt.eventDetails?.photoStartTime || startT;
-        endT = evt.eventDetails?.photoEndTime || endT;
-      } else if (role === 'DECOR') {
-        startT = evt.eventDetails?.decorStartTime || startT;
-        endT = evt.eventDetails?.decorEndTime || endT;
-      }
-
-      const [ho1, mo1] = startT.split(':').map(Number);
-      const [ho2, mo2] = endT.split(':').map(Number);
-      let diffMinO = (ho2 * 60 + mo2) - (ho1 * 60 + mo1);
-      if (diffMinO < 0) diffMinO += 24 * 60;
-      const durationO = `${(diffMinO / 60).toFixed(1)} HORAS`;
-
-      autoTable(doc, {
-        startY: y,
-        theme: 'grid',
-        head: [['ZONA / BARRIO', 'DIRECCIÓN EXACTA', `HORARIO (${role})`, 'DURACIÓN']],
-        body: [[
-          evt.eventDetails?.neighborhood || '---',
-          evt.eventDetails?.location || '---',
-          `${formatT(startT)} - ${formatT(endT)}`,
-          durationO
-        ]],
-        styles: { fontSize: 8.5, cellPadding: 5, fillColor: [25, 25, 30], textColor: [255, 255, 255], lineColor: [40, 40, 50] },
-        headStyles: { fillColor: [0, 0, 0], textColor: COLORS.CYAN, lineWidth: 0.1, lineColor: [40, 40, 50] },
-        columnStyles: { 0: { width: 40 }, 1: { width: 65 }, 2: { width: 50 }, 3: { width: 25 } }
-      });
-
-      y = doc.lastAutoTable.finalY + 12;
-
-      // 5. MATERIALS IN CHARGE (INVENTORY LIST)
-      doc.setTextColor(200, 200, 220);
-      doc.setFontSize(10);
-      doc.text(`MATERIAL A CARGO (${role})`, margin, y);
-      y += 5;
-
-      let itemsToDisplay = [...(evt.logistics?.items || [])];
-
-      // Fallback & Dynamic Extras Logic if list is empty or to ensure extras are listed
-      const pName = (evt.logistics?.packName || '').toUpperCase();
-
-      if (itemsToDisplay.length === 0) {
-        if (pName.includes('ESSENTIAL')) {
-          itemsToDisplay = [
-            { name: 'Cabinas Activas 15" + Trípodes', qty: 2, area: 'DJ' },
-            { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, area: 'DJ' },
-            { name: 'Luces LED + Soporte Trípode', qty: 1, area: 'DJ' },
-            { name: 'Máquina Humo + Control + Líquido', qty: 1, area: 'DJ' },
-            { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, area: 'LOGÍSTICA' }
-          ];
-        } else if (pName.includes('MEMORIES')) {
-          itemsToDisplay = [
-            { name: 'Cabinas Activas 15" + Trípodes', qty: 2, area: 'DJ' },
-            { name: 'Bajos 18" Activos', qty: 2, area: 'DJ' },
-            { name: 'Estructura Portería Luces', qty: 1, area: 'DJ' },
-            { name: 'Cabeza Móvil Beam / Spot', qty: 2, area: 'DJ' },
-            { name: 'Par LED RGBW', qty: 6, area: 'DJ' },
-            { name: 'Cámara Pro + Lente + Flash', qty: 1, area: 'PHOTO' },
-            { name: 'Controladora / Mixer DJ', qty: 1, area: 'DJ' },
-            { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, area: 'DJ' },
-            { name: 'Máquina Humo + Control + Líquido', qty: 1, area: 'DJ' },
-            { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, area: 'LOGÍSTICA' }
-          ];
-        } else if (pName.includes('CELEBRATION')) {
-          itemsToDisplay = [
-            { name: 'Cabinas Activas 15" + Trípodes', qty: 4, area: 'DJ' },
-            { name: 'Bajos 18" Activos', qty: 2, area: 'DJ' },
-            { name: 'Cabina Retorno DJ', qty: 1, area: 'DJ' },
-            { name: 'Estructura Portería Luces 4m', qty: 1, area: 'DJ' },
-            { name: 'Cabeza Móvil Beam / Spot', qty: 4, area: 'DJ' },
-            { name: 'Par LED RGBW', qty: 8, area: 'DJ' },
-            { name: 'Cámara Pro + Lente + Flash', qty: 1, area: 'PHOTO' },
-            { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, area: 'DJ' },
-            { name: 'Máquina Humo + Control + Líquido', qty: 1, area: 'DJ' },
-            { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, area: 'LOGÍSTICA' }
-          ];
-        } else {
-          // Generic fallback for custom/unrecognized plans
-          itemsToDisplay = [
-            { name: 'Kit Sonido Básico Nexxa', qty: 1, area: 'DJ' },
-            { name: 'Kit Iluminación Básico Nexxa', qty: 1, area: 'DJ' },
-            { name: 'Cableado y Extensiones AC', qty: 1, area: 'LOGÍSTICA' }
-          ];
-        }
-      }
-
-      // Map for human-readable extra names with specific inventory contents
-      const extraLabels = {
-        makeup: 'MAQUILLAJE NEÓN (Pinturas, Maquillador, 2h)',
-        acc_essential: 'KIT ACCESORIOS ESSENTIAL (1 Esp, 50 Man, 25 Pit)',
-        acc_memories: 'KIT ACCESORIOS MEMORIES (2 Esp, 50 Man, 50 Pit, 2 Cañ)',
-        acc_celebration: 'KIT ACCESORIOS CELEBRATION (3 Esp, 25 Man, 50 Pit, 50 Col, 50 Ant, 3 Cañ)',
-        specialDecor: 'DECORACIÓN ESPECIAL'
-      };
-
-      // Add extras if they are selected but not already in the list
-      if (evt.logistics?.selectedExtras) {
-        Object.entries(evt.logistics.selectedExtras).forEach(([id, active]) => {
-          if (active) {
-            const friendlyName = extraLabels[id] || id.replace(/_/g, ' ').toUpperCase();
-            // Determine Area based on ID
-            let extraArea = 'EXTRAS';
-            if (id === 'makeup' || id.includes('Photo')) extraArea = 'PHOTO';
-            if (id.includes('Decor')) extraArea = 'DECOR';
-
-            if (!itemsToDisplay.some(i => i.name.toUpperCase().includes(friendlyName))) {
-              itemsToDisplay.push({ name: friendlyName, qty: 1, area: extraArea });
-            }
-          }
+      if (role !== 'GENERAL') {
+        const stepRole = role === 'FOTO' ? 'PHOTO' : role;
+        toggleFlowStep(evt.id, 'misionSent', stepRole).catch(err => {
+          console.error("Error actualizando status:", err);
         });
       }
-
-      // FILTER ITEMS BASED ON ROLE
-      let filteredItems = itemsToDisplay;
-      if (role === 'DJ') {
-        filteredItems = itemsToDisplay.filter(i => !i.area || i.area === 'DJ' || i.area.includes('LOGÍSTICA') || i.area === 'EXTRAS');
-      } else if (role === 'PHOTO') {
-        filteredItems = itemsToDisplay.filter(i => i.area === 'PHOTO' || i.area === 'VIDEO' || i.name.includes('Cámara') || i.name.includes('Maquillaje'));
-      } else if (role === 'DECOR') {
-        filteredItems = itemsToDisplay.filter(i => i.area === 'DECOR' || i.name.includes('Decor') || i.name.includes('Estructura'));
-      }
-
-      const materialsTable = filteredItems.map(item => [
-        item.name.toUpperCase(),
-        item.qty.toString(),
-        item.area || 'GENERAL'
-      ]);
-
-      const emptyMsg = role === 'PHOTO' ? 'SIN EQUIPO FOTOGRÁFICO ASIGNADO' : 'SIN MATERIALES ESPECÍFICOS';
-
-      autoTable(doc, {
-        startY: y,
-        theme: 'grid',
-        head: [['ÍTEM / EQUIPO', 'CANTIDAD', 'ÁREA']],
-        body: materialsTable.length > 0 ? materialsTable : [[emptyMsg, '-', '-']],
-        styles: { fontSize: 7.5, cellPadding: 2.2, fillColor: [25, 25, 30], textColor: [255, 255, 255], lineColor: [40, 40, 50] },
-        headStyles: { fillColor: [0, 0, 0], textColor: COLORS.PURPLE, lineWidth: 0.1, lineColor: [40, 40, 50] }
-      });
-
-      y = doc.lastAutoTable.finalY + 8;
-
-      // INDICATIONS (NOTES)
-      doc.setTextColor(200, 200, 220);
-      doc.setFontSize(10);
-      doc.text('INDICACIONES Y OBSERVACIONES', margin, y);
-      y += 5;
-      doc.setFontSize(8.5);
-      doc.setTextColor(180, 180, 200);
-      const splitIndications = doc.splitTextToSize(evt.eventDetails?.indications || 'Sin observaciones adicionales.', pageWidth - (margin * 2));
-      doc.text(splitIndications, margin, y);
-
-      y += (splitIndications.length * 5) + 5;
-
-      y = doc.lastAutoTable.finalY + 15;
-
-      // 6. FINANCIAL CARDS (REDIESIGNED - NO WHITE)
-      // Only show financials for GENERAL role to protect privacy and avoid confusion
-      if (role === 'GENERAL') {
-        const colWidth = (pageWidth - (margin * 2) - 10) / 2;
-
-        // Payroll Card (Dark/Cyan)
-        doc.setFillColor(0, 0, 0);
-        doc.setDrawColor(...COLORS.CYAN);
-        doc.roundedRect(margin, y, colWidth, 35, 2, 2, 'FD');
-        doc.setTextColor(...COLORS.CYAN);
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'bold');
-        doc.text('COSTEO DE SERVICIO (NÓMINA)', margin + 7, y + 8);
-
-        const [hs, ms] = (evt.eventDetails?.startTime || '00:00').split(':').map(Number);
-        const [he, me] = (evt.eventDetails?.endTime || '00:00').split(':').map(Number);
-        let totalM = (he * 60 + me) - (hs * 60 + ms);
-        if (totalM < 0) totalM += 24 * 60;
-        const djPay = 35000 + ((totalM / 60) * 13000);
-
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(10);
-        doc.text(`BASE + VARIABLE: ${formatPeso(djPay)}`, margin + 7, y + 20);
-        doc.setFontSize(7);
-        doc.setTextColor(130, 130, 150);
-        doc.text('Cálculo por duración operativa.', margin + 7, y + 28);
-
-        // Collection Card (Dark/Purple)
-        doc.setFillColor(0, 0, 0);
-        doc.setDrawColor(...COLORS.PURPLE);
-        doc.roundedRect(margin + colWidth + 10, y, colWidth, 35, 2, 2, 'FD');
-        doc.setTextColor(...COLORS.PURPLE);
-        doc.text('OBJETIVO DE RECAUDO CLIENTE', margin + colWidth + 17, y + 8);
-
-        const totalV = evt.financials?.totalValue || 0;
-        const pays = evt.financials?.advance || evt.financials?.deposit || 0;
-        doc.setFontSize(18);
-        doc.setTextColor(255, 255, 255);
-        doc.text(formatPeso(totalV - pays), margin + colWidth + 17, y + 22);
-        doc.setFontSize(7);
-        doc.setTextColor(180, 180, 200);
-        doc.text('NEQUI / DAVIPLATA: 300 259 6935', margin + colWidth + 17, y + 30);
-      } else {
-        // Simple footer for staff roles to fill space
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text('** Por favor, verificar inventario y reportar novedades antes del evento. **', margin, y);
-      }
-
-      // 7. FOOTER UNIFIED
-      doc.setTextColor(...COLORS.GREY_TEXT);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`GUÍA OPERATIVA - ROL: ${role}`, pageWidth / 2, pageHeight - 12, { align: 'center' });
-      doc.setTextColor(...COLORS.PURPLE);
-      doc.text('NEXXA SOUND - PASIÓN POR LA EXCELENCIA', pageWidth / 2, pageHeight - 8, { align: 'center' });
-
-      doc.save(`ORDEN_${role}_${nameText}.pdf`);
-
+      await pdfService.generateMissionPDF(evt, role, events, getCollectionResponsibility);
     } catch (err) {
-      console.error(err);
-      alert('Error en Rediseño PDF: ' + err.message);
+      console.error("Error en generateMissionPDF:", err);
+      alert("Error: " + err.message);
     }
   };
+
+
 
   const generateQuotationPDF = async (quo) => {
-    try {
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = 297;
-      const margin = 20; // Increased margin for cleaner look
-      const contractClientName = (quo.client?.name || 'Cliente').toUpperCase();
-
-      // Load Logo Logic (Base64)
-      const getBase64 = async (url) => {
-        try {
-          const response = await fetch(url);
-          const blob = await response.blob();
-          return await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } catch (error) { return null; }
-      };
-
-      const logoData = await getBase64('/nexxa-app-icon.png');
-      const signatureData = await getBase64('/firma_sharon.jpg');
-
-      // 3. COLORS (Clean White Theme)
-      const THEME = {
-        TEXT_MAIN: [17, 17, 17],
-        TEXT_SUB: [51, 51, 51],
-        TEXT_LEGAL: [119, 119, 119],
-        ACCENT: [188, 111, 241],
-        BG_LIGHT: [250, 250, 252],
-        WHITE: [255, 255, 255]
-      };
-
-      // 4. HEADER
-      let y = 30;
-
-      if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, 15, 25, 25);
-      }
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      doc.setTextColor(...THEME.TEXT_MAIN);
-      doc.text('Contrato de Prestación de Servicios', pageWidth / 2, 22, { align: 'center' });
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(...THEME.TEXT_SUB);
-      doc.text('Producción de eventos · Sonido · Iluminación · DJ', pageWidth / 2, 29, { align: 'center' });
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(...THEME.TEXT_LEGAL);
-      doc.text(`Bogotá D.C. • ${new Date().toLocaleDateString('es-CO')}`, pageWidth / 2, 36, { align: 'center' });
-
-      doc.setDrawColor(...THEME.ACCENT);
-      doc.setLineWidth(0.5);
-      doc.line(margin, 45, pageWidth - margin, 45);
-
-      y = 55;
-
-      // 5. SECCIÓN 1 - DATOS DEL EVENTO
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(...THEME.TEXT_MAIN);
-      doc.text('DATOS DEL EVENTO', margin, y);
-
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.5);
-      doc.line(margin, y + 3, pageWidth - margin, y + 3);
-      y += 12;
-
-
-
-      const evtDate = quo.eventDetails?.date || '---';
-      const evtTime = `${quo.eventDetails?.startTime || '--'} - ${quo.eventDetails?.endTime || '--'}`;
-      const evtLoc = (quo.eventDetails?.location || 'Ubicación por confirmar');
-      const clientN = (quo.client?.name || 'Cliente');
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(...THEME.TEXT_MAIN);
-
-      const col1X = margin + 10;
-      const colVal1X = margin + 35;
-      const col2X = (pageWidth / 2) + 10;
-      const colVal2X = (pageWidth / 2) + 35;
-
-      // Col 1
-      doc.text('Cliente:', col1X, y + 10);
-      doc.setFont('helvetica', 'normal'); doc.text(clientN, colVal1X, y + 10);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Ubicación:', col1X, y + 20);
-      doc.setFont('helvetica', 'normal'); doc.text(evtLoc, colVal1X, y + 20);
-
-      // Col 2
-      // Format Date
-      const rawDate = quo.eventDetails?.date;
-      const formattedDate = rawDate ? new Date(rawDate + 'T00:00:00').toLocaleDateString('es-CO') : '---';
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Fecha:', col2X, y + 10);
-      doc.setFont('helvetica', 'normal'); doc.text(formattedDate, colVal2X, y + 10);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Horario:', col2X, y + 20);
-      doc.setFont('helvetica', 'normal'); doc.text(evtTime, colVal2X, y + 20);
-
-      y += 45;
-
-      // 6. SECCIÓN 2 - IDENTIFICACIÓN
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(...THEME.TEXT_MAIN);
-      doc.text('IDENTIFICACIÓN', margin, y);
-
-      doc.line(margin, y + 3, pageWidth - margin, y + 3);
-      y += 12;
-
-
-
-      // Labels Row
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(...THEME.TEXT_MAIN);
-
-      doc.text('Proveedor del servicio', margin + 10, y);
-
-      const holderX = (pageWidth / 2) + 10;
-      doc.text('Titular del servicio', holderX, y);
-
-      // Content Row
-      y += 8;
-
-      // Provider Content
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(...THEME.TEXT_MAIN);
-      doc.text('NEXXA SOUND', margin + 10, y + 2);
-
-      // Holder Content
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(...THEME.TEXT_SUB);
-      doc.text('Sharon Nicolle Rivera Tocasuche', holderX, y);
-      doc.text('C.C. 1024488302', holderX, y + 5);
-
-      y += 20;
-
-      // End of section
-
-      // 7. SECCIÓN 3 - SERVICIOS INCLUIDOS
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(...THEME.TEXT_SUB);
-      doc.text('Servicios incluidos', margin, y);
-      y += 6;
-
-      const scopeData = [
-        ['Paquete / Experiencia:', quo.logistics.packName?.toUpperCase() || 'PERSONALIZADO'],
-        ['Servicio principal:', 'Producción de Evento (Sonido/Iluminación)']
-      ];
-
-      const activeExtras = getDynamicExtras(quo.eventDetails.guestCount || 100, quo.logistics.makeupCount || 0)
-        .filter(ex => quo.logistics.selectedExtras && quo.logistics.selectedExtras[ex.id]);
-
-      if (activeExtras.length > 0) {
-        const extrasText = activeExtras.map(ex => `• ${ex.name} (${ex.details})`).join('\n');
-        scopeData.push(['Complementos incluidos:', extrasText]);
-      } else {
-        scopeData.push(['Complementos incluidos:', 'Ninguno seleccionado']);
-      }
-
-      autoTable(doc, {
-        startY: y,
-        theme: 'plain',
-        body: scopeData,
-        styles: { fontSize: 11, cellPadding: 6, textColor: THEME.TEXT_MAIN, lineWidth: 0, overflow: 'linebreak' },
-        columnStyles: {
-          0: { fontStyle: 'bold', width: 60, textColor: THEME.TEXT_SUB },
-          1: { width: 110 }
-        },
-        didDrawCell: (data) => {
-          if (data.section === 'body') {
-            doc.setDrawColor(200, 200, 200); // 200 is visible light grey
-            doc.setLineWidth(0.1);
-            doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-          }
-        }
-      });
-
-      y = doc.lastAutoTable.finalY + 15;
-
-      // 8. SECCIÓN 4 - INVERSIÓN
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(...THEME.TEXT_SUB);
-      doc.text('Inversión del servicio', margin, y);
-      y += 10;
-
-      const totalVal = quo.financials.totalValue || 0;
-      const payToReserve = Math.ceil((totalVal * 0.3) / 5000) * 5000;
-      const payFinal = totalVal - payToReserve;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
-      doc.setTextColor(...THEME.TEXT_MAIN);
-
-      // 1. Anticipo
-      doc.text('Anticipo (30%):', margin, y);
-      doc.setFont('helvetica', 'bold'); doc.text(formatPeso(payToReserve), margin + 40, y);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...THEME.TEXT_LEGAL);
-      doc.text('(confirma reserva de fecha)', margin + 80, y);
-
-      y += 8;
-      // 2. Saldo
-      doc.setFontSize(11); doc.setTextColor(...THEME.TEXT_MAIN);
-      doc.text('Saldo (70%):', margin, y);
-      doc.setFont('helvetica', 'bold'); doc.text(formatPeso(payFinal), margin + 40, y);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...THEME.TEXT_LEGAL);
-      doc.text('(antes del inicio del evento)', margin + 80, y);
-
-      y += 12; // Extra space before total for emphasis
-      // 3. Total
-      doc.setFontSize(12); doc.setTextColor(...THEME.TEXT_MAIN);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Valor total:', margin, y);
-      doc.text(formatPeso(totalVal), margin + 40, y);
-
-      y += 25;
-
-      // 9. CONDICIONES Y POLÍTICAS
-      if (y > pageHeight - 120) { doc.addPage(); y = 30; }
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(...THEME.TEXT_SUB);
-      doc.text('Información del Servicio y Recomendaciones', margin, y);
-      y += 10;
-
-      const fullConditions = [
-        {
-          title: "PAGO DEL SERVICIO",
-          items: [
-            "El saldo pendiente se pagará en su totalidad el día del evento. Se podrá cancelar en efectivo o mediante transferencia a las cuentas autorizadas (Nequi/Daviplata: 3002596935).",
-            "El pago correspondiente debe ser realizado al Gestor asignado ANTES de dar inicio al servicio.",
-            "Sin excepción alguna, el servicio no podrá dar inicio si el saldo pendiente no ha sido cancelado en su totalidad."
-          ]
-        },
-        {
-          title: "CANCELACIÓN",
-          items: [
-            "En caso de necesitar cancelar el servicio, es necesario hacerlo con un mínimo de 2 días de anticipación. De lo contrario, se deberá asumir el 35% del valor total del servicio.",
-            "Si el servicio es cancelado después de haber realizado el abono, NO se realizarán devoluciones debido a costos administrativos y de reserva."
-          ]
-        },
-        {
-          title: "APLAZAMIENTO",
-          items: [
-            "En caso de que el servicio sea aplazado, la reserva se mantendrá únicamente por un plazo máximo de un (1) mes. De lo contrario, se considerará como una cancelación.",
-            "La reprogramación del servicio solo será posible si disponemos de disponibilidad para la nueva fecha solicitada."
-          ]
-        },
-        {
-          title: "TENER EN CUENTA (LOGÍSTICA)",
-          items: [
-            "Los datos del Gestor (nombre y cédula) podrán ser solicitados SOLAMENTE un día antes del servicio sin excepciones, ya que la programación se realiza basada en la disponibilidad del personal en esa fecha.",
-            "En caso de que el Gestor llegue tarde, se repondrá el tiempo perdido. Si no es posible debido al horario, se descontarán $5.000 por cada media hora de retraso, cubriendo la nómina del Gestor."
-          ]
-        },
-        {
-          title: "INCONVENIENTES Y RECLAMOS",
-          items: [
-            "La empresa se compromete a garantizar la entrega de todos los elementos descritos en este contrato.",
-            "Cualquier inconformidad relacionada con la prestación del servicio deberá ser abordada y resuelta EN EL MOMENTO por el personal presente en el evento para dar solución inmediata."
-          ]
-        }
-      ];
-
-      doc.setFontSize(10);
-
-      fullConditions.forEach((section) => {
-        // Force Page Break for Specific Section
-        if (section.title === "INCONVENIENTES Y RECLAMOS") {
-          doc.addPage(); y = 30;
-        } else if (y > pageHeight - 40) {
-          doc.addPage(); y = 30;
-        }
-
-        // Title
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...THEME.TEXT_MAIN);
-        doc.text(section.title, margin, y);
-        y += 7; // More space after title
-
-        // Items
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...THEME.TEXT_SUB);
-
-        section.items.forEach(item => {
-          // Fix Overflow: Reduce width by extra 10 units to accommodate indent
-          const splitItem = doc.splitTextToSize(`• ${item}`, pageWidth - (margin * 2) - 10);
-
-          if (y + (splitItem.length * 6) > pageHeight - 25) {
-            doc.addPage(); y = 30;
-            doc.setFont('helvetica', 'bold'); // Reset font if needed logic was complex, but here simplistic is fine
-            // We are in loop, so just continue
-            doc.setFont('helvetica', 'normal');
-          }
-
-          doc.text(splitItem, margin + 5, y); // Indent 5
-          y += (splitItem.length * 5) + 4; // Increased line height and paragraph spacing
-        });
-
-        y += 8; // More space between sections
-      });
-
-      y += 5;
-
-      // IMPORTANT WARNING
-      if (y > pageHeight - 45) { doc.addPage(); y = 30; }
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(220, 20, 60); // Crimson Red
-      doc.text('¡IMPORTANTE!', pageWidth / 2, y, { align: 'center' });
-      y += 6;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(...THEME.TEXT_MAIN);
-      const warningText = "Cualquier servicio, equipo o indicación que NO esté especificada explícitamente dentro de este contrato no tendrá derecho a reclamos ni devoluciones. Solo se cumplirá estrictamente con los ítems y servicios pactados en este documento.";
-
-      const splitWarning = doc.splitTextToSize(warningText, pageWidth - (margin * 2));
-      doc.text(splitWarning, pageWidth / 2, y, { align: 'center' });
-
-      y += (splitWarning.length * 5) + 10;
-
-      // 10. CIERRE
-      if (y > pageHeight - 40) { doc.addPage(); y = 30; }
-      y += 5;
-      doc.setFontSize(9);
-      doc.setTextColor(...THEME.TEXT_LEGAL);
-      doc.text(`Este contrato se rige por las leyes de la República de Colombia.\nPara constancia se firma en Bogotá D.C. el ${new Date().toLocaleDateString('es-CO')}.`, margin, y);
-      y += 50;
-
-      // 11. FIRMAS
-      if (y > pageHeight - 60) { doc.addPage(); y = 60; }
-
-      doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.5);
-
-      // Client
-      doc.line(margin, y, margin + 70, y);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...THEME.TEXT_MAIN);
-      doc.text('EL CLIENTE', margin, y + 5);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...THEME.TEXT_SUB);
-      doc.text(`Nombre: ${quo.client?.name || ''}`, margin, y + 10);
-      doc.text(`Cédula: ${quo.client?.id || ''}`, margin, y + 15);
-
-      // Provider
-      if (signatureData) {
-        // Rotating 90 degrees
-        // Moving X far RIGHT because rotation pivots leftwards
-        // Moving Y down closer to the line
-        doc.addImage(signatureData, 'JPEG', pageWidth - margin - 20, y - 30, 40, 30, null, 'NONE', 90);
-      }
-      doc.line(pageWidth - margin - 70, y, pageWidth - margin, y);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...THEME.TEXT_MAIN);
-      doc.text('EL PROVEEDOR', pageWidth - margin - 70, y + 5);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-      doc.text('Nombre: Sharon Nicolle Rivera Tocasuche', pageWidth - margin - 70, y + 10);
-      doc.text('Cédula: 1024488302', pageWidth - margin - 70, y + 15);
-
-      // Commercial Name (No Color Accent)
-      doc.setTextColor(...THEME.TEXT_SUB);
-      doc.text('Nombre comercial: NEXXA', pageWidth - margin - 70, y + 20);
-
-      // 12. FOOTER
-      const totalPages = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(...THEME.TEXT_LEGAL);
-        doc.text('NEXXA · Producción de eventos', margin, pageHeight - 10);
-        doc.text(`${i}/${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
-      }
-
-      // Output
-      const pdfData = doc.output('arraybuffer');
-      const blob = new Blob([pdfData], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      // Timestamp added to bust cache
-      link.setAttribute('download', `CONTRATO_NEXXA_${contractClientName.replace(/\s+/g, '_')}_${Date.now()}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => document.body.removeChild(link), 500);
-
-    } catch (err) {
-      alert('Error en Cotización: ' + err.message);
-    }
+    return pdfService.generateQuotationPDF(quo, getDynamicExtras);
   };
 
+
+  // Helper function to determine collection responsibility
+  const getCollectionResponsibility = (evt) => {
+    const times = [
+      { role: 'DJ / OPERADOR', time: evt.eventDetails?.startTime || '23:59' }, // Default late if not present
+      { role: 'FOTÓGRAFO', time: evt.eventDetails?.photoStartTime || '23:59' },
+      { role: 'DECORADOR', time: evt.eventDetails?.decorStartTime || '23:59' } // Decorator usually finishes last
+    ].filter(t => t.time !== '23:59'); // Filter out roles that don't have a time
+
+    if (times.length === 0) {
+      return { responsibleRole: 'N/A', isTieBreak: false };
+    }
+
+    // Sort by time to find the earliest
+    times.sort((a, b) => a.time.localeCompare(b.time));
+
+    const earliestTime = times[0].time;
+    const earliestRoles = times.filter(t => t.time === earliestTime);
+
+    if (earliestRoles.length > 1) {
+      // Tie-breaker logic: DJ > FOTÓGRAFO > DECORADOR
+      const roleOrder = ['DJ / OPERADOR', 'FOTÓGRAFO', 'DECORADOR'];
+      const responsible = earliestRoles.sort((a, b) => roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role))[0];
+      return { responsibleRole: responsible.role, isTieBreak: true };
+    } else {
+      return { responsibleRole: earliestRoles[0].role, isTieBreak: false };
+    }
+  };
 
   // --- VIEW: CENTER HUB (ACCIONES RÁPIDAS) ---
   const renderHomeHub = () => {
@@ -2605,7 +1785,7 @@ function App() {
                 let [h, m] = t.split(':').map(Number);
                 if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;
                 if (ap.toUpperCase() === 'AM' && h === 12) h = 0;
-                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} `;
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
               }
               newData.startTime = parseTime(tMatch[1], tMatch[2]);
               newData.endTime = parseTime(tMatch[3], tMatch[4]);
@@ -2636,7 +1816,7 @@ function App() {
                   if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;
                   if (ap.toUpperCase() === 'AM' && h === 12) h = 0;
                 }
-                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} `;
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
               }
               newData.materialsTime = parseTime(mMatch[1], mMatch[2]);
             }
@@ -2711,6 +1891,13 @@ function App() {
           updated[field] = value;
         }
 
+        // 1. STRICT SYNC: PHOTO DURATION
+        // Always recalculate if start/end times exist.
+        if (updated.photoStartTime && updated.photoEndTime) {
+          const autoDur = getHours(updated.photoStartTime, updated.photoEndTime);
+          updated.photoDuration = parseFloat(autoDur.toFixed(1));
+        }
+
         // Auto-Calc Logic
         const pack = updated.packName;
         const start = updated.startTime;
@@ -2756,6 +1943,12 @@ function App() {
             if (selExtras[ex.id]) calculatedTotal += ex.price;
           });
 
+          // Debug Alert Verify Fix (Remove later)
+          if (pDuration > 8 && totalExtrasValue === 0 && !alertShown) {
+            // Safe guard to check why logic might fail
+            console.warn("Pricing logic mismatch", { pDuration, totalExtrasValue, photoExtraPrice });
+          }
+
           updated.totalValue = calculatedTotal;
 
           // Update Extra Hour Price Display
@@ -2766,21 +1959,23 @@ function App() {
           }
 
         } else if (pack === 'Personalizado') {
-          // Calc logic for personalized... (preserve existing simple sum of extras)
-          if (!updated.totalValue && !newEvent.id) { // Only if not set or new
+          if (!updated.totalValue && !newEvent.id) {
             let sum = 0;
             currentExtrasList.forEach(ex => { if (selExtras[ex.id]) sum += ex.price; });
             updated.totalValue = sum;
           }
         }
 
-        // Auto-calc Deposit
-        if (updated.totalValue > 0 && !updated.deposit) {
-          updated.deposit = Math.round((updated.totalValue * 0.3) / 1000) * 1000;
+        // Auto-calc Deposit (ALWAYS SYNC 30%)
+        if (updated.totalValue > 0) {
+          updated.deposit = updated.totalValue * 0.3;
         }
 
         setNewEvent(updated);
       };
+
+      // Helper state for debugging limit (MOVED TO APP SCOPE)
+      // const [alertShown, setAlertShown] = useState(false);
 
       // --- LOGIC: Constant Sync for Extra Hour Price ---
       // This ensures that even if loaded from a quote, the UI always shows the correct rate for the package.
@@ -2872,7 +2067,7 @@ function App() {
 ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados_'}
 
 💰 *VALOR TOTAL:* *${formatPeso(newEvent.totalValue)}*
-🎟️ *RESERVA (30%):* ${formatPeso(newEvent.deposit || (newEvent.totalValue * 0.3))}
+🎟️ *RESERVA:* ${formatPeso(newEvent.deposit || (newEvent.totalValue * 0.3))}
 
 ━━━━━━━━━━━━━━━━━━
 📝 *NOTAS:* ${newEvent.indications || 'Ninguna'}
@@ -2917,220 +2112,200 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
           <form onSubmit={handleCreateEvent} className="create-form">
 
-            {/* SECCIÓN 1: CLIENTE */}
+            {/* SECCIÓN 1: HORARIOS DEL PERSONAL (ACCORDION) */}
             <div className="form-section">
-              <h3>1. Datos del Cliente</h3>
-              <input required placeholder="Nombre Cliente" value={newEvent.clientName} onChange={e => updateEvent('clientName', e.target.value)} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
-                <input placeholder="WhatsApp Principal" value={newEvent.clientPhone} onChange={e => updateEvent('clientPhone', e.target.value)} type="tel" />
-                <input placeholder="WhatsApp Secundario" value={newEvent.clientPhone2} onChange={e => updateEvent('clientPhone2', e.target.value)} type="tel" />
+              <div
+                onClick={() => toggleSection('s1')}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
+              >
+                <h3>1. Paquete y Horarios</h3>
+                <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
-            </div>
-
-            {/* SECCIÓN 2: LOGÍSTICA (FECHA Y HORARIOS) */}
-            <div className="form-section">
-              <h3>2. Fecha y Horarios</h3>
-
-              {/* Row 1: Date & Occasion */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: '#666', marginBottom: '2px', display: 'block' }}>Fecha</label>
-                  <input required type="date" value={newEvent.date} onChange={e => updateEvent('date', e.target.value)} style={{ width: '100%' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: '#666', marginBottom: '2px', display: 'block' }}>Ocasión</label>
-                  <input placeholder="Ej: Cumpleaños" value={newEvent.occasion} onChange={e => updateEvent('occasion', e.target.value)} style={{ width: '100%' }} />
-                </div>
-              </div>
-
-              {/* Row 2: Guests & Extra Hour Rate */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: '#666', marginBottom: '2px', display: 'block' }}>Invitados</label>
-                  <input type="tel" inputMode="numeric" placeholder="#" value={newEvent.guestCount || ''} onChange={e => updateEvent('guestCount', e.target.value)} style={{ width: '100%' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: '#666', marginBottom: '2px', display: 'block' }}>Valor Hora Extra ($)</label>
-                  <input type="tel" inputMode="numeric" value={newEvent.extraHourPrice} onChange={e => updateEvent('extraHourPrice', e.target.value)} style={{ width: '100%', color: '#facc15', fontWeight: 'bold' }} />
-                </div>
-              </div>
-
-              {/* Row 2: Time Range (Compact & Fixed Layout) */}
-              {/* Row 2: Time Range (Compact & Fixed Layout) */}
-              {/* Logística Interna (Visible solo en MODO EVENTO) */}
-              {isEventMode ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-                  <TimeInput
-                    label="Hora Inicio"
-                    value={newEvent.startTime}
-                    onChange={(val) => updateEvent('startTime', val)}
-                  />
-                  <TimeInput
-                    label="Hora Fin"
-                    value={newEvent.endTime}
-                    onChange={(val) => updateEvent('endTime', val)}
-                  />
-                  <TimeInput
-                    label="Materiales"
-                    value={newEvent.materialsTime}
-                    onChange={(val) => updateEvent('materialsTime', val)}
-                  />
-                  <TimeInput
-                    label="Bodega"
-                    value={newEvent.warehouseTime}
-                    onChange={(val) => updateEvent('warehouseTime', val)}
-                  />
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                  <TimeInput
-                    label="Hora Inicio"
-                    value={newEvent.startTime}
-                    onChange={(val) => updateEvent('startTime', val)}
-                  />
-                  <TimeInput
-                    label="Hora Fin"
-                    value={newEvent.endTime}
-                    onChange={(val) => updateEvent('endTime', val)}
-                  />
-                </div>
-              )}
-
-              {/* SEPARATE SCHEDULING FOR PHOTOGRAPHY (IF APPLICABLE AND EVENT MODE) */}
-              {(isEventMode && (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration')) && (
-                <div style={{ padding: '15px', background: 'rgba(255, 150, 0, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 150, 0, 0.2)', marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#facc15' }}>
-                    <IconCalendar size={14} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Fotografía (Franja diferente)</span>
+              {sectionState.s1 && (
+                <>
+                  {/* Row 0: Package & Manager */}
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                    <select style={{ flex: 1 }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
+                      <option value="Essential">Essential ($450k)</option>
+                      <option value="Memories">Memories ($650k)</option>
+                      <option value="Celebration">Celebration ($850k)</option>
+                      <option value="Personalizado">Personalizado</option>
+                    </select>
+                    <input style={{ flex: 1 }} placeholder="Nombre Gestor" value={newEvent.managerName} onChange={e => updateEvent('managerName', e.target.value)} />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <TimeInput
-                      label="Inicio Foto"
-                      value={newEvent.photoStartTime}
-                      onChange={(val) => updateEvent('photoStartTime', val)}
-                    />
-                    <TimeInput
-                      label="Fin Foto"
-                      value={newEvent.photoEndTime}
-                      onChange={(val) => updateEvent('photoEndTime', val)}
-                    />
+
+                  {/* Row 1: Date & Occasion */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Fecha</label>
+                      <input required type="date" value={newEvent.date} onChange={e => updateEvent('date', e.target.value)} style={{ width: '100%' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Ocasión</label>
+                      <input placeholder="Ej: Cumpleaños" value={newEvent.occasion} onChange={e => updateEvent('occasion', e.target.value)} style={{ width: '100%' }} />
+                    </div>
                   </div>
-                  <p style={{ margin: '8px 0 0 0', fontSize: '0.65rem', opacity: 0.6, color: '#fff' }}>
-                    * El fotógrafo suele ir por una franja de horas distinta a la del DJ.
-                  </p>
-                </div>
-              )}
 
-              {/* SEPARATE SCHEDULING FOR DECORATION (IF APPLICABLE AND EVENT MODE) */}
-              {(isEventMode && newEvent.packName === 'Celebration') && (
-                <div style={{ padding: '15px', background: 'rgba(188, 111, 241, 0.05)', borderRadius: '15px', border: '1px solid rgba(188, 111, 241, 0.2)', marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-purple)' }}>
-                    <IconFlow size={14} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Decoración (Montaje)</span>
+                  {/* Row 2: Guests & Price */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Invitados</label>
+                      <input type="tel" inputMode="numeric" placeholder="#" value={newEvent.guestCount || ''} onChange={e => updateEvent('guestCount', e.target.value)} style={{ width: '100%' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Valor Hora Extra ($)</label>
+                      <input type="tel" inputMode="numeric" value={newEvent.extraHourPrice} onChange={e => updateEvent('extraHourPrice', e.target.value)} style={{ width: '100%', color: '#facc15', fontWeight: 'bold' }} />
+                    </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <TimeInput
-                      label="Inicio Decor"
-                      value={newEvent.decorStartTime}
-                      onChange={(val) => updateEvent('decorStartTime', val)}
-                    />
-                    <TimeInput
-                      label="Fin Decor"
-                      value={newEvent.decorEndTime}
-                      onChange={(val) => updateEvent('decorEndTime', val)}
-                    />
-                  </div>
-                </div>
-              )}
 
-              {duration > 0 && (
-                <div style={{ marginBottom: '10px', padding: '5px 10px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '20px', fontSize: '0.8rem', textAlign: 'center', color: '#00d4ff' }}>
-                  ⏱ <strong>{duration.toFixed(1)}h</strong>
-                  {extrasKy > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extrasKy}h extra)</span>}
-                </div>
-              )}
+                  {/* Event Time Inputs */}
+                  {isEventMode ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                      <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
+                      <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
+                      <TimeInput label="Bodega" value={newEvent.warehouseTime} onChange={(val) => updateEvent('warehouseTime', val)} />
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                      <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
+                      <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
+                    </div>
+                  )}
 
-              {/* Row 3: Location */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
-                <input required placeholder="Barrio" value={newEvent.neighborhood || ''} onChange={e => updateEvent('neighborhood', e.target.value)} />
-                <input required placeholder="Dirección Exacta" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} />
-              </div>
-            </div>
+                  {duration > 0 && (
+                    <div style={{ marginBottom: '10px', padding: '4px 8px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: '#00d4ff' }}>
+                      ⏱ <strong>{duration.toFixed(1)}h</strong> (DJ/Sonido)
+                      {extrasKy > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extrasKy}h extra)</span>}
+                    </div>
+                  )}
 
-            {/* SECCIÓN 3: PAQUETE Y EXTRAS */}
-            <div className="form-section">
-              <h3>3. Paquete y Extras</h3>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                <select style={{ flex: 1 }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
-                  <option value="Essential">Essential ($450k)</option>
-                  <option value="Memories">Memories ($650k)</option>
-                  <option value="Celebration">Celebration ($850k)</option>
-                  <option value="Personalizado">Personalizado</option>
-                </select>
-                <input style={{ flex: 1 }} placeholder="Nombre y Apellido Gestor" value={newEvent.managerName} onChange={e => updateEvent('managerName', e.target.value)} />
-              </div>
-
-              {/* PHOTO DURATION INPUT (Clean) */}
-              {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '10px' }}>
-                  <label style={{ fontSize: '0.8rem', color: '#ccc', flex: 1 }}>⏱ Horas Servicio Fotografía:</label>
-                  <input
-                    type="number"
-                    placeholder="Ej: 6"
-                    value={newEvent.photoDuration || ''}
-                    onChange={e => updateEvent('photoDuration', e.target.value)}
-                    style={{ width: '80px', textAlign: 'center', marginBottom: 0 }}
-                  />
-                </div>
-              )}
-
-              {/* EXTRAS LIST (SIMPLIFIED & CLEAN) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.75rem', color: '#666', marginBottom: '5px' }}>Adicionales Disponibles:</label>
-                {getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).map(extra => {
-                  const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]);
-                  return (
-                    <div
-                      key={extra.id}
-                      onClick={() => updateEvent('toggleExtra', extra.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 12px',
-                        background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
-                        border: '1px solid',
-                        borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
-                        borderRadius: '10px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra.name}</span>
-                        <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
-                          + ${extra.price.toLocaleString()}
-                        </span>
-                        {/* Manual Makeup Counter if Active */}
-                        {extra.isMakeup && isActive && (
-                          <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
-                            <small onClick={() => updateEvent('changeMakeupCount', Math.max(1, (extra.qty || 1) - 1))} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
-                            <span style={{ fontSize: '0.8rem' }}>{extra.qty}</span>
-                            <small onClick={() => updateEvent('changeMakeupCount', (extra.qty || 1) + 1)} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
+                  {/* SECCIÓN 2.1: ASIGNACIÓN OPERATIVA (Visibilidad Global) */}
+                  <div style={{ marginTop: '15px' }}>
+                    {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
+                      <h4 style={{ fontSize: '0.8rem', color: 'var(--primary-cyan)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>1.1 Asignación Operativa</h4>
+                    )}
+                    {/* SEPARATE SCHEDULING FOR PHOTOGRAPHY */}
+                    {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
+                      <div style={{ padding: '15px', background: 'rgba(255, 150, 0, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 150, 0, 0.2)', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#facc15' }}>
+                          <IconCalendar size={14} />
+                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Fotografía (OBLIGATORIO)</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <TimeInput label="Inicio Foto" value={newEvent.photoStartTime} onChange={(val) => updateEvent('photoStartTime', val)} />
+                          <TimeInput label="Fin Foto" value={newEvent.photoEndTime} onChange={(val) => updateEvent('photoEndTime', val)} />
+                        </div>
+                        {newEvent.photoDuration > 0 && (
+                          <div style={{ marginTop: '10px', padding: '5px 10px', background: 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: '#facc15' }}>
+                            📸 <strong>{newEvent.photoDuration}h</strong> Fotografía
                           </div>
                         )}
-                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
+                        <p style={{ margin: '8px 0 0 0', fontSize: '0.65rem', opacity: 0.6, color: '#fff' }}>
+                          * El fotógrafo suele ir por una franja de horas distinta a la del DJ.
+                        </p>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    )}
+                    {/* SEPARATE SCHEDULING FOR DECORATION */}
+                    {(newEvent.packName === 'Celebration') && (
+                      <div style={{ padding: '15px', background: 'rgba(188, 111, 241, 0.05)', borderRadius: '15px', border: '1px solid rgba(188, 111, 241, 0.2)', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-purple)' }}>
+                          <IconFlow size={14} />
+                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Decoración (OBLIGATORIO)</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <TimeInput label="Inicio Decor" value={newEvent.decorStartTime} onChange={(val) => updateEvent('decorStartTime', val)} />
+                          <TimeInput label="Fin Decor" value={newEvent.decorEndTime} onChange={(val) => updateEvent('decorEndTime', val)} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 3: Location */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
+                    <input required placeholder="Barrio" value={newEvent.neighborhood || ''} onChange={e => updateEvent('neighborhood', e.target.value)} />
+                    <input required placeholder="Dirección Exacta" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} />
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* SECCIÓN 4: INDICACIONES Y EXPLICACIÓN MATERIAL */}
-            {/* SECCIÓN 4: INDICACIONES Y EXPLICACIÓN MATERIAL (SOLO EN MODO EVENTO) */}
+            {/* SECCIÓN 2: EXTRAS (ACCORDION) */}
+            <div className="form-section">
+              <div
+                onClick={() => toggleSection('s2')}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s2 ? '15px' : '0' }}
+              >
+                <h3>2. Extras</h3>
+                <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s2 ? '▼' : '▶'}</span>
+              </div>
+
+              {sectionState.s2 && (
+                <>
+                  {/* EXTRAS LIST */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '4px' }}>Adicionales Disponibles:</label>
+                    {getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).map(extra => {
+                      const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]);
+                      return (
+                        <div
+                          key={extra.id}
+                          onClick={() => updateEvent('toggleExtra', extra.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px',
+                            background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
+                            border: '1px solid', borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
+                            borderRadius: '8px', cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra.name}</span>
+                            <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
+                              + ${extra.price.toLocaleString()}
+                            </span>
+                            {extra.isMakeup && isActive && (
+                              <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
+                                <small onClick={() => updateEvent('changeMakeupCount', Math.max(1, (extra.qty || 1) - 1))} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
+                                <span style={{ fontSize: '0.8rem' }}>{extra.qty}</span>
+                                <small onClick={() => updateEvent('changeMakeupCount', (extra.qty || 1) + 1)} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
+                              </div>
+                            )}
+                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+
+
+            {/* SECCIÓN 3: CLIENTE (ACCORDION - COLLAPSED DEFAULT) */}
+            <div className="form-section">
+              <div
+                onClick={() => toggleSection('s3')}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '15px' : '0' }}
+              >
+                <h3>3. Datos del Cliente</h3>
+                <span style={{ fontSize: '1.2rem', color: '#00d4ff' }}>{sectionState.s3 ? '▼' : '▶'}</span>
+              </div>
+
+              {sectionState.s3 && (
+                <>
+                  <input required placeholder="Nombre Cliente" value={newEvent.clientName} onChange={e => updateEvent('clientName', e.target.value)} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '6px' }}>
+                    <input placeholder="WhatsApp P." value={newEvent.clientPhone} onChange={e => updateEvent('clientPhone', e.target.value)} type="tel" />
+                    <input placeholder="WhatsApp S." value={newEvent.clientPhone2} onChange={e => updateEvent('clientPhone2', e.target.value)} type="tel" />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* SECCIÓN 4: DETALLES DE MISION (SOLO MODO EVENTO) */}
             {
               isEventMode && (
                 <div className="form-section">
@@ -3152,6 +2327,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 </div>
               )
             }
+
+            {/* SECCIÓN 5: COTIZACIÓN FINAL */}
+
+
 
             {/* SECCIÓN 5: COTIZACIÓN (TOTAL) */}
             <div className="form-section" style={{ borderColor: '#00d4ff', borderWidth: '1px', borderStyle: 'solid' }}>
@@ -3213,36 +2392,59 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   />
                 </div>
               </div>
-              <div style={{ marginTop: '15px', display: 'grid', gridTemplateColumns: '1fr', gap: '15px' }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: '800', opacity: 0.4, textTransform: 'uppercase', letterSpacing: '1px' }}>Abono Recibido</label>
-                    <span style={{ fontSize: '0.65rem', background: 'rgba(0, 242, 255, 0.15)', color: 'var(--primary-cyan)', padding: '2px 8px', borderRadius: '6px', fontWeight: '900' }}>30% RESERVA</span>
+              <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'flex-end', overflow: 'visible' }}>
+                <div style={{ width: '40% !important', position: 'relative', minWidth: '120px' }}>
+
+                  <div style={{ position: 'relative', width: '100%' }}>
+
+                    <input
+                      key="input_money_icon_force"
+                      required
+                      placeholder="0"
+                      type="tel"
+                      inputMode="numeric"
+                      value={newEvent.deposit}
+                      onChange={e => updateEvent('deposit', e.target.value)}
+                      style={{
+                        paddingLeft: '12px !important',
+                        paddingRight: '10px !important',
+                        width: '100% !important',
+                        fontSize: '1.1rem',
+                        fontWeight: '900',
+                        color: 'var(--primary-cyan)',
+                        height: '42px',
+                        margin: 0,
+                        boxSizing: 'border-box'
+                      }}
+                    />
                   </div>
-                  <input required placeholder="$ 0" type="tel" inputMode="numeric" value={newEvent.deposit} onChange={e => updateEvent('deposit', e.target.value)} style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary-cyan)' }} />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: '800', opacity: 0.4, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px', display: 'block' }}>Canal de Recepción</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.4, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', display: 'block' }}>Canal</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
                     {[
                       { id: 'Nequi', color: '#ff007a' },
-                      { id: 'Daviplata', color: '#ff4d4d' },
-                      { id: 'Efectivo', color: '#4dff88' }
+                      { id: 'Davi', color: '#ff4d4d' },
+                      { id: 'Efect', color: '#4dff88' }
                     ].map(m => (
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => updateEvent('paymentMethod', m.id)}
+                        onClick={() => updateEvent('paymentMethod', m.id.replace('Davi', 'Daviplata').replace('Efect', 'Efectivo'))}
                         style={{
-                          padding: '12px 5px',
-                          borderRadius: '12px',
+                          padding: '12px 2px',
+                          borderRadius: '8px',
                           border: '1px solid',
-                          borderColor: newEvent.paymentMethod === m.id ? m.color : 'rgba(255,255,255,0.1)',
-                          background: newEvent.paymentMethod === m.id ? `${m.color}22` : 'rgba(255,255,255,0.03)',
-                          color: newEvent.paymentMethod === m.id ? m.color : 'rgba(255,255,255,0.4)',
-                          fontSize: '0.65rem',
-                          fontWeight: '900',
-                          transition: 'all 0.2s'
+                          borderColor: newEvent.paymentMethod?.includes(m.id) ? m.color : 'rgba(255,255,255,0.1)',
+                          background: newEvent.paymentMethod?.includes(m.id) ? `${m.color}22` : 'rgba(255,255,255,0.03)',
+                          color: newEvent.paymentMethod?.includes(m.id) ? m.color : 'rgba(255,255,255,0.3)',
+                          fontSize: '0.6rem',
+                          fontWeight: '800',
+                          transition: 'all 0.2s',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
                         }}
                       >
                         {m.id.toUpperCase()}
@@ -3309,6 +2511,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     }
   };
 
+
+
   const addStaffMember = async (evtId, name, role) => {
     const evt = events.find(e => e.id === evtId);
     if (!evt) return;
@@ -3321,6 +2525,122 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     if (!evt) return;
     const newHours = Math.max(0, hours);
     await updateDoc(doc(db, "events", evtId), { "financials.reportedExtraHours": newHours });
+  };
+
+  const toggleItemStatus = async (evt, itemIndex) => {
+    const newItems = [...(evt.logistics?.items || [])];
+    const item = newItems[itemIndex];
+    if (!item) return;
+
+    // Cycle: PENDING -> DELIVERED -> RETURNED -> PENDING
+    // Visual logic: PENDING (Gris) -> DELIVERED (Entregado/Naranja) -> RETURNED (Devuelto/Verde)
+    let nextStatus = 'PENDING';
+    if (!item.status || item.status === 'PENDING') nextStatus = 'DELIVERED';
+    else if (item.status === 'DELIVERED') nextStatus = 'RETURNED';
+    else nextStatus = 'PENDING'; // Allow reset in case of error
+
+    newItems[itemIndex] = {
+      ...item,
+      status: nextStatus,
+      deliveredTime: nextStatus === 'DELIVERED' ? new Date().toISOString() : item.deliveredTime,
+      returnedTime: nextStatus === 'RETURNED' ? new Date().toISOString() : item.returnedTime
+    };
+
+    try {
+      await updateDoc(doc(db, "events", evt.id), {
+        "logistics.items": newItems
+      });
+    } catch (err) {
+      console.error("Error updating item status:", err);
+      alert("Error al actualizar estado del ítem");
+    }
+  };
+
+  /* --- VIRTUAL INVENTORY LOGIC (MOVED UP FOR SCOPE ACCESS) --- */
+  const getVirtualItems = (role, packName) => {
+    // Definición estricta de ítems por rol (según solicitud)
+    const dj = [
+      { name: 'CABINAS ACTIVAS 15 Pulgadas + TRÍPODES', qty: packName === 'Celebration' ? 4 : 2 },
+      { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 a 1', qty: 1 },
+      { name: 'LUCES LED x4 + SOPORTE TRÍPODE', qty: 1 },
+      { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1 },
+      { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1 },
+      { name: 'MAQUILLAJE NEON (PINTURAS, PINCEL, MAQUILLADOR, 2H)', qty: 1 }
+    ];
+    const photo = [
+      { name: 'CÁMARA', qty: 1 },
+      { name: 'MICRO SD', qty: 1 }
+    ];
+    const decor = [
+      { name: 'BOMBAS', qty: 50 },
+      { name: 'INFLADOR', qty: 1 }
+    ];
+
+    if (role === 'DJ') return dj;
+    if (role === 'PHOTO') return photo;
+    if (role === 'DECOR') return decor;
+    return [];
+  };
+
+  const closeEvent = async (evt) => {
+    // Validation: Check that ALL virtual items for the pack are marked as RETURNED
+    // We check against the strict definition for the pack, not just what's in DB
+    const packName = evt.logistics?.packName;
+    const allExpectedItems = [
+      ...getVirtualItems('DJ', packName),
+      ...getVirtualItems('PHOTO', packName),
+      ...getVirtualItems('DECOR', packName)
+    ];
+
+    const dbItems = evt.logistics?.items || [];
+
+    const unreturned = dbItems.filter(i => i.status !== 'RETURNED');
+
+    // Also check if there are items in the expected list that haven't been touched (missing in DB is effectively PENDING)
+    const missingItems = allExpectedItems.filter(exp => !dbItems.find(dbI => dbI.name === exp.name));
+
+    if (unreturned.length > 0 || missingItems.length > 0) {
+      alert(`⚠️ NO SE PUEDE CERRAR EL EVENTO\n\nTodos los materiales deben estar en estado 'RECIBIDO'.\n\nPendientes de retorno:\n${unreturned.map(i => `- ${i.name}`).join('\n')}\n${missingItems.map(i => `- ${i.name} (No registrado)`).join('\n')}`);
+      return;
+    }
+
+    if (!confirm('¿Confirmar cierre operativo y financiero del evento?')) return;
+
+    try {
+      await updateDoc(doc(db, "events", evt.id), { status: 'CLOSED' });
+      alert('✅ Evento CERRADO exitosamente.');
+      setView('events');
+    } catch (err) {
+      console.error(err);
+      alert('Error al cerrar evento');
+    }
+  };
+
+
+
+  const updateVirtualItemStatus = async (evt, itemName, role, newStatus) => {
+    const currentItems = [...(evt.logistics?.items || [])];
+    const existingIndex = currentItems.findIndex(i => i.name === itemName);
+
+    if (existingIndex >= 0) {
+      // Update existing
+      currentItems[existingIndex] = {
+        ...currentItems[existingIndex],
+        status: newStatus
+      };
+    } else {
+      // Initialize new item
+      currentItems.push({
+        name: itemName,
+        area: role,
+        qty: 1,
+        status: newStatus
+      });
+    }
+
+    try {
+      await updateDoc(doc(db, "events", evt.id), { "logistics.items": currentItems });
+    } catch (err) { console.error(err); }
   };
 
   const renderDetail = () => {
@@ -3347,6 +2667,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
       const payrollValue = 35000 + (duration * 13000) + ((evt.financials?.reportedExtraHours || 0) * 15000);
 
+      // FORCE VISUAL RESET: Use Virtual List, ignore DB list for structure
+      // Default to DJ if 'ALL' or invalid
+      const effectiveRole = (selectedRoleView === 'ALL' || !selectedRoleView) ? 'DJ' : selectedRoleView;
+      const virtualList = getVirtualItems(effectiveRole, evt.logistics?.packName);
+
       return (
         <div className="fade-in container detail-view" style={{ paddingBottom: '140px', background: '#050505', color: '#fff', fontSize: '13px' }}>
           {/* HEADER OPERATIVO */}
@@ -3355,100 +2680,343 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               <IconArrowLeft /> VOLVER
             </button>
             <div style={{ textAlign: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', opacity: 0.6 }}>Hoja de Misión Operativa</h2>
+              <h2 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--primary-cyan)' }}>Hoja de Misión Operativa v3.0</h2>
             </div>
             <button onClick={() => editEvent(evt)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '10px', borderRadius: '12px', color: '#fff' }}>
               <IconEdit />
             </button>
           </header>
 
-          {/* 1. TOP INFO BAR (4 COLUMNS) */}
-          <section style={{ padding: '0 15px 20px 15px' }}>
-            <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: '12px', padding: '15px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', textAlign: 'center' }}>
-              <div>
-                <span style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, display: 'block', marginBottom: '8px' }}>LLEGADA A BODEGA</span>
-                <span style={{ fontSize: '1rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>{evt.eventDetails?.warehouseTime || '00:00'}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, display: 'block', marginBottom: '8px' }}>GESTOR OPERATIVO</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: '950', textTransform: 'uppercase' }}>{evt.logistics?.managerName || 'POR ASIGNAR'}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, display: 'block', marginBottom: '8px' }}>VALOR HR EXTRA</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>{formatPeso(evt.financials?.extraHourPrice || 85000)}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, display: 'block', marginBottom: '8px' }}>FECHA SERVICIO</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: '950', color: 'var(--primary-purple)' }}>{evt.eventDetails?.date}</span>
-              </div>
-            </div>
-          </section>
-
-          {/* 2. CLIENT BOX */}
+          {/* 1. PERSONAL ASIGNADO Y RECAUDO (PRIORIDAD) */}
           <section style={{ padding: '0 15px 25px 15px' }}>
-            <div style={{ border: '1.5px solid var(--primary-purple)', borderRadius: '12px', padding: '20px', background: 'rgba(157, 78, 221, 0.02)' }}>
-              <span style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '5px' }}>CLIENTE TITULAR / EVENTO</span>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: '950', letterSpacing: '0.5px' }}>
-                  {evt.client?.name?.toUpperCase()} <span style={{ opacity: 0.2, margin: '0 10px' }}>|</span> {evt.eventDetails?.occasion?.toUpperCase()}
-                </h3>
-                <span style={{ fontSize: '0.8rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>WP: {evt.id?.replace('EVT', '')}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h4 style={{ fontSize: '0.75rem', fontWeight: '950', textTransform: 'uppercase', margin: 0, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>PERSONAL OPERATIVO</h4>
+              {(() => {
+                const { responsibleRole } = getCollectionResponsibility(evt);
+                const totalVal = evt.financials?.totalValue || 0;
+                const balanceToCollect = totalVal * 0.7; // Business Rule: Staff collects 70%
+
+                if (!responsibleRole || responsibleRole === 'N/A' || balanceToCollect <= 0) return null;
+                const assignedPerson = (evt.staff || []).find(s => s.role === responsibleRole);
+                const displayName = assignedPerson ? assignedPerson.name.split(' ')[0] : (responsibleRole === 'DJ / OPERADOR' ? 'DJ' : responsibleRole);
+                return (
+                  <span style={{ color: '#ff3860', fontSize: '0.65rem', fontWeight: '950', letterSpacing: '0.5px' }}>
+                    ⚠️ {displayName.toUpperCase()} COBRA {formatPeso(balanceToCollect)}
+                  </span>
+                );
+              })()}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '15px' }}>
+              {[
+                { label: 'DJ / OP', role: 'DJ / OPERADOR', icon: <IconStaff size={12} /> },
+                { label: 'FOTO', role: 'FOTÓGRAFO', icon: <IconCamera size={12} /> },
+                { label: 'DECOR', role: 'DECORADOR', icon: <IconPlus size={12} /> }
+              ].map(st => {
+                const assigned = (evt.staff || []).find(s => s.role === st.role);
+                return (
+                  <div key={st.role} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    padding: '8px 10px',
+                    borderRadius: '12px',
+                    border: assigned ? '1px solid var(--primary-cyan)' : '1px solid rgba(255,255,255,0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}>
+                    <span style={{ fontSize: '0.45rem', fontWeight: '900', opacity: 0.5, display: 'flex', alignItems: 'center', gap: '3px', letterSpacing: '0.5px' }}>
+                      {st.icon} {st.label}
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Asignar..."
+                      defaultValue={assigned?.name || ''}
+                      onBlur={async (e) => {
+                        const name = e.target.value;
+                        if (!name && !assigned) return;
+                        let newStaff = [...(evt.staff || [])];
+                        if (assigned) {
+                          if (name) newStaff = newStaff.map(s => s.role === st.role ? { ...s, name } : s);
+                          else newStaff = newStaff.filter(s => s.role !== st.role);
+                        } else {
+                          newStaff.push({ name, role: st.role, id: Date.now() });
+                        }
+                        await updateDoc(doc(db, "events", evt.id), { staff: newStaff });
+                      }}
+                      style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.65rem', fontWeight: '800', outline: 'none', width: '100%' }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* BOTONES DE PDF CON INDICADOR DE ENTREGA */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+              <button
+                onClick={() => generateMissionPDF(evt, 'DJ')}
+                style={{
+                  padding: '12px', borderRadius: '12px',
+                  background: evt.logistics?.flow?.misionSent?.DJ ? 'rgba(34, 197, 94, 0.1)' : 'rgba(250, 204, 21, 0.1)',
+                  border: `1px solid ${evt.logistics?.flow?.misionSent?.DJ ? '#22c55e' : 'rgba(250, 204, 21, 0.2)'}`,
+                  color: evt.logistics?.flow?.misionSent?.DJ ? '#22c55e' : '#facc15',
+                  fontSize: '0.6rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                }}
+              >
+                {evt.logistics?.flow?.misionSent?.DJ ? <IconCheck size={12} /> : <IconPDF size={12} />} PDF DJ
+              </button>
+
+              <button
+                onClick={() => generateMissionPDF(evt, 'PHOTO')}
+                style={{
+                  padding: '12px', borderRadius: '12px',
+                  background: evt.logistics?.flow?.misionSent?.PHOTO ? 'rgba(34, 197, 94, 0.1)' : 'rgba(188, 111, 241, 0.1)',
+                  border: `1px solid ${evt.logistics?.flow?.misionSent?.PHOTO ? '#22c55e' : 'rgba(188, 111, 241, 0.2)'}`,
+                  color: evt.logistics?.flow?.misionSent?.PHOTO ? '#22c55e' : '#bc6ff1',
+                  fontSize: '0.6rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                }}
+              >
+                {evt.logistics?.flow?.misionSent?.PHOTO ? <IconCheck size={12} /> : <IconPDF size={12} />} PDF FOTO
+              </button>
+
+              <button
+                onClick={() => generateMissionPDF(evt, 'DECOR')}
+                style={{
+                  padding: '12px', borderRadius: '12px',
+                  background: evt.logistics?.flow?.misionSent?.DECOR ? 'rgba(34, 197, 94, 0.1)' : 'rgba(0, 242, 255, 0.1)',
+                  border: `1px solid ${evt.logistics?.flow?.misionSent?.DECOR ? '#22c55e' : 'rgba(0, 242, 255, 0.2)'}`,
+                  color: evt.logistics?.flow?.misionSent?.DECOR ? '#22c55e' : 'var(--primary-cyan)',
+                  fontSize: '0.6rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                }}
+              >
+                {evt.logistics?.flow?.misionSent?.DECOR ? <IconCheck size={12} /> : <IconPDF size={12} />} PDF DECOR
+              </button>
+            </div>
+
+            <button
+              onClick={() => generateQuotationPDF(evt)}
+              style={{
+                width: '100%', padding: '10px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)',
+                fontSize: '0.65rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '15px'
+              }}
+            >
+              <IconFileText size={14} /> VER COTIZACIÓN ORIGINAL (CONTRATO)
+            </button>
+          </section>
+
+          {/* 2. INFO DEL EVENTO (HORARIO, FECHA, LUGAR) */}
+          <section style={{ padding: '0 15px 35px 15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h4 style={{ fontSize: '0.75rem', fontWeight: '950', textTransform: 'uppercase', margin: 0, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>
+                {evt.client?.name?.toUpperCase()} • <span style={{ color: 'var(--primary-purple)' }}>{evt.eventDetails?.occasion?.toUpperCase()}</span>
+              </h4>
+              <span style={{ color: 'var(--primary-cyan)', fontSize: '0.65rem', fontWeight: '950', letterSpacing: '0.5px' }}>
+                WP-{evt.id?.split('-').slice(1).join('-') || '000000-00'}
+              </span>
+            </div>
+
+            <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: '24px', padding: '25px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, right: 0, width: '4px', height: '100%', background: 'var(--brand-gradient)' }}></div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                <div>
+                  <span style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '3px' }}>FECHA</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '950', color: '#fff' }}>{evt.eventDetails?.date}</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '3px' }}>HORARIO</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '950', color: '#fff', whiteSpace: 'nowrap' }}>
+                    {formatT(evt.eventDetails?.startTime)} - {formatT(evt.eventDetails?.endTime)}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '3px' }}>BODEGA (-2.5H)</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>
+                    {(() => {
+                      if (!evt.eventDetails?.startTime) return '00:00';
+                      try {
+                        let [h, m] = evt.eventDetails.startTime.split(':').map(Number);
+                        let totalMinutes = h * 60 + m - 150; // 2h 30m = 150 min
+                        if (totalMinutes < 0) totalMinutes += 1440; // Wrap around midnight
+                        const rh = Math.floor(totalMinutes / 60);
+                        const rm = totalMinutes % 60;
+                        return formatT(`${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`);
+                      } catch (e) { return '00:00'; }
+                    })()}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '3px' }}>DURACIÓN</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '950', color: '#fff' }}>{duration.toFixed(1)}H</span>
+                </div>
+              </div>
+
+              {/* BOTON PARA VER CRONOGRAMA POR ROLES */}
+              {(evt.eventDetails?.photoStartTime || evt.eventDetails?.decorStartTime) && (
+                <div style={{ marginTop: '20px' }}>
+                  <button
+                    onClick={(e) => {
+                      const section = e.currentTarget.nextElementSibling;
+                      section.style.display = section.style.display === 'none' ? 'block' : 'none';
+                    }}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '14px',
+                      background: 'rgba(0, 242, 255, 0.1)', border: '1px solid rgba(0, 242, 255, 0.2)',
+                      color: 'var(--primary-cyan)', fontSize: '0.7rem', fontWeight: '900',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}
+                  >
+                    <IconCalendar size={14} /> VER CRONOGRAMA POR ROLES
+                  </button>
+                  <div style={{ display: 'none', marginTop: '12px', padding: '15px', background: 'rgba(0, 242, 255, 0.05)', border: '1px solid rgba(0, 242, 255, 0.15)', borderRadius: '15px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {evt.eventDetails?.photoStartTime && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '10px' }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#facc15' }}>📸 FOTOGRAFÍA</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '900' }}>{formatT(evt.eventDetails.photoStartTime)} - {formatT(evt.eventDetails.photoEndTime)}</span>
+                        </div>
+                      )}
+                      {evt.eventDetails?.decorStartTime && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '10px' }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)' }}>✨ DECORACIÓN</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '900' }}>{formatT(evt.eventDetails.decorStartTime)} - {formatT(evt.eventDetails.decorEndTime)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* FINANZAS COMPACTAS */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
+                <div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '2px' }}>VALOR TOTAL</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '950', color: '#fff' }}>{formatPeso(evt.financials?.totalValue || 0)}</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '2px' }}>SEPARACIÓN (30%)</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '950', color: 'var(--primary-purple)' }}>{formatPeso((evt.financials?.totalValue || 0) * 0.3)}</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '2px' }}>SALDO (70%)</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '950', color: '#ff3860' }}>{formatPeso((evt.financials?.totalValue || 0) * 0.7)}</span>
+                </div>
+              </div>
+
+              {/* SERVICIOS Y NOTAS COMPACTOS */}
+              <div style={{ marginTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
+                <div style={{ marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '4px', letterSpacing: '1px' }}>SERVICIOS EXTRAS</span>
+                  {(() => {
+                    const dynamicExtras = getDynamicExtras(Number(evt.eventDetails?.guestCount) || 10, evt.makeupCount);
+                    const selExtras = evt.logistics?.selectedExtras || {};
+                    const active = Object.keys(selExtras).filter(k => selExtras[k]);
+                    if (active.length === 0) return <span style={{ fontSize: '0.65rem', color: '#555', fontWeight: '700' }}>Ninguno</span>;
+                    return (
+                      <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#ccc', letterSpacing: '0.3px' }}>
+                        {active.map(k => dynamicExtras.find(d => d.id === k)?.name || k).join(' • ').toUpperCase()}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '4px', letterSpacing: '1px' }}>OBSERVACIONES</span>
+                  <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#999', lineHeight: '1.2' }}>
+                    {evt.eventDetails?.indications || 'Sin notas'}
+                  </span>
+                </div>
+              </div>
+
+              {/* LOCALIZACIÓN COMPACTA */}
+              <div style={{ marginTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <IconLocation size={14} color="var(--primary-cyan)" style={{ marginTop: '2px' }} />
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '900', color: '#fff', display: 'block' }}>{evt.eventDetails?.location?.toUpperCase()}</span>
+                    <span style={{ fontSize: '0.6rem', fontWeight: '750', opacity: 0.4, display: 'block' }}>{evt.eventDetails?.neighborhood?.toUpperCase()}</span>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${evt.eventDetails?.location || ''} ${evt.eventDetails?.neighborhood || ''}`)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ color: 'var(--primary-cyan)', textDecoration: 'none', fontSize: '0.6rem', fontWeight: '950', display: 'inline-block', marginTop: '5px', letterSpacing: '0.5px' }}
+                    >BRÚJULA NEXXA (GOOGLE MAPS) →</a>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
 
-          {/* 3. LOCALIZATION TABLE */}
+          {/* 3. MATERIAL ASIGNADO (CONTROL DE INVENTARIO) */}
           <section style={{ padding: '0 15px 35px 15px' }}>
-            <h4 style={{ fontSize: '0.75rem', fontWeight: '950', textTransform: 'uppercase', marginBottom: '15px' }}>LOCALIZACIÓN Y CRONOGRAMA</h4>
-            <div style={{ border: '1px solid #1a1a1a', borderRadius: '8px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
-                    {['ZONA / BARRIO', 'DIRECCIÓN EXACTA', 'HORARIO', 'DURACIÓN'].map(h => (
-                      <th key={h} style={{ padding: '12px 10px', fontSize: '0.65rem', fontWeight: '950', color: 'var(--primary-cyan)', textAlign: 'left', borderRight: '1px solid #1a1a1a' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ background: 'rgba(255,255,255,0.01)' }}>
-                    <td style={{ padding: '15px 10px', fontSize: '0.8rem', borderRight: '1px solid #1a1a1a' }}>{evt.eventDetails?.neighborhood || 'N/A'}</td>
-                    <td style={{ padding: '15px 10px', fontSize: '0.8rem', borderRight: '1px solid #1a1a1a' }}>{evt.eventDetails?.location || 'N/A'}</td>
-                    <td style={{ padding: '15px 10px', fontSize: '0.8rem', borderRight: '1px solid #1a1a1a' }}>{formatT(evt.eventDetails?.startTime)} - {formatT(evt.eventDetails?.endTime)}</td>
-                    <td style={{ padding: '15px 10px', fontSize: '0.8rem', fontWeight: '800' }}>{duration.toFixed(1)} HORAS</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${evt.eventDetails?.location || ''} ${evt.eventDetails?.neighborhood || ''}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '12px', color: 'var(--primary-cyan)', textDecoration: 'none', fontSize: '0.7rem', fontWeight: '900' }}
-            >
-              <IconLocation size={12} /> ABRIR EN GOOGLE MAPS
-            </a>
-          </section>
+            <h4 style={{ fontSize: '0.75rem', fontWeight: '950', textTransform: 'uppercase', marginBottom: '15px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>CONTROL DE INVENTARIO</h4>
 
-          {/* 4. MATERIAL TABLE */}
-          <section style={{ padding: '0 15px 35px 15px' }}>
-            <h4 style={{ fontSize: '0.75rem', fontWeight: '950', textTransform: 'uppercase', marginBottom: '15px' }}>MATERIAL A CARGO E INVENTARIO</h4>
-            <div style={{ border: '1px solid #1a1a1a', borderRadius: '8px', overflow: 'hidden' }}>
+            {/* Segmented Control (NO 'ALL') */}
+            <div style={{ display: 'flex', background: '#0a0a0a', borderRadius: '12px', padding: '4px', marginBottom: '15px', border: '1px solid #222' }}>
+              {['DJ', 'PHOTO', 'DECOR'].map(role => {
+                const isActive = (selectedRoleView === role) || (selectedRoleView === 'ALL' && role === 'DJ'); // Default to DJ if 'ALL' was selected
+                return (
+                  <button
+                    key={role}
+                    onClick={() => setSelectedRoleView(role)}
+                    style={{
+                      flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                      background: isActive ? 'var(--primary-cyan)' : 'transparent',
+                      color: isActive ? '#000' : '#666',
+                      fontSize: '0.65rem', fontWeight: '950', cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    {role}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ border: '1px solid #1a1a1a', borderRadius: '15px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
-                    <th style={{ padding: '12px 10px', fontSize: '0.65rem', fontWeight: '950', color: 'var(--primary-purple)', textAlign: 'left', width: '60%' }}>ITEM / EQUIPO</th>
-                    <th style={{ padding: '12px 10px', fontSize: '0.65rem', fontWeight: '950', color: 'var(--primary-purple)', textAlign: 'center', borderLeft: '1px solid #1a1a1a' }}>CANTIDAD</th>
-                    <th style={{ padding: '12px 10px', fontSize: '0.65rem', fontWeight: '950', color: 'var(--primary-purple)', textAlign: 'right', borderLeft: '1px solid #1a1a1a' }}>ÁREA ASIGNADA</th>
+                    <th style={{ padding: '12px 10px', fontSize: '0.65rem', fontWeight: '950', color: 'var(--primary-purple)', textAlign: 'left', width: '50%' }}>ITEM / EQUIPO</th>
+                    <th style={{ padding: '12px 10px', fontSize: '0.65rem', fontWeight: '950', color: 'var(--primary-purple)', textAlign: 'center', borderLeft: '1px solid #222' }}>CANT</th>
+                    <th style={{ padding: '12px 10px', fontSize: '0.65rem', fontWeight: '950', color: 'var(--primary-purple)', textAlign: 'center', borderLeft: '1px solid #222' }}>ESTADO</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(evt.logistics?.items || []).map((item, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #111', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
-                      <td style={{ padding: '12px 10px', fontSize: '0.75rem', fontWeight: '700' }}>{item.name?.toUpperCase()}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '0.75rem', textAlign: 'center', opacity: 0.6, borderLeft: '1px solid #111' }}>{item.quantity || 1}</td>
-                      <td style={{ padding: '12px 10px', fontSize: '0.65rem', fontWeight: '900', textAlign: 'right', opacity: 0.4, borderLeft: '1px solid #111' }}>{item.area || 'DJ'}</td>
-                    </tr>
-                  ))}
+                  {virtualList.length === 0 ? (
+                    <tr><td colSpan="3" style={{ padding: '20px', textAlign: 'center', opacity: 0.3, fontSize: '0.8rem' }}>Seleccione una pestaña</td></tr>
+                  ) : virtualList.map((vItem, idx) => {
+                    const dbItem = (evt.logistics?.items || []).find(i => i.name === vItem.name);
+                    const status = dbItem?.status || 'PENDING';
+                    const getStatusColor = (s) => {
+                      if (s === 'PENDING') return '#ef4444'; // Red
+                      if (s === 'DELIVERED') return '#3b82f6'; // Blue
+                      if (s === 'RETURNED') return '#22c55e'; // Green
+                      return '#666';
+                    };
+                    const currentColor = getStatusColor(status);
+
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid #111', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                        <td style={{ padding: '12px 10px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase' }}>
+                          {vItem.name.toUpperCase()}
+                        </td>
+                        <td style={{ padding: '12px 10px', fontSize: '0.75rem', textAlign: 'center', opacity: 0.8, borderLeft: '1px solid #111', fontWeight: '900' }}>{vItem.qty}</td>
+                        <td style={{ padding: '8px', textAlign: 'center', borderLeft: '1px solid #111' }}>
+                          <select
+                            value={status}
+                            onChange={(e) => updateVirtualItemStatus(evt, vItem.name, effectiveRole, e.target.value)}
+                            style={{
+                              background: `${currentColor}22`, color: currentColor, border: `1px solid ${currentColor}44`,
+                              borderRadius: '8px', padding: '8px 5px', fontSize: '0.6rem', fontWeight: '950',
+                              outline: 'none', cursor: 'pointer', width: '100%', textAlign: 'center', textTransform: 'uppercase'
+                            }}
+                          >
+                            <option value="PENDING" style={{ background: '#111', color: '#ef4444' }}>PENDIENTE</option>
+                            <option value="DELIVERED" style={{ background: '#111', color: '#3b82f6' }}>ENTREGADO</option>
+                            <option value="RETURNED" style={{ background: '#111', color: '#22c55e' }}>RECIBIDO</option>
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -3492,24 +3060,14 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             </div>
           </section>
 
-          {/* ACTION BUTTONS (UPDATED) */}
-          <div style={{ padding: '0 15px 50px 15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-
-            {/* PDF DOWNLOADS ROW */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-              <button onClick={() => generateMissionPDF(evt, 'GENERAL')} style={{ padding: '15px', borderRadius: '15px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.7rem', fontWeight: '900', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                <IconPDF size={18} /> GRAL
-              </button>
-              <button onClick={() => generateMissionPDF(evt, 'DJ')} style={{ padding: '15px', borderRadius: '15px', background: 'rgba(250, 204, 21, 0.1)', border: '1px solid rgba(250, 204, 21, 0.2)', color: '#facc15', fontSize: '0.7rem', fontWeight: '900', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                <IconPDF size={18} /> DJ
-              </button>
-              <button onClick={() => generateMissionPDF(evt, 'PHOTO')} style={{ padding: '15px', borderRadius: '15px', background: 'rgba(188, 111, 241, 0.1)', border: '1px solid rgba(188, 111, 241, 0.2)', color: '#bc6ff1', fontSize: '0.7rem', fontWeight: '900', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                <IconPDF size={18} /> FOTO
-              </button>
-            </div>
-
+          {/* ACTION BUTTONS */}
+          <div style={{ padding: '10px 15px 40px 15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button onClick={() => toggleFlowStep(evt.id, 'clientPaid')} style={{ padding: '18px', borderRadius: '15px', background: evt.logistics?.flow?.clientPaid ? '#22c55e' : 'var(--primary-purple)', border: 'none', color: '#fff', fontSize: '0.8rem', fontWeight: '950', boxShadow: '0 10px 20px rgba(0,0,0,0.3)', width: '100%' }}>
               {evt.logistics?.flow?.clientPaid ? 'COBRO CONFIRMADO' : 'CONFIRMAR RECAUDO'}
+            </button>
+
+            <button onClick={() => closeEvent(evt)} style={{ padding: '18px', borderRadius: '15px', background: 'rgba(255, 56, 96, 0.1)', border: '1px solid rgba(255, 56, 96, 0.3)', color: '#ff3860', fontSize: '0.8rem', fontWeight: '950', width: '100%', display: evt.status === 'CLOSED' ? 'none' : 'block' }}>
+              FINALIZAR EVENTO
             </button>
           </div>
         </div>
@@ -3702,7 +3260,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
   const renderEventsList = () => {
     // Solo eventos confirmados, orden cronológico
     const confirmedEvents = events
-      .filter(e => e.status === 'CONFIRMED')
+      .filter(e => e.status === 'CONFIRMED' || e.status === 'SENT')
       .sort((a, b) => new Date(a.eventDetails?.date) - new Date(b.eventDetails?.date));
 
     return (
@@ -3730,6 +3288,42 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             </button>
           </div>
         </header>
+
+        {/* PROGRESS BAR: META MENSUAL */}
+        {(() => {
+          const monthEvents = events.filter(e => {
+            if (e.status !== 'CONFIRMED' || !e.eventDetails?.date) return false;
+            const d = new Date(e.eventDetails.date);
+            return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+          });
+          const total = monthEvents.length;
+          const completed = monthEvents.filter(e => e.logistics?.flow?.equipmentReturned).length;
+          const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+          return (
+            <div style={{ marginBottom: '30px', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px' }}>
+                <div>
+                  <span style={{ fontSize: '0.6rem', fontWeight: '900', letterSpacing: '1.5px', opacity: 0.4, display: 'block', marginBottom: '4px' }}>META OPERATIVA {months[selectedMonth].toUpperCase()}</span>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '950', color: '#fff' }}>
+                    {completed} <span style={{ opacity: 0.3, fontSize: '0.8rem' }}>/ {total} EVENTOS COMPLETADOS</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '950', color: percent === 100 ? 'var(--success-green)' : 'var(--primary-cyan)' }}>{percent}%</div>
+              </div>
+              <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', position: 'relative' }}>
+                <div style={{
+                  width: `${percent}%`,
+                  height: '100%',
+                  background: percent === 100 ? 'var(--success-green)' : 'var(--brand-gradient)',
+                  borderRadius: '10px',
+                  boxShadow: `0 0 15px ${percent === 100 ? 'var(--success-green)' : 'var(--primary-cyan)'}44`,
+                  transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}></div>
+              </div>
+            </div>
+          );
+        })()}
 
         <div style={{
           display: 'flex',
@@ -3767,74 +3361,125 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           ))}
         </div>
 
+        {eventSubTab === 'list' && (
+          <div style={{ marginBottom: '25px', overflowX: 'auto', display: 'flex', gap: '8px', paddingBottom: '10px' }}>
+            {[
+              { id: 'ALL', label: 'TODOS', color: 'rgba(255,255,255,0.1)' },
+              { id: 'PENDING_STAFF', label: 'SIN STAFF', color: 'rgba(188, 111, 241, 0.2)' },
+              { id: 'PENDING_WH', label: 'POR SALIR', color: 'rgba(0, 242, 255, 0.2)' },
+              { id: 'PENDING_CLOSURE', label: 'SIN CERRAR', color: 'rgba(255, 56, 96, 0.2)' }
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setFilterExecution(f.id)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  border: filterExecution === f.id ? '1px solid currentColor' : '1px solid transparent',
+                  background: filterExecution === f.id ? f.color : 'rgba(255,255,255,0.02)',
+                  color: filterExecution === f.id ? '#fff' : 'rgba(255,255,255,0.4)',
+                  fontSize: '0.6rem',
+                  fontWeight: '900',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer'
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {
           eventSubTab === 'list' && (
             <div className="execution-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {confirmedEvents.length === 0 ? (
-                <div className="empty-state" style={{ padding: '100px 0', opacity: 0.2, textAlign: 'center', fontWeight: '800', letterSpacing: '2px' }}>NO HAY EVENTOS CONFIRMADOS</div>
-              ) : (
-                confirmedEvents.map(evt => (
-                  <div key={evt.id} className="execution-card" onClick={() => { setSelectedEventId(evt.id); setView('detail'); }} style={{
-                    padding: '30px',
-                    borderRadius: '38px',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    background: 'rgba(255,255,255,0.01)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--brand-gradient)' }}></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                          <span style={{ fontSize: '0.6rem', fontWeight: '900', color: 'var(--primary-cyan)', background: 'rgba(0, 242, 255, 0.08)', padding: '4px 10px', borderRadius: '8px', letterSpacing: '1px' }}>{evt.id}</span>
-                          <span style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.25 }}>{evt.eventDetails?.date}</span>
-                        </div>
-                        <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: '900', letterSpacing: '-0.5px', color: '#fff' }}>{evt.client.name}</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', opacity: 0.4, fontSize: '0.8rem', fontWeight: '600' }}>
-                          <IconLocation size={14} />
-                          <span>{evt.eventDetails?.location || 'Por definir'}</span>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '1rem', fontWeight: '900', color: '#fff' }}>{evt.eventDetails?.startTime}</div>
-                        <div style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.2, letterSpacing: '1px', marginTop: '4px', marginBottom: '8px' }}>START TIME</div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); generateMissionPDF(evt); }}
-                          style={{
-                            background: 'rgba(255,255,255,0.05)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: '8px',
-                            padding: '6px 10px',
-                            color: 'var(--primary-cyan)',
-                            fontSize: '0.55rem',
-                            fontWeight: '900',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            justifyContent: 'flex-end',
-                            width: '100%'
-                          }}
-                        >
-                          <IconPDF size={12} /> ORDEN
-                        </button>
-                      </div>
-                    </div>
+              {(() => {
+                let filtered = confirmedEvents;
+                if (filterExecution === 'PENDING_STAFF') {
+                  filtered = filtered.filter(e => !e.logistics?.flow?.staffConfirmed);
+                } else if (filterExecution === 'PENDING_WH') {
+                  filtered = filtered.filter(e => !e.logistics?.flow?.equipmentDelivered);
+                } else if (filterExecution === 'PENDING_CLOSURE') {
+                  filtered = filtered.filter(e => !e.logistics?.flow?.equipmentReturned);
+                }
 
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '35px' }}>
-                      {['Staff', 'Bodega', 'Show', 'Cierre'].map((step, i) => {
-                        const isActive = i === 0; // Example logic placeholder
-                        return (
-                          <div key={step} style={{ flex: 1 }}>
-                            <div style={{ height: '3px', borderRadius: '10px', background: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.05)', marginBottom: '10px', boxShadow: isActive ? '0 0 10px rgba(0, 242, 255, 0.4)' : 'none' }}></div>
-                            <div style={{ fontSize: '0.55rem', fontWeight: isActive ? '900' : '700', opacity: isActive ? 1 : 0.2, letterSpacing: '0.5px', textAlign: 'center', textTransform: 'uppercase' }}>{step}</div>
+                if (filtered.length === 0) {
+                  return <div className="empty-state" style={{ padding: '100px 0', opacity: 0.2, textAlign: 'center', fontWeight: '800', letterSpacing: '2px' }}>NO HAY EVENTOS QUE COINCIDAN</div>;
+                }
+
+                return filtered.map(evt => {
+                  const flow = evt.logistics?.flow || {};
+                  return (
+                    <div key={evt.id} className="execution-card" onClick={() => { setSelectedEventId(evt.id); setView('detail'); }} style={{
+                      padding: '30px',
+                      borderRadius: '38px',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      background: 'rgba(255,255,255,0.01)',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: evt.status === 'SENT' ? 'var(--primary-purple)' : (flow.equipmentReturned ? 'var(--success-green)' : 'var(--brand-gradient)') }}></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                            <span style={{ fontSize: '0.6rem', fontWeight: '900', color: evt.status === 'SENT' ? 'var(--primary-purple)' : 'var(--primary-cyan)', background: evt.status === 'SENT' ? 'rgba(188, 111, 241, 0.1)' : 'rgba(0, 242, 255, 0.08)', padding: '4px 10px', borderRadius: '8px', letterSpacing: '1px' }}>
+                              {evt.status === 'SENT' ? 'COTIZACIÓN' : evt.id}
+                            </span>
+                            <span style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.25 }}>{evt.eventDetails?.date}</span>
                           </div>
-                        )
-                      })}
+                          <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: '900', letterSpacing: '-0.5px', color: '#fff' }}>{evt.client.name} {evt.status === 'SENT' && '⏳'}</h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', opacity: 0.4, fontSize: '0.8rem', fontWeight: '600' }}>
+                            <IconLocation size={14} />
+                            <span>{evt.eventDetails?.location || 'Por definir'}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '1rem', fontWeight: '900', color: '#fff' }}>{evt.eventDetails?.startTime}</div>
+                          <div style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.2, letterSpacing: '1px', marginTop: '4px', marginBottom: '8px' }}>START TIME</div>
+                          <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); generateMissionPDF(evt); }}
+                              style={{ padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff' }}
+                            >
+                              <IconPDF size={14} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); pdfService.generateQuotationPDF(evt); }}
+                              style={{ padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff' }}
+                            >
+                              <IconFileText size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px', marginTop: '35px' }}>
+                        {[
+                          { label: 'STAFF', done: flow.staffConfirmed, color: 'var(--primary-purple)' },
+                          { label: 'SALIDA', done: flow.equipmentDelivered, color: 'var(--primary-cyan)' },
+                          { label: 'SHOW', done: flow.equipmentDelivered && !flow.equipmentReturned, color: '#fff' },
+                          { label: 'CIERRE', done: flow.equipmentReturned, color: 'var(--success-green)' }
+                        ].map((step) => {
+                          const isActive = step.done;
+                          return (
+                            <div key={step.label} style={{ flex: 1 }}>
+                              <div style={{
+                                height: '3px',
+                                borderRadius: '10px',
+                                background: isActive ? step.color : 'rgba(255,255,255,0.05)',
+                                marginBottom: '10px',
+                                boxShadow: isActive ? `0 0 10px ${step.color}66` : 'none',
+                                transition: 'all 0.3s ease'
+                              }}></div>
+                              <div style={{ fontSize: '0.55rem', fontWeight: isActive ? '900' : '700', opacity: isActive ? 1 : 0.2, letterSpacing: '0.5px', textAlign: 'center', textTransform: 'uppercase' }}>{step.label}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  );
+                });
+              })()}
             </div>
           )
         }
@@ -4086,7 +3731,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
         <div className="fade-in container" style={{ paddingBottom: '140px' }}>
           <header style={{ padding: '30px 0 10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>Cotizaciones <span style={{ opacity: 0.3 }}>Activas</span></h2>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>Cotizaciones <span style={{ opacity: 0.3 }}>Activas</span> <small style={{ fontSize: '0.6rem', opacity: 0.5 }}>v2.2</small></h2>
               <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÓN COMERCIAL</small>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -4213,7 +3858,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 position: 'relative',
                 overflow: 'hidden',
                 cursor: 'pointer',
-                display: 'flex',
                 flexDirection: 'column',
                 gap: '5px'
               }}>
@@ -4269,14 +3913,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   )}
                 </div>
 
-                {/* ACTION BUTTONS SCROLL ROW */}
+                {/* ACTION BUTTONS WRAP ROW (Mobile Optimized) */}
                 <div style={{
                   display: 'flex',
+                  flexWrap: 'wrap',
                   gap: '8px',
-                  overflowX: 'auto',
-                  paddingBottom: '5px',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none'
+                  width: '100%'
                 }}>
                   {/* CONFIRM BUTTON */}
                   {quo.status === 'SENT' && (
@@ -4284,53 +3926,51 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <button
                         onClick={(e) => { e.stopPropagation(); approveQuotation(quo); }}
                         style={{
-                          whiteSpace: 'nowrap',
-                          padding: '10px 16px',
-                          fontSize: '0.65rem',
-                          background: 'var(--success-green)',
-                          color: '#000',
+                          padding: '12px',
+                          fontSize: '1.2rem',
+                          background: '#ff0000',
+                          color: '#fff',
                           border: 'none',
                           borderRadius: '12px',
-                          fontWeight: '900',
-                          letterSpacing: '0.5px',
-                          textTransform: 'uppercase',
-                          display: 'flex', alignItems: 'center', gap: '6px'
+                          cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          minWidth: '50px'
                         }}
+                        title="Registrar Abono"
                       >
-                        <IconCheck size={12} /> ABONO
+                        💰 PAGO
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); if (confirm('¿Marcar este lead como Venta Perdida?')) updateQuotationStatus(quo.id, 'LOST'); }}
                         style={{
-                          padding: '10px',
+                          padding: '12px',
                           background: 'rgba(255, 56, 96, 0.1)',
                           color: '#ff3860',
                           border: '1px solid rgba(255, 56, 96, 0.2)',
                           borderRadius: '12px',
                           cursor: 'pointer',
-                          minWidth: '40px'
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}
                       >
-                        <IconTrash size={14} />
+                        <IconTrash size={16} />
                       </button>
                     </>
                   )}
-
-                  <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }}></div>
 
                   {/* TOOLS */}
                   <button
                     onClick={(e) => { e.stopPropagation(); setWhatsappModalQuo(quo); }}
                     style={{
+                      flex: '1',
                       whiteSpace: 'nowrap',
-                      padding: '10px 14px',
+                      padding: '12px',
                       background: 'rgba(37, 211, 102, 0.1)',
                       color: '#25d366',
                       border: '1px solid rgba(37, 211, 102, 0.3)',
                       borderRadius: '12px',
                       fontWeight: '800',
                       fontSize: '0.65rem',
-                      display: 'flex', alignItems: 'center', gap: '6px'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                     }}
                   >
                     <IconWhatsApp size={14} /> SEGUIMIENTO
@@ -4339,15 +3979,16 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   <button
                     onClick={(e) => { e.stopPropagation(); generateQuotationPDF(quo); }}
                     style={{
+                      flex: '1',
                       whiteSpace: 'nowrap',
-                      padding: '10px 14px',
+                      padding: '12px',
                       fontSize: '0.65rem',
                       background: 'rgba(0, 242, 255, 0.1)',
                       color: 'var(--primary-cyan)',
                       border: '1px solid var(--primary-cyan)',
                       borderRadius: '12px',
                       fontWeight: '800',
-                      display: 'flex', alignItems: 'center', gap: '6px'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                     }}
                   >
                     <IconFileText size={14} /> COTIZAR
@@ -4534,7 +4175,73 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
         {view === 'accounting' && renderAccounting()}
         {view === 'config' && renderConfig()}
         {view === 'profile' && renderProfile()}
-        {view === 'quotations' && renderQuotations()}
+        {view === 'quotations' && (
+          <QuotationsView
+            quotations={quotations}
+            onCreate={() => {
+              setNewEvent({ clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', paymentMethod: 'Nequi' });
+              setView('create');
+            }}
+            onEdit={(quo) => {
+              setNewEvent({
+                id: quo.id,
+                createdAt: quo.createdAt || null,
+                clientName: quo.client?.name || '',
+                clientPhone: quo.client?.phone || '',
+                clientPhone2: quo.client?.phone2 || '',
+                date: quo.eventDetails?.date || '',
+                startTime: quo.eventDetails?.startTime || '',
+                endTime: quo.eventDetails?.endTime || '',
+                location: quo.eventDetails?.location || '',
+                neighborhood: quo.eventDetails?.neighborhood || '',
+                packName: (() => {
+                  const p = (quo.logistics?.packName || '').toLowerCase();
+                  if (p.includes('memories')) return 'Memories';
+                  if (p.includes('celebration')) return 'Celebration';
+                  return 'Essential';
+                })(),
+                totalValue: quo.financials?.totalValue || 0,
+                deposit: (() => {
+                  const total = Number(quo.financials?.totalValue) || 0;
+                  const savedDep = quo.financials?.deposit;
+                  if (savedDep) return savedDep;
+                  return total > 0 ? Math.round((total * 0.3) / 1000) * 1000 : '';
+                })(),
+                managerName: '',
+                guestCount: quo.eventDetails?.guestCount || 0,
+                selectedExtras: (() => {
+                  const raw = quo.logistics?.selectedExtras || {};
+                  const clean = {};
+                  Object.keys(raw).forEach(k => {
+                    if (raw[k]) {
+                      const lowerK = k.toLowerCase();
+                      if (lowerK === 'makeup' || lowerK === 'neon' || lowerK.includes('maquillaje')) clean['extra_makeup'] = true;
+                      else clean[k] = true;
+                    }
+                  });
+                  return clean;
+                })(),
+                makeupCount: quo.logistics?.makeupCount || 1,
+                occasion: quo.eventDetails?.occasion || '',
+                extraHourPrice: quo.financials?.extraHourPrice || (() => {
+                  const p = (quo.logistics?.packName || '').toLowerCase();
+                  if (p.includes('memories') || p.includes('celebration')) return 120000;
+                  return 85000;
+                })(),
+                indications: quo.eventDetails?.indications || 'Ninguna',
+                materialsTime: '',
+                warehouseTime: '',
+                materialExplanation: ''
+              });
+              setView('create');
+            }}
+            onApprove={(quo) => approveQuotation(quo)}
+            onMarkLost={(quo) => updateQuotationStatus(quo.id, 'LOST')}
+            onOpenWhatsApp={(quo) => setWhatsappModalQuo(quo)}
+            onGeneratePDF={(quo) => generateQuotationPDF(quo)}
+            onSettings={() => setView('settings')}
+          />
+        )}
         {view === 'settings' && (
           <div className="fade-in container" style={{ paddingBottom: '140px' }}>
             <header className="main-header" style={{ padding: '40px 0 20px 0' }}>
@@ -4791,5 +4498,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     </div>
   );
 }
+
+
 
 export default App;
