@@ -204,10 +204,17 @@ function App() {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
       const liveQuo = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setQuotations(liveQuo.sort((a, b) => {
+        // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
+        if (a.status === 'SENT' && b.status !== 'SENT') return -1;
+        if (a.status !== 'SENT' && b.status === 'SENT') return 1;
+
+        // 2. ORDEN CRONOLÓGICO: Más reciente primero
         const dateA = parseFirestoreDate(a.createdAt);
         const dateB = parseFirestoreDate(b.createdAt);
-        if (dateA.getTime() === dateB.getTime()) return b.id.localeCompare(a.id);
-        return dateB - dateA;
+        if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+
+        // 3. FALLBACK: ID
+        return b.id.localeCompare(a.id);
       }));
     });
     return () => unsubscribe();

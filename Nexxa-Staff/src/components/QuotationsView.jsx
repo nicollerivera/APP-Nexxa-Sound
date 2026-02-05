@@ -44,10 +44,17 @@ const QuotationsView = ({
 
     // Sorting logic (if not sorted by parent)
     const sortedQuotations = [...quotations].sort((a, b) => {
+        // 1. PRIORIDAD: 'SENT' ARRIBA
+        if (a.status === 'SENT' && b.status !== 'SENT') return -1;
+        if (a.status !== 'SENT' && b.status === 'SENT') return 1;
+
+        // 2. CRONOLÓGICO
         const dateA = parseFirestoreDate(a.createdAt);
         const dateB = parseFirestoreDate(b.createdAt);
-        if (dateA.getTime() === dateB.getTime()) return b.id.localeCompare(a.id);
-        return dateB - dateA;
+        if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+
+        // 3. ID
+        return b.id.localeCompare(a.id);
     });
 
     if (error) {
