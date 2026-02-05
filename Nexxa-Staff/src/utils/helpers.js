@@ -20,7 +20,7 @@ export const getHours = (start, end) => {
 };
 
 export const parseFirestoreDate = (date) => {
-  if (!date) return new Date(8640000000000000); // Future date for immediate sorting to top
+  if (!date) return new Date(); // Treat missing date as 'now' for sorting
   if (date.toDate) return date.toDate();
   return new Date(date);
 };
