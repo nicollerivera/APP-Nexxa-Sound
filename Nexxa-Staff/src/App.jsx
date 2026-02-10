@@ -1098,7 +1098,7 @@ function App() {
       // id: finalId, // Firestore uses document ID, also redundant but helps
       status: status,
       client: {
-        name: newEvent.clientName,
+        name: newEvent?.clientName || '',
         phone: newEvent.clientPhone,
         phone2: newEvent.clientPhone2 || ''
       },
@@ -3120,6 +3120,7 @@ function App() {
   const [editingItem, setEditingItem] = useState(null);
   const handleEditInventory = (e) => {
     e.preventDefault();
+    if (!e?.target) return;
     const { name, category, total, available } = e.target;
     setInventory(inventory.map(i => i.id === editingItem.id ? { ...i, name: name.value, category: category.value, total: Number(total.value), available: Number(available.value) } : i));
     setEditingItem(null);
@@ -4071,7 +4072,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     const statusMap = {};
     dbItems.forEach(i => {
       if (!i) return;
-      const norm = normalize(i.name);
+      const norm = normalize(i?.name || 'Sin nombre');
       if (!norm) return;
       if (!statusMap[norm]) statusMap[norm] = [];
       statusMap[norm].push(i.status);
@@ -6748,10 +6749,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               Evento: <strong>{
                 (typeof paymentModal.evt?.client === 'string' ? paymentModal.evt.client : paymentModal.evt?.client?.name) ||
                 paymentModal.evt?.clientName ||
-                paymentModal.evt?.name ||
-                paymentModal.evt?.logistics?.managerName ||
-                paymentModal.evt?.id ||
-                'Evento Sin Nombre'
+                (paymentModal?.evt?.name || paymentModal?.evt?.clientName || 'Evento sin nombre')
               }</strong><br />
               Total: {formatPeso(paymentModal.total)} • Pendiente: <strong style={{ color: paymentModal.total === 0 ? 'var(--danger-red)' : 'var(--primary-cyan)' }}>{formatPeso(paymentModal.pending)}</strong>
             </p>
