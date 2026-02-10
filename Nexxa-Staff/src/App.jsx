@@ -3109,11 +3109,11 @@ function App() {
                 </div>
                 <div style={{ paddingLeft: '20px', flex: 1 }}>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#fff' }}>{item?.name || 'Item sin nombre'}</h4>
-                  <small style={{ opacity: 0.3, fontWeight: '700', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.8px', marginTop: '4px', display: 'block' }}>{item.category}</small>
+                  <small style={{ opacity: 0.3, fontWeight: '700', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.8px', marginTop: '4px', display: 'block' }}>{item?.category || 'Sin categoría'}</small>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.6rem', fontWeight: '900', color: item.available < 3 ? 'var(--danger-red)' : 'var(--primary-cyan)', lineHeight: 1 }}>{item.available}</div>
-                  <small style={{ opacity: 0.3, fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.5px' }}>DISP DE {item.total}</small>
+                  <div style={{ fontSize: '1.6rem', fontWeight: '900', color: (item?.available || 0) < 3 ? 'var(--danger-red)' : 'var(--primary-cyan)', lineHeight: 1 }}>{item?.available || 0}</div>
+                  <small style={{ opacity: 0.3, fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.5px' }}>DISP DE {item?.total || 0}</small>
                 </div>
               </div>
             )
@@ -5569,41 +5569,44 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       );
                     }
 
-                    return closedEvents.map(evt => (
-                      <div
-                        key={evt.id}
-                        onClick={() => { setSelectedEventId(evt.id); setView('detail'); }}
-                        style={{
-                          background: 'rgba(255,255,255,0.02)',
-                          padding: '15px 20px',
-                          borderRadius: '20px',
-                          border: '1px solid rgba(255,255,255,0.05)',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '0.55rem', fontWeight: '950', color: 'var(--success-green)', opacity: 0.6 }}>{evt.id}</span>
-                            <span style={{ fontSize: '0.5rem', fontWeight: '900', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success-green)', padding: '2px 6px', borderRadius: '4px' }}>CERRADO</span>
+                    return closedEvents.map(evt => {
+                      if (!evt) return null;
+                      return (
+                        <div
+                          key={evt.id}
+                          onClick={() => { setSelectedEventId(evt.id); setView('detail'); }}
+                          style={{
+                            background: 'rgba(255,255,255,0.02)',
+                            padding: '15px 20px',
+                            borderRadius: '20px',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '0.55rem', fontWeight: '950', color: 'var(--success-green)', opacity: 0.6 }}>{evt.id}</span>
+                              <span style={{ fontSize: '0.5rem', fontWeight: '900', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success-green)', padding: '2px 6px', borderRadius: '4px' }}>CERRADO</span>
+                            </div>
+                            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '900', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {evt.client?.name || evt.clientName || 'Sin Nombre'}
+                            </h4>
+                            <div style={{ fontSize: '0.65rem', opacity: 0.4, fontWeight: '700', marginTop: '2px' }}>
+                              📅 {evt.eventDetails?.date}
+                            </div>
                           </div>
-                          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '900', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {evt.client?.name || evt.clientName || 'Sin Nombre'}
-                          </h4>
-                          <div style={{ fontSize: '0.65rem', opacity: 0.4, fontWeight: '700', marginTop: '2px' }}>
-                            📅 {evt.eventDetails?.date}
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>
+                              {formatPeso(evt.financials?.totalValue || 0)}
+                            </div>
+                            <div style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.3 }}>TOTAL BRUTO</div>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>
-                            {formatPeso(evt.financials?.totalValue || 0)}
-                          </div>
-                          <div style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.3 }}>TOTAL BRUTO</div>
-                        </div>
-                      </div>
-                    ));
+                      )
+                    });
                   })()}
                 </div>
               </div>
@@ -5611,7 +5614,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           }
 
 
-        </div>
+        </div >
       );
     } catch (error) {
       console.error("Crash en renderEventsList:", error);
