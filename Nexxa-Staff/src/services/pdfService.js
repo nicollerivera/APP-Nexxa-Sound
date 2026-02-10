@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatPeso, formatT, subtractMinutes } from '../utils/helpers';
+import { formatPeso, formatT, subtractMinutes, addMinutes } from '../utils/helpers';
 
 // --- PDF GENERATOR (LOGISTICS MISSION) - STATE OF THE ART DESIGN ---
 export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], getCollectionResponsibility) => {
@@ -94,7 +94,7 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
         };
         const staffRole = (roleMapping[role.toUpperCase()] || role).toUpperCase().trim();
         let assignedStaff = (evt.staff || []).find(s =>
-            (s.role || '').toUpperCase().trim() === staffRole
+            s && (s.role || '').toUpperCase().trim() === staffRole
         );
 
         // If not found and it's general, take the first one available
@@ -102,9 +102,11 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
             assignedStaff = evt.staff[0];
         }
 
-        const staffName = assignedStaff ? assignedStaff.name.toUpperCase() : 'POR ASIGNAR';
+        const staffName = assignedStaff ? (assignedStaff.name || '').toUpperCase() : 'POR ASIGNAR';
 
-        const gestorName = (evt.logistics?.managerName || evt.managerName || 'Por asignar').toUpperCase();
+        const gestorName = (role === 'GENERAL' || !role)
+            ? (evt.logistics?.managerName || evt.managerName || 'Por asignar').toUpperCase()
+            : staffName;
 
         doc.setTextColor(110, 110, 130);
         doc.setFontSize(8.5);
@@ -233,7 +235,11 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
                 startT = evt.eventDetails.decorStartTime;
                 endT = evt.eventDetails.decorEndTime;
             } else {
-                isFallbackTime = true;
+                // Rule: Decorator starts 1 hour before event and lasts 2 hours
+                startT = subtractMinutes(evt.eventDetails?.startTime, 60);
+                endT = addMinutes(startT, 120);
+                // We don't mark as Fallback to avoid confusing the user with '(HORARIO GENERAL)'
+                // since this is a specific business rule.
             }
         }
 
@@ -248,7 +254,7 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
         const rows = [];
         if (role === 'GENERAL') {
             rows.push([
-                evt.eventDetails?.neighborhood || '---',
+                evt.eventDetails?.neighborhood || evt.neighborhood || '---',
                 evt.eventDetails?.location || '---',
                 `DJ: ${formatT(evt.eventDetails?.startTime)} - ${formatT(evt.eventDetails?.endTime)}`,
                 `${durationO}`
@@ -261,7 +267,7 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
             }
         } else {
             rows.push([
-                evt.eventDetails?.neighborhood || '---',
+                evt.eventDetails?.neighborhood || evt.neighborhood || '---',
                 evt.eventDetails?.location || '---',
                 scheduleString,
                 durationO
@@ -292,12 +298,12 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
                 'KIT ENERGÍA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)'
             ];
             filteredItems = strictDJ.map(name => {
-                const found = (evt.logistics?.items || []).find(i => i.name.toUpperCase().includes(name.split('"')[0]));
+                const found = (evt.logistics?.items || []).find(i => i && i.name && i.name.toUpperCase().includes(name.split('"')[0]));
                 return found || { name, qty: 1, area: 'DJ' };
             });
             // Add other DJ items from logistics if exist
-            (evt.logistics?.items || []).forEach(item => {
-                if ((item.area === 'DJ' || item.area === 'LOGÍSTICA') && !filteredItems.some(f => f.name.toUpperCase().includes(item.name.toUpperCase().substring(0, 5)))) {
+            (evt.logistics?.items || []).filter(i => i && i.name).forEach(item => {
+                if ((item.area === 'DJ' || item.area === 'LOGÍSTICA') && !filteredItems.some(f => f.name && f.name.toUpperCase().includes(item.name.toUpperCase().substring(0, 5)))) {
                     filteredItems.push(item);
                 }
             });
@@ -318,11 +324,11 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
                 ];
             }
         } else {
-            filteredItems = evt.logistics?.items || [];
+            filteredItems = (evt.logistics?.items || []).filter(i => i && i.name) || [];
         }
 
         const materialsTable = filteredItems.map(item => [
-            item.name.toUpperCase(),
+            (item.name || 'SIN NOMBRE').toUpperCase(),
             (item.quantity || item.qty || 1).toString(),
             item.area || role
         ]);
@@ -353,72 +359,61 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
 
         // NEXXA AESTHETIC: Dark Card with specific emphasis
         if (reallyIsMe) {
-            doc.setFillColor(30, 0, 0); // Dark Red background
-            doc.setDrawColor(220, 38, 38); // Pure Red border
+            doc.setFillColor(20, 10, 35); // Dark Purple background
+            doc.setDrawColor(...COLORS.CYAN); // Cyan border for contrast
         } else {
-            doc.setFillColor(15, 15, 20); // Dark Nexxa background
+            doc.setFillColor(10, 10, 15); // Dark Nexxa background
             doc.setDrawColor(50, 50, 60); // Subtle border
         }
 
-        doc.roundedRect(margin, finalY, pageWidth - (margin * 2), 26, 2, 2, 'FD');
+        doc.roundedRect(margin, finalY, pageWidth - (margin * 2), 34, 2, 2, 'FD');
 
         if (reallyIsMe) {
-            doc.setTextColor(255, 100, 100);
-            doc.setFontSize(8.5);
+            doc.setTextColor(...COLORS.CYAN);
+            doc.setFontSize(7.5);
             doc.setFont("helvetica", "bold");
-            doc.text(`⚠️ ¡ATENCIÓN! USTED ES EL ENCARGADO DE COBRAR EL SALDO (70%)`, margin + 8, finalY + 10);
+            doc.text(`¡ATENCIÓN! USTED ES EL ENCARGADO DE COBRAR EL SALDO`, margin + 8, finalY + 8);
+
+            doc.setTextColor(180, 180, 200);
+            doc.setFontSize(8.5);
+            const deposit = totalValue * 0.3;
+            doc.text(`VALOR TOTAL: ${formatPeso(totalValue)}  -  ABONO (30%): ${formatPeso(deposit)}`, margin + 8, finalY + 16);
 
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(14);
-            doc.text(`VALOR A RECAUDAR: ${formatPeso(balanceToCollect)}`, margin + 8, finalY + 20);
+            doc.text(`SALDO A RECAUDAR: ${formatPeso(balanceToCollect)}`, margin + 8, finalY + 28);
         } else {
             doc.setTextColor(150, 150, 160);
             doc.setFontSize(8.5);
             doc.setFont("helvetica", "bold");
-            // Centered vertically as requested: Only WHO collects
-            doc.text(`EL RESPONSABLE DE COBRO DEL SALDO ES: ${responsibleRole.toUpperCase()}`, margin + 8, finalY + 14);
+            doc.text(`EL RESPONSABLE DE COBRO DEL SALDO ES: ${responsibleRole.toUpperCase()}`, margin + 8, finalY + 18);
         }
 
         // Only show financials details for GENERAL role
-        y = finalY + 35;
+        y = finalY + 42;
         if (role === 'GENERAL') {
-            const colWidth = (pageWidth - (margin * 2) - 10) / 2;
+            const cardWidth = pageWidth - (margin * 2);
 
-            // Payroll Card (Dark/Cyan)
+            // Collection Card (Full Width / Purple)
             doc.setFillColor(0, 0, 0);
-            doc.setDrawColor(...COLORS.CYAN);
-            doc.roundedRect(margin, y, colWidth, 35, 2, 2, 'FD');
-            doc.setTextColor(...COLORS.CYAN);
+            doc.setDrawColor(...COLORS.PURPLE);
+            doc.roundedRect(margin, y, cardWidth, 35, 2, 2, 'FD');
+
+            doc.setTextColor(...COLORS.PURPLE);
             doc.setFontSize(7);
             doc.setFont('helvetica', 'bold');
-            doc.text('COSTEO DE SERVICIO (NÓMINA)', margin + 7, y + 8);
-
-            const [hs, ms] = (evt.eventDetails?.startTime || '00:00').split(':').map(Number);
-            const [he, me] = (evt.eventDetails?.endTime || '00:00').split(':').map(Number);
-            let totalM = (he * 60 + me) - (hs * 60 + ms);
-            if (totalM < 0) totalM += 24 * 60;
-            const djPay = 35000 + ((totalM / 60) * 13000);
+            doc.text(`VALOR TOTAL: ${formatPeso(totalValue)}  |  ABONO RECIBIDO (30%): ${formatPeso(totalValue * 0.3)}`, margin + 7, y + 8);
 
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(10);
-            doc.text(`BASE + VARIABLE: ${formatPeso(djPay)}`, margin + 7, y + 20);
-            doc.setFontSize(7);
-            doc.setTextColor(130, 130, 150);
-            doc.text('Cálculo por duración operativa.', margin + 7, y + 28);
+            doc.text('SALDO PENDIENTE A RECAUDAR (70%):', margin + 7, y + 15);
+            doc.setFontSize(20);
+            doc.text(formatPeso(balanceToCollect), margin + 7, y + 26);
 
-            // Collection Card (Dark/Purple)
-            doc.setFillColor(0, 0, 0);
-            doc.setDrawColor(...COLORS.PURPLE);
-            doc.roundedRect(margin + colWidth + 10, y, colWidth, 35, 2, 2, 'FD');
-            doc.setTextColor(...COLORS.PURPLE);
-            doc.text('OBJETIVO DE RECAUDO CLIENTE', margin + colWidth + 7, y + 8);
-
-            doc.setFontSize(18);
-            doc.setTextColor(255, 255, 255);
-            doc.text(formatPeso(balanceToCollect), margin + colWidth + 7, y + 22);
             doc.setFontSize(7);
             doc.setTextColor(180, 180, 200);
-            doc.text('NEQUI / DAVIPLATA: 300 259 6935', margin + colWidth + 7, y + 30);
+            doc.text(`MÉTODO: NEQUI / DAVIPLATA: 300 259 6935`, margin + 7, y + 30);
+            doc.text(`MÉTODO: BANCOLOMBIA: 912 046312 30`, margin + (cardWidth / 2) + 5, y + 30);
         } else {
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);

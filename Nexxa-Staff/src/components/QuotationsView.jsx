@@ -23,8 +23,9 @@ const IconFileText = ({ size = 14 }) => (
 const IconAlertTriangle = ({ size = 14, color = "currentColor" }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
 );
-
-// Helpers are imported from helpers.js
+const IconDollar = ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+);
 
 const QuotationsView = ({
     quotations = [],
@@ -34,40 +35,29 @@ const QuotationsView = ({
     onMarkLost,
     onOpenWhatsApp,
     onGeneratePDF,
-    onSettings // To navigate to settings (IconUser)
+    onSettings
 }) => {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [showLost, setShowLost] = useState(false);
+    const [selectedMonth] = useState(new Date().getMonth());
+    const [selectedYear] = useState(new Date().getFullYear());
 
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
-    // Sorting logic (if not sorted by parent)
+    // Sorting logic
     const sortedQuotations = [...quotations].sort((a, b) => {
-        // 1. PRIORIDAD: 'SENT' ARRIBA
+        if (!a || !b) return 0;
         if (a.status === 'SENT' && b.status !== 'SENT') return -1;
         if (a.status !== 'SENT' && b.status === 'SENT') return 1;
-
-        // 2. CRONOLÓGICO
-        const dateA = parseFirestoreDate(a.createdAt);
-        const dateB = parseFirestoreDate(b.createdAt);
-        if (dateA.getTime() !== dateB.getTime()) return dateB - dateA;
-
-        // 3. ID
-        return b.id.localeCompare(a.id);
+        const dateA = parseFirestoreDate(a?.createdAt);
+        const dateB = parseFirestoreDate(b?.createdAt);
+        if (dateA && dateB && dateA.getTime && dateB.getTime && dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+        return (b.id || '').localeCompare(a.id || '');
     });
 
-    if (error) {
-        return (
-            <div style={{ padding: '40px', textAlign: 'center' }}>
-                <IconAlertTriangle size={40} color="#ff3860" />
-                <h3 style={{ marginTop: '20px', color: '#fff' }}>Error al cargar Cotizaciones</h3>
-                <p style={{ opacity: 0.5, fontSize: '0.8rem', color: '#fff' }}>{error.message}</p>
-            </div>
-        );
-    }
+    // Filter logic
+    const filteredList = sortedQuotations
+        .filter(q => q && (q.client?.name || q.clientName))
+        .filter(q => showLost ? q.status === 'LOST' : q.status === 'SENT');
 
-    // Calculate stats for the dashboard header
+    // Stats
     const monthLeads = quotations.filter(q => {
         if (!q || !q.createdAt) return false;
         const d = parseFirestoreDate(q.createdAt);
@@ -83,212 +73,85 @@ const QuotationsView = ({
     const effectiveness = monthLeads > 0 ? Math.round((monthWon / monthLeads) * 100) : 0;
 
     return (
-        <div className="fade-in container" style={{ paddingBottom: '140px', fontFamily: 'inherit' }}>
+        <div className="fade-in container" style={{ paddingBottom: '140px' }}>
             <header style={{ padding: '30px 0 10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
-                    <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900', color: '#fff' }}>Cotizaciones <span style={{ opacity: 0.3 }}>Activas</span></h2>
+                    <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900', color: '#fff' }}>Ventas <span style={{ opacity: 0.3 }}>Nexxa</span></h2>
                     <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÓN COMERCIAL</small>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <button
-                        onClick={onCreate}
-                        style={{ padding: '10px 18px', borderRadius: '14px', background: 'var(--brand-gradient)', border: 'none', color: '#000', fontSize: '0.7rem', fontWeight: '950', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}
-                    >
+                    <button onClick={onCreate} style={{ padding: '10px 18px', borderRadius: '14px', background: 'var(--brand-gradient)', border: 'none', color: '#000', fontSize: '0.7rem', fontWeight: '950', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
                         <IconPlus size={14} /> CREAR
                     </button>
-                    <button
-                        onClick={onSettings}
-                        style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}
-                    >
+                    <button onClick={onSettings} style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
                         <IconUser size={18} />
                     </button>
                 </div>
             </header>
 
-            {/* DASHBOARD STATS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: '15px', marginBottom: '35px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '25px' }}>
                 <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <small style={{ opacity: 0.4, fontWeight: '900', letterSpacing: '1px', fontSize: '0.6rem', display: 'block', marginBottom: '5px', color: '#fff' }}>LEADS {(months[selectedMonth] || 'Mes').toUpperCase()}</small>
-                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--primary-cyan)' }}>
-                        {monthLeads}
-                    </div>
+                    <small style={{ opacity: 0.4, fontWeight: '900', fontSize: '0.6rem', display: 'block', marginBottom: '5px' }}>LEADS</small>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--primary-cyan)' }}>{monthLeads}</div>
                 </div>
                 <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <small style={{ opacity: 0.4, fontWeight: '900', letterSpacing: '1px', fontSize: '0.6rem', display: 'block', marginBottom: '5px', color: '#fff' }}>CIERRES (VENTAS)</small>
-                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--success-green)' }}>
-                        {monthWon}
-                    </div>
+                    <small style={{ opacity: 0.4, fontWeight: '900', fontSize: '0.6rem', display: 'block', marginBottom: '5px' }}>CIERRES</small>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--success-green)' }}>{monthWon}</div>
                 </div>
                 <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <small style={{ opacity: 0.4, fontWeight: '900', letterSpacing: '1px', fontSize: '0.6rem', display: 'block', marginBottom: '5px', color: '#fff' }}>EFECTIVIDAD</small>
-                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#fff' }}>
-                        {effectiveness}%
-                    </div>
+                    <small style={{ opacity: 0.4, fontWeight: '900', fontSize: '0.6rem', display: 'block', marginBottom: '5px' }}>EFECT.</small>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#fff' }}>{effectiveness}%</div>
                 </div>
             </div>
 
+            {/* TOGGLE LOST/ACTIVE */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                <button
+                    onClick={() => setShowLost(false)}
+                    style={{ flex: 1, padding: '12px', borderRadius: '15px', background: !showLost ? 'rgba(0, 242, 255, 0.1)' : 'transparent', border: `1px solid ${!showLost ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)'}`, color: !showLost ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.4)', fontSize: '0.7rem', fontWeight: '900', cursor: 'pointer' }}
+                >
+                    ACTIVAS
+                </button>
+                <button
+                    onClick={() => setShowLost(true)}
+                    style={{ flex: 1, padding: '12px', borderRadius: '15px', background: showLost ? 'rgba(255, 56, 96, 0.1)' : 'transparent', border: `1px solid ${showLost ? '#ff3860' : 'rgba(255,255,255,0.1)'}`, color: showLost ? '#ff3860' : 'rgba(255,255,255,0.4)', fontSize: '0.7rem', fontWeight: '900', cursor: 'pointer' }}
+                >
+                    PERDIDAS
+                </button>
+            </div>
+
             <div className="sales-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                {sortedQuotations.filter(q => q && q.client && q.client.name).map(quo => (
+                {filteredList.length === 0 ? (
+                    <div style={{ padding: '60px 0', textAlign: 'center', opacity: 0.2, fontWeight: '800', fontSize: '0.8rem' }}>
+                        {showLost ? 'NO HAY VENTAS PERDIDAS' : 'NO HAY COTIZACIONES ACTIVAS'}
+                    </div>
+                ) : filteredList.map(quo => (
                     <div key={quo.id} className="sales-list-item" onClick={() => onEdit && onEdit(quo)} style={{
-                        padding: '28px',
-                        borderRadius: '38px',
-                        background: 'rgba(255,255,255,0.015)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '5px',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        cursor: 'pointer'
+                        padding: '16px', borderRadius: '24px', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative', overflow: 'hidden', cursor: 'pointer'
                     }}>
-                        {/* CORNER RIBBON INDICATOR */}
-                        <div style={{
-                            position: 'absolute',
-                            top: '15px',
-                            right: '-35px',
-                            width: '120px',
-                            height: '30px',
-                            background: quo.status === 'APPROVED' ? 'var(--success-green)' : (quo.status === 'LOST' ? '#ff3860' : 'var(--primary-cyan)'),
-                            transform: 'rotate(45deg)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
-                            zIndex: 1
-                        }}>
+                        <div style={{ position: 'absolute', top: '15px', right: '-35px', width: '120px', height: '30px', background: quo.status === 'APPROVED' ? 'var(--success-green)' : (quo.status === 'LOST' ? '#ff3860' : 'var(--primary-cyan)'), transform: 'rotate(45deg)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', zIndex: 1 }}>
                             <span style={{ fontSize: '0.55rem', fontWeight: '950', color: '#000', letterSpacing: '1px' }}>{quo.status}</span>
                         </div>
-                        {/* HEADER: NAME AND PRICE */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '40px', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '40px' }}>
                             <div>
-                                <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', lineHeight: '1.2' }}>{quo.client?.name || 'Cliente sin nombre'}</h4>
-                                <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', opacity: 0.5, fontWeight: '500', color: '#fff' }}>
-                                    📅 {quo.eventDetails?.date} • {quo.logistics?.packName || 'Personalizado'}
-                                </p>
+                                <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#fff' }}>{quo.client?.name || 'Cliente'}</h4>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', opacity: 0.5, fontWeight: '500' }}>📅 {quo.eventDetails?.date} • {quo.logistics?.packName || 'Plan'}</p>
                             </div>
-                            <div>
-                                <div style={{ fontWeight: '900', fontSize: '1.1rem', color: 'var(--primary-cyan)', textAlign: 'right' }}>{formatPeso(quo.financials?.totalValue || 0)}</div>
-                            </div>
+                            <div style={{ fontWeight: '900', fontSize: '1.1rem', color: 'var(--primary-cyan)' }}>{formatPeso(quo.financials?.totalValue || 0)}</div>
                         </div>
 
-                        {/* BADGES ROW */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '15px' }}>
-                            {Object.keys(quo.logistics?.selectedExtras || {}).length > 0 && (
-                                <span style={{ fontSize: '0.6rem', background: 'rgba(188, 111, 241, 0.1)', color: 'var(--primary-purple)', padding: '4px 10px', borderRadius: '8px', fontWeight: '800' }}>
-                                    +{Object.keys(quo.logistics?.selectedExtras || {}).length} Extras
-                                </span>
-                            )}
-
-                            {quo.status === 'SENT' && quo.createdAt && (
-                                <span style={{
-                                    fontSize: '0.6rem',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    color: (new Date() - parseFirestoreDate(quo.createdAt)) / (1000 * 60 * 60 * 24) > 15 ? '#ffcc00' : '#aaa',
-                                    padding: '4px 10px',
-                                    borderRadius: '8px',
-                                    fontWeight: '700'
-                                }}>
-                                    ⏱ {Math.floor((new Date() - parseFirestoreDate(quo.createdAt)) / (1000 * 60 * 60 * 24))} DÍAS ABIERTO
-                                </span>
-                            )}
-                        </div>
-
-                        {/* ACTION BUTTONS SCROLL ROW */}
-                        {/* ACTION BUTTONS WRAP ROW (Mobile Optimized) */}
-                        <div style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: '8px',
-                            width: '100%'
-                        }}>
-                            {/* CONFIRM BUTTON */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', width: '100%', alignItems: 'center' }}>
                             {quo.status === 'SENT' && (
                                 <>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); onApprove && onApprove(quo); }}
-                                        style={{
-                                            padding: '12px',
-                                            fontSize: '1.2rem',
-                                            background: 'var(--primary-purple)',
-                                            color: '#fff',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            minWidth: '50px'
-                                        }}
-                                        title="Registrar Abono"
-                                    >
-                                        💰
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Marcar este lead como Venta Perdida?')) onMarkLost && onMarkLost(quo); }}
-                                        style={{
-                                            padding: '12px',
-                                            background: 'rgba(255, 56, 96, 0.1)',
-                                            color: '#ff3860',
-                                            border: '1px solid rgba(255, 56, 96, 0.2)',
-                                            borderRadius: '12px',
-                                            cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                        }}
-                                    >
-                                        <IconTrash size={16} />
-                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); onApprove && onApprove(quo); }} style={{ padding: '8px', background: 'rgba(168, 85, 247, 0.1)', color: 'var(--primary-purple)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '10px', minWidth: '36px' }}><IconDollar size={16} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Marcar este lead como Venta Perdida?')) onMarkLost && onMarkLost(quo); }} style={{ padding: '8px', background: 'rgba(255, 56, 96, 0.1)', color: '#ff3860', border: '1px solid rgba(255, 56, 96, 0.2)', borderRadius: '10px', minWidth: '36px' }}><IconTrash size={14} /></button>
                                 </>
                             )}
-
-                            {/* TOOLS */}
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onOpenWhatsApp && onOpenWhatsApp(quo); }}
-                                style={{
-                                    flex: '1',
-                                    whiteSpace: 'nowrap',
-                                    padding: '12px',
-                                    background: 'rgba(37, 211, 102, 0.1)',
-                                    color: '#25d366',
-                                    border: '1px solid rgba(37, 211, 102, 0.3)',
-                                    borderRadius: '12px',
-                                    fontWeight: '800',
-                                    fontSize: '0.65rem',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <IconWhatsApp size={14} /> SEGUIMIENTO
-                            </button>
-
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onGeneratePDF && onGeneratePDF(quo); }}
-                                style={{
-                                    flex: '1',
-                                    whiteSpace: 'nowrap',
-                                    padding: '12px',
-                                    fontSize: '0.65rem',
-                                    background: 'rgba(0, 242, 255, 0.1)',
-                                    color: 'var(--primary-cyan)',
-                                    border: '1px solid var(--primary-cyan)',
-                                    borderRadius: '12px',
-                                    fontWeight: '800',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <IconFileText size={14} /> COTIZAR
-                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); onOpenWhatsApp && onOpenWhatsApp(quo); }} style={{ padding: '8px', background: 'rgba(37, 211, 102, 0.1)', color: '#25d366', border: '1px solid rgba(37, 211, 102, 0.3)', borderRadius: '10px', minWidth: '36px' }}><IconWhatsApp size={16} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); onGeneratePDF && onGeneratePDF(quo); }} style={{ padding: '8px', background: 'rgba(0, 242, 255, 0.1)', color: 'var(--primary-cyan)', border: '1px solid var(--primary-cyan)', borderRadius: '10px', minWidth: '36px' }}><IconFileText size={16} /></button>
                         </div>
-
-                        {quo.status === 'APPROVED' && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary-cyan)', opacity: 0.8, marginTop: '10px' }}>
-                                <IconCheck size={14} />
-                                <span style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Misionado</span>
-                            </div>
-                        )}
                     </div>
                 ))}
-                {quotations.length === 0 && !loading && (
-                    <div className="empty-state" style={{ padding: '80px 0', opacity: 0.3, textAlign: 'center', color: '#fff' }}>No hay cotizaciones registradas.</div>
-                )}
             </div>
         </div>
     );
