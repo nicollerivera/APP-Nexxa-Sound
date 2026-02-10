@@ -118,6 +118,9 @@ const TimeInput = ({ value, onChange, label }) => {
 
 
 function App() {
+  // DEBUGGING CONSOLE
+  console.log("App Rendering. User:", user ? user.name : 'No User', "Events:", events?.length, "Quotations:", quotations?.length);
+
   // --- MAGIC LINK RECEIVER (Auto-fill from URL) ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -4111,7 +4114,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     const currentItems = [...(evt.logistics?.items || [])];
     const normalize = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     const targetNorm = normalize(itemName);
-    const existingIndex = currentItems.findIndex(i => i && normalize(i.name) === targetNorm);
+    const existingIndex = currentItems.findIndex(i => i && normalize(i?.name) === targetNorm);
 
     if (existingIndex >= 0) {
       // Update existing
@@ -4156,8 +4159,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     const virtualList = getVirtualItems(role, evt.logistics?.packName);
     if (virtualList.length > 0) {
       virtualList.forEach(vItem => {
+        if (!vItem || !vItem.name) return; // Safety check
         const vNameNorm = normalize(vItem.name);
-        const existingIdx = currentItems.findIndex(i => i && normalize(i.name) === vNameNorm);
+        const existingIdx = currentItems.findIndex(i => i && normalize(i?.name) === vNameNorm);
         if (existingIdx >= 0) {
           if (currentItems[existingIdx].status !== newStatus) {
             currentItems[existingIdx] = { ...currentItems[existingIdx], status: newStatus };
@@ -5380,6 +5384,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   const tomorrow = getTomorrowStr();
 
                   return filtered.map((evt, idx) => {
+                    if (!evt || typeof evt !== 'object') return null; // Radical Safety Check
+                    console.log("Rendering Event Row:", evt.id, evt.client?.name || evt.clientName); // Debug
                     const flow = evt.logistics?.flow || {};
                     const eventDate = evt.eventDetails?.date;
                     const showHeader = eventDate !== lastDate;
