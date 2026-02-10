@@ -299,12 +299,12 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
                 'KIT ENERGÍA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)'
             ];
             filteredItems = strictDJ.map(name => {
-                const found = (evt.logistics?.items || []).find(i => i && i.name && i.name.toUpperCase().includes(name.split('"')[0]));
+                const found = (evt.logistics?.items || []).find(i => i && i.name && String(i.name).toUpperCase().includes(name.split('"')[0]));
                 return found || { name, qty: 1, area: 'DJ' };
             });
             // Add other DJ items from logistics if exist
             (evt.logistics?.items || []).filter(i => i && i.name).forEach(item => {
-                if ((item.area === 'DJ' || item.area === 'LOGÍSTICA') && !filteredItems.some(f => f.name && f.name.toUpperCase().includes(item.name.toUpperCase().substring(0, 5)))) {
+                if ((item.area === 'DJ' || item.area === 'LOGÍSTICA') && !filteredItems.some(f => f.name && String(f.name).toUpperCase().includes(String(item.name).toUpperCase().substring(0, 5)))) {
                     filteredItems.push(item);
                 }
             });
