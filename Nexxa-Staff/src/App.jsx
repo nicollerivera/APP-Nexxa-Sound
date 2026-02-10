@@ -1621,15 +1621,15 @@ function App() {
     }
 
     // Sort by time to find the earliest
-    times.sort((a, b) => a.time.localeCompare(b.time));
+    times.sort((a, b) => (a?.time || '').localeCompare(b?.time || ''));
 
-    const earliestTime = times[0].time;
-    const earliestRoles = times.filter(t => t.time === earliestTime);
+    const earliestTime = times[0]?.time;
+    const earliestRoles = times.filter(t => t?.time === earliestTime);
 
     if (earliestRoles.length > 1) {
       // Tie-breaker logic: DJ > FOTÓGRAFO > DECORADOR
       const roleOrder = ['DJ / OPERADOR', 'FOTÓGRAFO', 'DECORADOR'];
-      const responsible = earliestRoles.sort((a, b) => roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role))[0];
+      const responsible = earliestRoles.sort((a, b) => roleOrder.indexOf(a?.role) - roleOrder.indexOf(b?.role))[0];
       return { responsibleRole: responsible.role, isTieBreak: true };
     } else {
       return { responsibleRole: earliestRoles[0].role, isTieBreak: false };
@@ -5314,9 +5314,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           evt.eventDetails?.warehouseTime,
           evt.eventDetails?.photoStartTime,
           evt.eventDetails?.decorStartTime
-        ].filter(t => t && t !== '');
+        ].filter(t => t && t !== '' && typeof t === 'string');
         if (times.length === 0) return '23:59';
-        return times.sort()[0];
+        // SAFE SORT: Asegurar que todos los elementos sean strings
+        return times.sort((a, b) => (a || '').localeCompare(b || ''))[0];
       };
 
       const confirmedEvents = events
@@ -5359,6 +5360,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           return (e.status === 'CONFIRMED' || e.status === 'SENT') && (e.client?.name || e.clientName || 'Cliente') && e.eventDetails?.date;
         })
         .sort((a, b) => {
+          // SAFE SORT: Validar que ambos objetos existan
+          if (!a || !b) return 0;
           if (!a?.eventDetails || !b?.eventDetails) return 0;
           const dateA = a.eventDetails?.date || '9999-12-31';
           const dateB = b.eventDetails?.date || '9999-12-31';
@@ -5693,9 +5696,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       .filter(e => e.status === 'CLOSED')
                       .filter(e => {
                         if (!historySearch) return true;
-                        const s = historySearch.toLowerCase();
-                        const client = (e.client?.name || e.clientName || '').toLowerCase();
-                        const id = (e.id || '').toLowerCase();
+                        const s = (historySearch || '').toLowerCase();
+                        const client = (e?.client?.name || e?.clientName || '').toLowerCase();
+                        const id = (e?.id || '').toLowerCase();
                         return client.includes(s) || id.includes(s);
                       })
                       .sort((a, b) => {
