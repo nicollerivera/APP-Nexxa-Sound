@@ -404,12 +404,21 @@ function App() {
         const items = currentEvt.logistics?.items || [];
         const norm = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
         const statusMap = {};
-        items.forEach(i => {
-          if (!i) return;
-          const n = norm(i.name);
-          if (n) (statusMap[n] = statusMap[n] || []).push(i.status);
-        });
-        const allItemsReturned = items.length === 0 || Object.values(statusMap).every(ss => ss.every(s => s === 'RETURNED'));
+
+        if (Array.isArray(items)) {
+          try {
+            items.forEach(i => {
+              if (i && typeof i === 'object' && i.name) {
+                const n = norm(i.name);
+                if (n) (statusMap[n] = statusMap[n] || []).push(i.status);
+              }
+            });
+          } catch (e) {
+            console.warn("Error monitoring event items:", e);
+          }
+        }
+
+        const allItemsReturned = !Array.isArray(items) || items.length === 0 || (Object.keys(statusMap).length > 0 && Object.values(statusMap).every(ss => ss.every(s => s === 'RETURNED')));
 
         if (isPaid && (isReturnedFlag || allItemsReturned)) {
           checkAutoClose(currentEvt);
@@ -5160,17 +5169,21 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
           // 3. Verificación resiliente basada en items si no hay flags
           if (isPaid) {
-            if (items.length === 0) return false; // Sin items y pagado -> Fuera
+            if (!Array.isArray(items) || items.length === 0) return false; // Sin items y pagado -> Fuera
 
             const norm = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
             const groups = {};
-            items.forEach(i => {
-              if (i && i.name) {
-                const n = norm(i.name);
-                if (n) (groups[n] = groups[n] || []).push(i.status);
-              }
-            });
-            const allOk = Object.values(groups).every(ss => ss.every(s => s === 'RETURNED'));
+
+            try {
+              items.forEach(i => {
+                if (i && typeof i === 'object' && i.name) {
+                  const n = norm(i.name);
+                  if (n) (groups[n] = groups[n] || []).push(i.status);
+                }
+              });
+            } catch (err) { console.warn("Error processing items in dashboard:", err); }
+
+            const allOk = Object.keys(groups).length > 0 && Object.values(groups).every(ss => ss.every(s => s === 'RETURNED'));
 
             if (allOk) return false; // Todo recibido y pagado -> Fuera
           }
@@ -5182,7 +5195,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           const dateA = a.eventDetails?.date || '9999-12-31';
           const dateB = b.eventDetails?.date || '9999-12-31';
           if (dateA !== dateB) return dateA.localeCompare(dateB);
-          return getEarliestTime(a).localeCompare(getEarliestTime(b));
+          try {
+            return getEarliestTime(a).localeCompare(getEarliestTime(b));
+          } catch (e) { return 0; }
         });
 
       const totalMonthEventsCount = events.filter(e => {
