@@ -199,6 +199,12 @@ function App() {
   // 1. SYNC EVENTS
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "events"), (snapshot) => {
+      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
+      if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
+        console.error("⚠️ onSnapshot events: snapshot.docs no es un array");
+        return;
+      }
+
       const liveEvents = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
       // AUDITORÍA: Detectar eventos sin client.name
@@ -237,6 +243,12 @@ function App() {
   // 1.5 SYNC QUOTATIONS
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
+      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
+      if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
+        console.error("⚠️ onSnapshot quotations: snapshot.docs no es un array");
+        return;
+      }
+
       const liveQuo = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
       // AUDITORÍA: Detectar cotizaciones sin client.name
@@ -276,6 +288,12 @@ function App() {
   // 2. SYNC INVENTORY
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "inventory"), (snapshot) => {
+      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
+      if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
+        console.error("⚠️ onSnapshot inventory: snapshot.docs no es un array");
+        return;
+      }
+
       const liveInv = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
       // AUDITORÍA: Detectar items sin name
@@ -366,18 +384,24 @@ function App() {
       const saved = localStorage.getItem('nexxa_user');
       const parsedUser = saved ? JSON.parse(saved) : null;
 
-      // AUDITORÍA: Validar que el usuario tenga nombre
+      // RESET DE MEMORIA RADICAL: Limpiar TODO si hay datos corruptos
       if (parsedUser && !parsedUser.name) {
-        console.error("🔴 USUARIO SIN NOMBRE EN LOCALSTORAGE:", parsedUser);
-        // Limpiar usuario corrupto
-        localStorage.removeItem('nexxa_user');
-        localStorage.removeItem('nexxa_role');
+        console.error("🔴 USUARIO SIN NOMBRE - LIMPIANDO TODO LOCALSTORAGE:", parsedUser);
+        localStorage.clear(); // LIMPIAR TODO
+        return null;
+      }
+
+      // Validación adicional de tipo
+      if (parsedUser && typeof parsedUser !== 'object') {
+        console.error("🔴 USUARIO CORRUPTO - LIMPIANDO:", parsedUser);
+        localStorage.clear();
         return null;
       }
 
       return parsedUser;
     } catch (e) {
       console.error("Error reading nexxa_user from localStorage:", e);
+      localStorage.clear(); // Limpiar en caso de error
       return null;
     }
   });
@@ -7185,6 +7209,30 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     console.error("DEBUG NEXXA - Error Stack:", error.stack);
     console.error("DEBUG NEXXA - Current State:", { user: userData, events: events?.length, quotations: quotations?.length });
 
+    // AUTO-RELOAD: Si es el error de 'name', recargar automáticamente UNA VEZ
+    const hasReloaded = sessionStorage.getItem('nexxa_error_reload');
+    if (error.message && error.message.includes('name') && !hasReloaded) {
+      console.warn("🔄 ERROR DE 'NAME' DETECTADO - RECARGANDO AUTOMÁTICAMENTE...");
+      sessionStorage.setItem('nexxa_error_reload', 'true');
+      setTimeout(() => window.location.reload(), 1000);
+      return (
+        <div style={{
+          height: '100vh',
+          background: '#0a0a0a',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ color: '#00d4ff' }}>🔄 Recargando...</h2>
+            <p style={{ opacity: 0.6 }}>Limpiando estado corrupto</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Si ya recargó una vez, mostrar error
     return (
       <div style={{
         height: '100vh',
