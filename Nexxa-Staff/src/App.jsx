@@ -200,8 +200,30 @@ function App() {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "events"), (snapshot) => {
       const liveEvents = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+
+      // AUDITORÍA: Detectar eventos sin client.name
+      liveEvents.forEach(evt => {
+        if (!evt.client || (!evt.client.name && !evt.clientName)) {
+          console.error("🔴 EVENTO SIN NOMBRE DETECTADO:", {
+            id: evt.id,
+            client: evt.client,
+            clientName: evt.clientName,
+            fullData: evt
+          });
+        }
+      });
+
+      // FILTRO DE SEGURIDAD: Eliminar eventos sin datos críticos
+      const validEvents = liveEvents.filter(evt => {
+        const hasValidClient = evt && (evt.client?.name || evt.clientName);
+        if (!hasValidClient) {
+          console.warn("⚠️ Evento filtrado por falta de nombre:", evt?.id);
+        }
+        return hasValidClient;
+      });
+
       // Orden cronológico: Los eventos más cercanos a suceder aparecen primero
-      setEvents(liveEvents.sort((a, b) => {
+      setEvents(validEvents.sort((a, b) => {
         if (!a || !b) return 0;
         const dateA = a.eventDetails?.date || '';
         const dateB = b.eventDetails?.date || '';
@@ -216,7 +238,24 @@ function App() {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
       const liveQuo = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-      setQuotations(liveQuo.sort((a, b) => {
+
+      // AUDITORÍA: Detectar cotizaciones sin client.name
+      liveQuo.forEach(quo => {
+        if (!quo.client || (!quo.client.name && !quo.clientName)) {
+          console.error("🔴 COTIZACIÓN SIN NOMBRE DETECTADA:", {
+            id: quo.id,
+            client: quo.client,
+            clientName: quo.clientName
+          });
+        }
+      });
+
+      // FILTRO DE SEGURIDAD: Eliminar cotizaciones sin nombre
+      const validQuotations = liveQuo.filter(quo => {
+        return quo && (quo.client?.name || quo.clientName);
+      });
+
+      setQuotations(validQuotations.sort((a, b) => {
         if (!a || !b) return 0;
         // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
         if (a.status === 'SENT' && b.status !== 'SENT') return -1;
@@ -238,7 +277,24 @@ function App() {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "inventory"), (snapshot) => {
       const liveInv = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-      setInventory(liveInv);
+
+      // AUDITORÍA: Detectar items sin name
+      liveInv.forEach(item => {
+        if (!item.name) {
+          console.error("🔴 ITEM DE INVENTARIO SIN NOMBRE:", {
+            id: item.id,
+            category: item.category,
+            fullData: item
+          });
+        }
+      });
+
+      // FILTRO DE SEGURIDAD: Solo items con nombre
+      const validInventory = liveInv.filter(item => {
+        return item && item.name;
+      });
+
+      setInventory(validInventory);
     });
     return () => unsubscribe();
   }, []);
@@ -308,7 +364,18 @@ function App() {
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('nexxa_user');
-      return saved ? JSON.parse(saved) : null;
+      const parsedUser = saved ? JSON.parse(saved) : null;
+
+      // AUDITORÍA: Validar que el usuario tenga nombre
+      if (parsedUser && !parsedUser.name) {
+        console.error("🔴 USUARIO SIN NOMBRE EN LOCALSTORAGE:", parsedUser);
+        // Limpiar usuario corrupto
+        localStorage.removeItem('nexxa_user');
+        localStorage.removeItem('nexxa_role');
+        return null;
+      }
+
+      return parsedUser;
     } catch (e) {
       console.error("Error reading nexxa_user from localStorage:", e);
       return null;
@@ -331,6 +398,83 @@ function App() {
     }
   });
   const [authLoading, setAuthLoading] = useState(false);
+
+  // 🔍 FUNCIÓN DE AUDITORÍA TEMPORAL - Detectar registros corruptos
+  useEffect(() => {
+    const auditFirebaseData = async () => {
+      console.log("🔍 INICIANDO AUDITORÍA DE FIREBASE...");
+
+      try {
+        // Auditar EVENTOS
+        const eventsSnapshot = await getDocs(collection(db, "events"));
+        const corruptedEvents = [];
+        eventsSnapshot.forEach(doc => {
+          const data = doc.data();
+          if (!data.client || (!data.client.name && !data.clientName)) {
+            corruptedEvents.push({ id: doc.id, data });
+          }
+        });
+
+        if (corruptedEvents.length > 0) {
+          console.error("🔴 EVENTOS CORRUPTOS ENCONTRADOS:", corruptedEvents.length);
+          corruptedEvents.forEach(evt => {
+            console.error("  - ID:", evt.id, "| Client:", evt.data.client, "| ClientName:", evt.data.clientName);
+          });
+        } else {
+          console.log("✅ Todos los eventos tienen nombre");
+        }
+
+        // Auditar COTIZACIONES
+        const quotationsSnapshot = await getDocs(collection(db, "quotations"));
+        const corruptedQuotations = [];
+        quotationsSnapshot.forEach(doc => {
+          const data = doc.data();
+          if (!data.client || (!data.client.name && !data.clientName)) {
+            corruptedQuotations.push({ id: doc.id, data });
+          }
+        });
+
+        if (corruptedQuotations.length > 0) {
+          console.error("🔴 COTIZACIONES CORRUPTAS ENCONTRADAS:", corruptedQuotations.length);
+          corruptedQuotations.forEach(quo => {
+            console.error("  - ID:", quo.id, "| Client:", quo.data.client, "| ClientName:", quo.data.clientName);
+          });
+        } else {
+          console.log("✅ Todas las cotizaciones tienen nombre");
+        }
+
+        // Auditar INVENTARIO
+        const inventorySnapshot = await getDocs(collection(db, "inventory"));
+        const corruptedInventory = [];
+        inventorySnapshot.forEach(doc => {
+          const data = doc.data();
+          if (!data.name) {
+            corruptedInventory.push({ id: doc.id, data });
+          }
+        });
+
+        if (corruptedInventory.length > 0) {
+          console.error("🔴 ITEMS DE INVENTARIO CORRUPTOS ENCONTRADOS:", corruptedInventory.length);
+          corruptedInventory.forEach(item => {
+            console.error("  - ID:", item.id, "| Category:", item.data.category, "| Name:", item.data.name);
+          });
+        } else {
+          console.log("✅ Todos los items de inventario tienen nombre");
+        }
+
+        console.log("🔍 AUDITORÍA COMPLETADA");
+
+      } catch (error) {
+        console.error("❌ Error en auditoría:", error);
+      }
+    };
+
+    // Ejecutar auditoría solo una vez al montar
+    if (user) {
+      auditFirebaseData();
+    }
+  }, [user]); // Solo cuando el usuario inicia sesión
+
 
   const handleLogin = (e) => {
     e.preventDefault();
