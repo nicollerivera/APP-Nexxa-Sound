@@ -2003,7 +2003,7 @@ function App() {
                       ) : (
                         <>
                           <div style={{ fontSize: '0.8rem', fontWeight: '950', color: currentBal >= 0 ? '#fff' : 'var(--danger-red)' }}>{formatPeso(currentBal)}</div>
-                          <small style={{ fontSize: '0.45rem', fontWeight: '900', opacity: 0.3, letterSpacing: '1px' }}>{bank.name.toUpperCase()}</small>
+                          <small style={{ fontSize: '0.45rem', fontWeight: '900', opacity: 0.3, letterSpacing: '1px' }}>{bank?.name?.toUpperCase()}</small>
                           <div style={{ position: 'absolute', top: '5px', right: '5px', opacity: 0.2, fontSize: '0.5rem' }}>✎</div>
                         </>
                       )}
@@ -3447,7 +3447,7 @@ function App() {
                         const def = dynamicExtras.find(d => d.id === k);
 
                         if (def) {
-                          extrasList.push(`- ${def.name}: ${def.details}`);
+                          extrasList.push(`- ${def?.name || 'Item'}: ${def?.details || ''}`);
                         } else {
                           // Fallback for manually added or legacy keys
                           if (k === 'makeup' || k === 'extra_makeup') extrasList.push(`- Maquillaje Neón (x${newEvent.makeupCount || 1})`);
@@ -3676,7 +3676,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                           }}
                         >
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra.name}</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra?.name || 'Extra'}</span>
                             <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -3780,7 +3780,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         return activeExtras.map(ex => (
                           <div key={ex.id} style={{ marginBottom: '4px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#bc6ff1' }}>
-                              <span>+ {ex.name}:</span>
+                              <span>+ {ex?.name || 'Extra'}:</span>
                               <strong>${ex.price.toLocaleString()}</strong>
                             </div>
                             <div style={{ fontSize: '0.65rem', color: '#999', paddingLeft: '10px', fontStyle: 'italic' }}>
@@ -4024,7 +4024,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     const statusMap = {};
     dbItems.forEach(i => {
       if (!i) return;
-      const norm = normalize(i.name);
+      const norm = normalize(i?.name);
       if (!norm) return;
       if (!statusMap[norm]) statusMap[norm] = [];
       statusMap[norm].push(i.status);
@@ -4032,7 +4032,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
     const unreturnedGroups = Object.entries(statusMap).filter(([norm, statuses]) => {
       // Si el item es parte de los esperados para este paquete, DEBE estar TODO RETURNED
-      const isExpected = allExpectedItems.some(exp => normalize(exp.name) === norm);
+      const isExpected = allExpectedItems.some(exp => normalize(exp?.name) === norm);
       return isExpected && !statuses.every(s => s === 'RETURNED');
     });
 
@@ -4821,8 +4821,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     <tr><td colSpan="3" style={{ padding: '20px', textAlign: 'center', opacity: 0.3, fontSize: '0.8rem' }}>Seleccione una pestaña</td></tr>
                   ) : virtualList.map((vItem, idx) => {
                     const normRel = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-                    const vNameNorm = normRel(vItem.name);
-                    const dbItem = (evt.logistics?.items || []).find(i => normRel(i.name) === vNameNorm);
+                    const vNameNorm = normRel(vItem?.name);
+                    const dbItem = (evt.logistics?.items || []).find(i => normRel(i?.name) === vNameNorm);
                     const status = dbItem?.status || 'PENDING';
                     const getStatusColor = (s) => {
                       if (s === 'PENDING') return '#ef4444'; // Red
@@ -4835,13 +4835,13 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     return (
                       <tr key={idx} style={{ borderBottom: '1px solid #111', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
                         <td style={{ padding: '8px 6px', fontSize: '0.6rem', fontWeight: '800', textTransform: 'uppercase' }}>
-                          {vItem.name.toUpperCase()}
+                          {vItem?.name?.toUpperCase() || 'ITEM'}
                         </td>
                         <td style={{ padding: '8px 6px', fontSize: '0.65rem', textAlign: 'center', opacity: 0.8, borderLeft: '1px solid #111', fontWeight: '900' }}>{vItem.qty}</td>
                         <td style={{ padding: '4px', textAlign: 'center', borderLeft: '1px solid #111' }}>
                           <select
                             value={status}
-                            onChange={(e) => updateVirtualItemStatus(evt, vItem.name, effectiveRole, e.target.value)}
+                            onChange={(e) => updateVirtualItemStatus(evt, vItem?.name, effectiveRole, e.target.value)}
                             style={{
                               background: 'transparent', color: currentColor, border: 'none', borderBottom: `1px solid ${currentColor}33`,
                               borderRadius: '0', padding: '2px 0', fontSize: '0.55rem', fontWeight: '800',
@@ -6318,6 +6318,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
   );
 
   if (!user) return renderLogin();
+  if (!events || !quotations) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>Cargando información...</div>;
 
   return (
     <div className="app-shell" style={{ minHeight: '100vh', background: '#050505', color: '#fff' }}>
