@@ -125,33 +125,51 @@ const QuotationsView = ({
                     <div style={{ padding: '60px 0', textAlign: 'center', opacity: 0.2, fontWeight: '800', fontSize: '0.8rem' }}>
                         {showLost ? 'NO HAY VENTAS PERDIDAS' : 'NO HAY COTIZACIONES ACTIVAS'}
                     </div>
-                ) : filteredList.map(quo => (
-                    <div key={quo.id} className="sales-list-item" onClick={() => onEdit && onEdit(quo)} style={{
-                        padding: '16px', borderRadius: '24px', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative', overflow: 'hidden', cursor: 'pointer'
-                    }}>
-                        <div style={{ position: 'absolute', top: '15px', right: '-35px', width: '120px', height: '30px', background: quo.status === 'APPROVED' ? 'var(--success-green)' : (quo.status === 'LOST' ? '#ff3860' : 'var(--primary-cyan)'), transform: 'rotate(45deg)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', zIndex: 1 }}>
-                            <span style={{ fontSize: '0.55rem', fontWeight: '950', color: '#000', letterSpacing: '1px' }}>{quo.status}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '40px' }}>
-                            <div>
-                                <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#fff' }}>{quo.client?.name || 'Cliente'}</h4>
-                                <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', opacity: 0.5, fontWeight: '500' }}>📅 {quo.eventDetails?.date} • {quo.logistics?.packName || 'Plan'}</p>
-                            </div>
-                            <div style={{ fontWeight: '900', fontSize: '1.1rem', color: 'var(--primary-cyan)' }}>{formatPeso(quo.financials?.totalValue || 0)}</div>
-                        </div>
+                ) : filteredList.map(quo => {
+                    // ULTRA-PROTECCIÓN: Validar CADA cotización
+                    try {
+                        if (!quo || typeof quo !== 'object') return null;
+                        if (!quo.id) return null;
 
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', width: '100%', alignItems: 'center' }}>
-                            {quo.status === 'SENT' && (
-                                <>
-                                    <button onClick={(e) => { e.stopPropagation(); onApprove && onApprove(quo); }} style={{ padding: '8px', background: 'rgba(168, 85, 247, 0.1)', color: 'var(--primary-purple)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '10px', minWidth: '36px' }}><IconDollar size={16} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Marcar este lead como Venta Perdida?')) onMarkLost && onMarkLost(quo); }} style={{ padding: '8px', background: 'rgba(255, 56, 96, 0.1)', color: '#ff3860', border: '1px solid rgba(255, 56, 96, 0.2)', borderRadius: '10px', minWidth: '36px' }}><IconTrash size={14} /></button>
-                                </>
-                            )}
-                            <button onClick={(e) => { e.stopPropagation(); onOpenWhatsApp && onOpenWhatsApp(quo); }} style={{ padding: '8px', background: 'rgba(37, 211, 102, 0.1)', color: '#25d366', border: '1px solid rgba(37, 211, 102, 0.3)', borderRadius: '10px', minWidth: '36px' }}><IconWhatsApp size={16} /></button>
-                            <button onClick={(e) => { e.stopPropagation(); onGeneratePDF && onGeneratePDF(quo); }} style={{ padding: '8px', background: 'rgba(0, 242, 255, 0.1)', color: 'var(--primary-cyan)', border: '1px solid var(--primary-cyan)', borderRadius: '10px', minWidth: '36px' }}><IconFileText size={16} /></button>
-                        </div>
-                    </div>
-                ))}
+                        // Validar que tenga nombre
+                        const clientName = quo?.client?.name || quo?.clientName;
+                        if (!clientName) {
+                            console.warn("⚠️ Cotización sin nombre en renderizado:", quo.id);
+                            return null; // No renderizar cotizaciones sin nombre
+                        }
+
+                        return (
+                            <div key={quo.id} className="sales-list-item" onClick={() => onEdit && onEdit(quo)} style={{
+                                padding: '16px', borderRadius: '24px', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative', overflow: 'hidden', cursor: 'pointer'
+                            }}>
+                                <div style={{ position: 'absolute', top: '15px', right: '-35px', width: '120px', height: '30px', background: quo.status === 'APPROVED' ? 'var(--success-green)' : (quo.status === 'LOST' ? '#ff3860' : 'var(--primary-cyan)'), transform: 'rotate(45deg)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', zIndex: 1 }}>
+                                    <span style={{ fontSize: '0.55rem', fontWeight: '950', color: '#000', letterSpacing: '1px' }}>{quo.status}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '40px' }}>
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#fff' }}>{clientName}</h4>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', opacity: 0.5, fontWeight: '500' }}>📅 {quo.eventDetails?.date} • {quo.logistics?.packName || 'Plan'}</p>
+                                    </div>
+                                    <div style={{ fontWeight: '900', fontSize: '1.1rem', color: 'var(--primary-cyan)' }}>{formatPeso(quo.financials?.totalValue || 0)}</div>
+                                </div>
+
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', width: '100%', alignItems: 'center' }}>
+                                    {quo.status === 'SENT' && (
+                                        <>
+                                            <button onClick={(e) => { e.stopPropagation(); onApprove && onApprove(quo); }} style={{ padding: '8px', background: 'rgba(168, 85, 247, 0.1)', color: 'var(--primary-purple)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '10px', minWidth: '36px' }}><IconDollar size={16} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); if (window.confirm('¿Marcar este lead como Venta Perdida?')) onMarkLost && onMarkLost(quo); }} style={{ padding: '8px', background: 'rgba(255, 56, 96, 0.1)', color: '#ff3860', border: '1px solid rgba(255, 56, 96, 0.2)', borderRadius: '10px', minWidth: '36px' }}><IconTrash size={14} /></button>
+                                        </>
+                                    )}
+                                    <button onClick={(e) => { e.stopPropagation(); onOpenWhatsApp && onOpenWhatsApp(quo); }} style={{ padding: '8px', background: 'rgba(37, 211, 102, 0.1)', color: '#25d366', border: '1px solid rgba(37, 211, 102, 0.3)', borderRadius: '10px', minWidth: '36px' }}><IconWhatsApp size={16} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); onGeneratePDF && onGeneratePDF(quo); }} style={{ padding: '8px', background: 'rgba(0, 242, 255, 0.1)', color: 'var(--primary-cyan)', border: '1px solid var(--primary-cyan)', borderRadius: '10px', minWidth: '36px' }}><IconFileText size={16} /></button>
+                                </div>
+                            </div>
+                        );
+                    } catch (err) {
+                        console.error("Error rendering quotation:", quo?.id, err);
+                        return null;
+                    }
+                })}
             </div>
         </div>
     );
