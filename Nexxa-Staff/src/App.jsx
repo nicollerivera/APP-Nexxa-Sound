@@ -5259,19 +5259,30 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   <IconAlertTriangle size={14} /> ATENCIÓN
                 </h3>
                 {alerts.map(a => {
-                  if (!a) return null;
-                  return (
-                    <div key={a.id} style={{ background: 'rgba(255, 204, 0, 0.05)', border: '1px solid rgba(255, 204, 0, 0.2)', borderRadius: '16px', padding: '10px 15px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(255, 204, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffcc00' }}>
-                        <IconStaff size={14} />
+                  try {
+                    if (!a || typeof a !== 'object') return null;
+                    if (!a.id) return null;
+                    const clientName = a?.client?.name || a?.clientName;
+                    if (!clientName) {
+                      console.warn("⚠️ Alerta sin nombre:", a.id);
+                      return null;
+                    }
+                    return (
+                      <div key={a.id} style={{ background: 'rgba(255, 204, 0, 0.05)', border: '1px solid rgba(255, 204, 0, 0.2)', borderRadius: '16px', padding: '10px 15px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(255, 204, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffcc00' }}>
+                          <IconStaff size={14} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontWeight: '800', fontSize: '0.8rem', display: 'block', color: '#ffcc00' }}>Falta Staff</span>
+                          <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{clientName} • {a.eventDetails?.date ? new Date(a.eventDetails.date).getDate() : ''}/{a.eventDetails?.date ? new Date(a.eventDetails.date).getMonth() + 1 : ''}</span>
+                        </div>
+                        <button onClick={() => { setSelectedEventId(a.id); setView('detail'); }} style={{ background: '#ffcc00', border: 'none', color: '#000', padding: '6px 10px', borderRadius: '8px', fontSize: '0.6rem', fontWeight: '900' }}>ASIGNAR</button>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontWeight: '800', fontSize: '0.8rem', display: 'block', color: '#ffcc00' }}>Falta Staff</span>
-                        <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{a.client?.name || 'Evento'} • {a.eventDetails?.date ? new Date(a.eventDetails.date).getDate() : ''}/{a.eventDetails?.date ? new Date(a.eventDetails.date).getMonth() + 1 : ''}</span>
-                      </div>
-                      <button onClick={() => { setSelectedEventId(a.id); setView('detail'); }} style={{ background: '#ffcc00', border: 'none', color: '#000', padding: '6px 10px', borderRadius: '8px', fontSize: '0.6rem', fontWeight: '900' }}>ASIGNAR</button>
-                    </div>
-                  )
+                    );
+                  } catch (err) {
+                    console.error("Error rendering alert:", a?.id, err);
+                    return null;
+                  }
                 })}
               </div>
             )
@@ -5290,26 +5301,40 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '10px' }}>
-                {upcomingEvents.map(e => (
-                  <div
-                    key={e.id}
-                    onClick={() => { setSelectedEventId(e.id); setView('detail'); }}
-                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '18px', padding: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                    className="dashboard-card"
-                  >
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '10px', minWidth: '45px' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: '900' }}>{e.eventDetails?.date ? parseLocalStrDate(e.eventDetails.date).getDate() : '?'}</span>
-                        <span style={{ fontSize: '0.5rem', fontWeight: '700', textTransform: 'uppercase' }}>{e.eventDetails?.date ? parseLocalStrDate(e.eventDetails.date).toLocaleDateString('es-CO', { month: 'short' }).replace('.', '') : '-'}</span>
+                {upcomingEvents.map(e => {
+                  try {
+                    if (!e || typeof e !== 'object') return null;
+                    if (!e.id) return null;
+                    const clientName = e?.client?.name || e?.clientName;
+                    if (!clientName) {
+                      console.warn("⚠️ Evento próximo sin nombre:", e.id);
+                      return null;
+                    }
+                    return (
+                      <div
+                        key={e.id}
+                        onClick={() => { setSelectedEventId(e.id); setView('detail'); }}
+                        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '18px', padding: '15px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                        className="dashboard-card"
+                      >
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '10px', minWidth: '45px' }}>
+                            <span style={{ fontSize: '1rem', fontWeight: '900' }}>{e.eventDetails?.date ? parseLocalStrDate(e.eventDetails.date).getDate() : '?'}</span>
+                            <span style={{ fontSize: '0.5rem', fontWeight: '700', textTransform: 'uppercase' }}>{e.eventDetails?.date ? parseLocalStrDate(e.eventDetails.date).toLocaleDateString('es-CO', { month: 'short' }).replace('.', '') : '-'}</span>
+                          </div>
+                          <div>
+                            <span style={{ fontWeight: '900', fontSize: '0.85rem', display: 'block', color: '#fff' }}>{clientName}</span>
+                            <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: '600' }}>{e.logistics?.packName || 'Especial'}</span>
+                          </div>
+                        </div>
+                        <IconArrowRight size={14} style={{ opacity: 0.5 }} />
                       </div>
-                      <div>
-                        <span style={{ fontWeight: '900', fontSize: '0.85rem', display: 'block', color: '#fff' }}>{e.client?.name || e.clientName || 'Cliente'}</span>
-                        <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: '600' }}>{e.logistics?.packName || 'Especial'}</span>
-                      </div>
-                    </div>
-                    <IconArrowRight size={14} style={{ opacity: 0.5 }} />
-                  </div>
-                ))}
+                    );
+                  } catch (err) {
+                    console.error("Error rendering upcoming event:", e?.id, err);
+                    return null;
+                  }
+                })}
               </div>
             )}
           </div>
