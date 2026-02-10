@@ -5144,6 +5144,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
       const confirmedEvents = events
         .filter(e => {
+          if (!e) return false;
           // 1. Excluir si ya está CERRADO o CANCELADO
           if (e.status === 'CLOSED' || e.status === 'CANCELLED') return false;
 
@@ -5163,16 +5164,21 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
             const norm = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
             const groups = {};
-            items.forEach(i => { if (i && i.name) (groups[norm(i.name)] = groups[norm(i.name)] || []).push(i.status); });
+            items.forEach(i => {
+              if (i && i.name) {
+                const n = norm(i.name);
+                if (n) (groups[n] = groups[n] || []).push(i.status);
+              }
+            });
             const allOk = Object.values(groups).every(ss => ss.every(s => s === 'RETURNED'));
 
             if (allOk) return false; // Todo recibido y pagado -> Fuera
           }
 
-          return (e.status === 'CONFIRMED' || e.status === 'SENT') && (e.client?.name || e.clientName) && e.eventDetails?.date;
+          return (e.status === 'CONFIRMED' || e.status === 'SENT') && (e.client?.name || e.clientName || 'Cliente') && e.eventDetails?.date;
         })
         .sort((a, b) => {
-          if (!a.eventDetails || !b.eventDetails) return 0;
+          if (!a?.eventDetails || !b?.eventDetails) return 0;
           const dateA = a.eventDetails?.date || '9999-12-31';
           const dateB = b.eventDetails?.date || '9999-12-31';
           if (dateA !== dateB) return dateA.localeCompare(dateB);

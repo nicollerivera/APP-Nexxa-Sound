@@ -3,6 +3,18 @@ import autoTable from 'jspdf-autotable';
 import { formatPeso, formatT, subtractMinutes, addMinutes } from '../utils/helpers';
 
 // --- PDF GENERATOR (LOGISTICS MISSION) - STATE OF THE ART DESIGN ---
+const COLORS = {
+    DARK: [0, 0, 0],          // Pure Black
+    WHITE: [255, 255, 255],
+    ICE: [248, 249, 252],
+    CYAN: [0, 242, 255],      // Official Nexxa Cyan
+    PURPLE: [188, 111, 241],  // Official Nexxa Purple
+    PURPLE_SOFT: [245, 243, 255],
+    GREY_TEXT: [100, 110, 130],
+    BORDERS: [225, 230, 240]
+};
+
+// --- PDF GENERATOR (LOGISTICS MISSION) - STATE OF THE ART DESIGN ---
 export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], getCollectionResponsibility) => {
     try {
         const doc = new jsPDF();
@@ -24,17 +36,6 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
         };
 
         const logoData = await getBase64('/logo_staff_new.jpg');
-
-        const COLORS = {
-            DARK: [0, 0, 0],          // Pure Black
-            WHITE: [255, 255, 255],
-            ICE: [248, 249, 252],
-            CYAN: [0, 242, 255],      // Official Nexxa Cyan
-            PURPLE: [188, 111, 241],  // Official Nexxa Purple
-            PURPLE_SOFT: [245, 243, 255],
-            GREY_TEXT: [100, 110, 130],
-            BORDERS: [225, 230, 240]
-        };
 
         // 0. BACKGROUND & STRUCTURE
         doc.setFillColor(...COLORS.DARK);
