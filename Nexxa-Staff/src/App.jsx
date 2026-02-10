@@ -118,8 +118,6 @@ const TimeInput = ({ value, onChange, label }) => {
 
 
 function App() {
-  // DEBUGGING CONSOLE
-  console.log("App Rendering. User:", user ? user.name : 'No User', "Events:", events?.length, "Quotations:", quotations?.length);
 
   // --- MAGIC LINK RECEIVER (Auto-fill from URL) ---
   useEffect(() => {
@@ -315,6 +313,14 @@ function App() {
       console.error("Error reading nexxa_user from localStorage:", e);
       return null;
     }
+  });
+
+  // DEBUGGING CONSOLE (Moved after user definition)
+  console.log("DEBUG NEXXA - App Rendering:", {
+    user: user || { name: 'No User' },
+    userName: user?.name || 'No User',
+    eventsCount: events?.length || 0,
+    quotationsCount: quotations?.length || 0
   });
   const [userRole, setUserRole] = useState(() => {
     try {
@@ -6324,678 +6330,748 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     </div>
   );
 
+  // SAFE USER DATA with fallback
+  const userData = user || { name: 'Cargando...', id: 'temp' };
+  console.log("DEBUG NEXXA - userData:", userData);
+
   if (!user) return renderLogin();
   if (!events || !quotations) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>Cargando información...</div>;
 
-  return (
-    <div className="app-shell" style={{ minHeight: '100vh', background: '#050505', color: '#fff' }}>
-      {lastFatalError && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', zIndex: 99999, background: '#ff3860', color: '#fff', padding: '10px', fontSize: '0.6rem', fontWeight: 'bold', textAlign: 'center' }}>
-          DEBUG MOBILE: {lastFatalError} <button onClick={() => setLastFatalError(null)} style={{ marginLeft: '10px', background: '#fff', color: '#ff3860', border: 'none', borderRadius: '4px', padding: '2px 5px' }}>OK</button>
-        </div>
-      )}
-      <div className="aurora-bg" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1, overflow: 'hidden' }}>
-        <div className="aurora-blob blob-1" style={{ position: 'absolute', top: '-10%', left: '-10%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(0, 212, 255, 0.1), transparent 70%)', filter: 'blur(80px)' }}></div>
-        <div className="aurora-blob blob-2" style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(188, 111, 241, 0.1), transparent 70%)', filter: 'blur(80px)' }}></div>
-      </div>
+  // TRY-CATCH WRAPPER for main render
+  try {
+    console.log("DEBUG NEXXA - Rendering main app with:", {
+      user: userData,
+      eventsLength: events?.length,
+      quotationsLength: quotations?.length
+    });
 
-      <main className="main-content" style={{ paddingBottom: '120px' }}>
-        {view === 'dashboard' && renderDashboard()}
-        {(view === 'events' || view === 'detail') && (view === 'detail' ? renderDetail() : renderEventsList())}
-        {view === 'create' && renderCreate()}
-        {view === 'inventory' && renderInventory()}
-        {view === 'accounting' && renderAccounting()}
-        {view === 'config' && renderConfig()}
-        {view === 'profile' && renderProfile()}
-        {view === 'quotations' && (() => {
-          try {
-            return (
-              <QuotationsView
-                quotations={quotations}
-                onCreate={() => {
-                  setNewEvent({ clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', paymentMethod: 'Nequi' });
-                  setView('create');
-                }}
-                onEdit={(quo) => {
-                  setNewEvent({
-                    id: quo.id,
-                    createdAt: quo.createdAt || null,
-                    clientName: quo.client?.name || quo.clientName || '',
-                    clientPhone: quo.client?.phone || '',
-                    clientPhone2: quo.client?.phone2 || '',
-                    date: quo.eventDetails?.date || '',
-                    startTime: quo.eventDetails?.startTime || '',
-                    endTime: quo.eventDetails?.endTime || '',
-                    location: quo.eventDetails?.location || '',
-                    neighborhood: quo.eventDetails?.neighborhood || '',
-                    packName: (() => {
-                      const p = (quo.logistics?.packName || '').toLowerCase();
-                      if (p.includes('memories')) return 'Memories';
-                      if (p.includes('celebration')) return 'Celebration';
-                      return 'Essential';
-                    })(),
-                    totalValue: quo.financials?.totalValue || 0,
-                    deposit: (() => {
-                      const total = Number(quo.financials?.totalValue) || 0;
-                      const savedDep = quo.financials?.deposit;
-                      if (savedDep) return savedDep;
-                      return total > 0 ? Math.round((total * 0.3) / 1000) * 1000 : '';
-                    })(),
-                    managerName: '',
-                    guestCount: quo.eventDetails?.guestCount || 0,
-                    selectedExtras: (() => {
-                      const raw = quo.logistics?.selectedExtras || {};
-                      const clean = {};
-                      Object.keys(raw).forEach(k => {
-                        if (raw[k]) {
-                          const lowerK = k.toLowerCase();
-                          if (lowerK === 'makeup' || lowerK === 'neon' || lowerK.includes('maquillaje')) clean['extra_makeup'] = true;
-                          else clean[k] = true;
-                        }
-                      });
-                      return clean;
-                    })(),
-                    makeupCount: quo.logistics?.makeupCount || 1,
-                    occasion: quo.eventDetails?.occasion || '',
-                    extraHourPrice: quo.financials?.extraHourPrice || (() => {
-                      const p = (quo.logistics?.packName || '').toLowerCase();
-                      if (p.includes('memories') || p.includes('celebration')) return 120000;
-                      return 85000;
-                    })(),
-                    indications: quo.eventDetails?.indications || 'Ninguna',
-                    materialsTime: '',
-                    warehouseTime: '',
-                    materialExplanation: ''
-                  });
-                  setView('create');
-                }}
-                onApprove={(quo) => approveQuotation(quo)}
-                onMarkLost={(quo) => updateQuotationStatus(quo.id, 'LOST')}
-                onOpenWhatsApp={(quo) => setWhatsappModalQuo(quo)}
-                onGeneratePDF={(quo) => generateQuotationPDF(quo)}
-                onSettings={() => setView('settings')}
-              />
-            );
-          } catch (e) {
-            console.error("Crash en view quotations:", e);
-            return <div style={{ padding: '40px', textAlign: 'center' }}>Error en Ventas: {e.message}</div>;
-          }
-        })()}
-        {view === 'settings' && (
-          <div className="fade-in container" style={{ paddingBottom: '140px' }}>
-            <header className="main-header" style={{ padding: '40px 0 20px 0' }}>
-              <button onClick={() => setView('events')} className="nav-btn" style={{ background: 'transparent', border: 'none', paddingLeft: 0, fontWeight: '900', fontSize: '0.8rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '15px' }}>
-                <IconArrowLeft size={14} /> VOLVER A EVENTOS
-              </button>
-              <h2 style={{ fontSize: '2.2rem', fontWeight: '900', margin: 0 }}>Centro de <span style={{ opacity: 0.3 }}>Control</span></h2>
-              <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '2px', fontSize: '0.65rem' }}>GESTIÓN DE PERFIL Y APP</small>
-            </header>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {/* PERFIL */}
-              <div
-                className="sales-list-item"
-                onClick={() => setView('profile')}
-                style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-              >
-                <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
-                  <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-cyan)' }}>
-                    <IconUser size={22} />
-                  </div>
-                  <div>
-                    <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Perfil</span>
-                    <small style={{ opacity: 0.4, fontWeight: '700' }}>Identidad operativa</small>
-                  </div>
-                </div>
-                <IconArrowRight size={18} style={{ opacity: 0.3 }} />
-              </div>
-
-              {/* AJUSTES - Solo Admin */}
-              {userRole === 'admin' && (
-                <div
-                  className="sales-list-item"
-                  onClick={() => setView('config')}
-                  style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                >
-                  <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
-                    <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <IconSettings size={22} />
-                    </div>
-                    <div>
-                      <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Ajustes</span>
-                      <small style={{ opacity: 0.4, fontWeight: '700' }}>Variables globales y tarifas</small>
-                    </div>
-                  </div>
-                  <IconArrowRight size={18} style={{ opacity: 0.3 }} />
-                </div>
-              )}
-
-              {/* ROLES / STAFF - Solo Admin */}
-              {userRole === 'admin' && (
-                <div
-                  className="sales-list-item"
-                  onClick={() => alert('Gestión de nómina próximamente')}
-                  style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                >
-                  <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
-                    <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'rgba(188, 111, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-purple)' }}>
-                      <IconStaff size={22} />
-                    </div>
-                    <div>
-                      <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Roles / Staff</span>
-                      <small style={{ opacity: 0.4, fontWeight: '700' }}>Nómina y jerarquías</small>
-                    </div>
-                  </div>
-                  <IconArrowRight size={18} style={{ opacity: 0.3 }} />
-                </div>
-              )}
-
-              {/* CERRAR SESIÓN */}
-              <button
-                className="sales-list-item"
-                style={{
-                  marginTop: '20px',
-                  padding: '25px',
-                  borderRadius: '28px',
-                  background: 'rgba(255, 56, 96, 0.05)',
-                  border: '1px solid rgba(255, 56, 96, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '15px',
-                  color: '#ff3860',
-                  cursor: 'pointer',
-                  width: '100%',
-                  textAlign: 'left'
-                }}
-                onClick={() => alert('Cerrando sesión...')}
-              >
-                <IconLogout size={20} />
-                <span style={{ fontWeight: '950', letterSpacing: '1px', fontSize: '0.9rem' }}>CERRAR SESIÓN</span>
-              </button>
-            </div>
+    return (
+      <div className="app-shell" style={{ minHeight: '100vh', background: '#050505', color: '#fff' }}>
+        {lastFatalError && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', zIndex: 99999, background: '#ff3860', color: '#fff', padding: '10px', fontSize: '0.6rem', fontWeight: 'bold', textAlign: 'center' }}>
+            DEBUG MOBILE: {lastFatalError} <button onClick={() => setLastFatalError(null)} style={{ marginLeft: '10px', background: '#fff', color: '#ff3860', border: 'none', borderRadius: '4px', padding: '2px 5px' }}>OK</button>
           </div>
         )}
-      </main>
+        <div className="aurora-bg" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: -1, overflow: 'hidden' }}>
+          <div className="aurora-blob blob-1" style={{ position: 'absolute', top: '-10%', left: '-10%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(0, 212, 255, 0.1), transparent 70%)', filter: 'blur(80px)' }}></div>
+          <div className="aurora-blob blob-2" style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(188, 111, 241, 0.1), transparent 70%)', filter: 'blur(80px)' }}></div>
+        </div>
 
-      {!(view === 'create' || view === 'detail') && renderBottomNav()}
-      {renderWhatsAppFollowUpModal()}
-
-      {showFinanceModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="fade-in" onKeyDown={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', maxHeight: '90vh', overflowY: 'auto', overscrollBehavior: 'contain', padding: '40px 30px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '40px', background: '#080808', boxShadow: '0 30px 60px rgba(0,0,0,0.5)' }}>
-            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: '900', color: '#fff', textAlign: 'center' }}>Registro de <span style={{ color: showFinanceModal === 'IN' ? 'var(--success-green)' : 'var(--danger-red)' }}>{showFinanceModal === 'IN' ? 'Ingreso' : 'Egreso'}</span></h3>
-
-            <div style={{ marginTop: '30px', display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '18px' }}>
-              <button
-                type="button"
-                onClick={() => { setFinType('GENERAL'); setFinEventId(''); }}
-                style={{ flex: 1, padding: '12px', borderRadius: '14px', border: 'none', background: finType === 'GENERAL' ? 'rgba(255,255,255,0.1)' : 'transparent', color: finType === 'GENERAL' ? '#fff' : 'rgba(255,255,255,0.4)', fontWeight: '900', fontSize: '0.7rem', letterSpacing: '1px' }}
-              >
-                GASTO GENERAL
-              </button>
-              <button
-                type="button"
-                onClick={() => setFinType('EVENT')}
-                style={{ flex: 1, padding: '12px', borderRadius: '14px', border: 'none', background: finType === 'EVENT' ? 'var(--primary-purple)' : 'transparent', color: '#fff', fontWeight: '900', fontSize: '0.7rem', letterSpacing: '1px' }}
-              >
-                POR EVENTO (Utilidad)
-              </button>
-            </div>
-            {showFinanceModal === 'OUT' && finType === 'GENERAL' && (
-              <p style={{ margin: '10px 0 0 0', fontSize: '0.65rem', color: '#888', textAlign: 'center' }}>
-                💡 Tip: Si este gasto es de un evento, usa "POR EVENTO" para ver ganancias reales.
-              </p>
-            )}
-
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (!finDesc || !finAmount) return alert('Datos incompletos');
-
-              const txId = `TX-${Date.now()}`;
-              const val = Number(finAmount);
-
-              const txObj = {
-                id: txId,
-                desc: finDesc,
-                amount: val,
-                method: finMethod,
-                category: finCategory || 'VARIOS',
-                type: showFinanceModal,
-                date: getTodayStr(),
-                createdAt: new Date().toISOString()
-              };
-
-              // Logic for Event Expenses
-              if (finType === 'EVENT' && finEventId) {
-                txObj.eventId = finEventId;
-                if (showFinanceModal === 'OUT') {
-                  const evt = events.find(ev => ev.id === finEventId);
-                  if (evt) {
-                    const newExpenses = [...(evt.financials?.extraExpenses || []), {
-                      id: Date.now(),
-                      date: new Date().toLocaleDateString(),
-                      desc: finDesc,
-                      amount: val
-                    }];
-                    await updateDoc(doc(db, "events", finEventId), { "financials.extraExpenses": newExpenses });
-                  }
-                }
-              }
-
-              // Save Global Tx
-              await setDoc(doc(db, "globalTx", txId), txObj);
-
-              // SYNC AGENDA OPERATIVA: No es necesario actualizar el documento plantilla.
-              // La lógica de renderizado detectará automáticamente la transacción en globalTx y marcará PAGADO en la vista.
-
-              setShowFinanceModal(null);
-              setFinAmount('');
-              setFinDesc('');
-              alert('✅ Transacción registrada correctamente');
-
-            }} style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {finType === 'EVENT' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <label style={{ fontSize: '0.75rem', opacity: 0.5 }}>Seleccionar o Escribir Evento</label>
-                  <input
-                    list="events-list"
-                    value={finEventId}
-                    onChange={e => setFinEventId(e.target.value)}
-                    placeholder="Escribe el nombre o ID del evento..."
-                    style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontWeight: '700' }}
-                    required
-                  />
-                  {events.filter(ev => ev.client?.name || ev.clientName).map(ev => (
-                    <option key={ev.id} value={ev.id}>{ev.client?.name || ev.clientName} (ID: {ev.id})</option>
-                  ))}
-
-                  {/* CALCULADORA DE NÓMINA DINÁMICA */}
-                  {finEventId && (
-                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)', marginTop: '5px' }}>
-                      <label style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)', display: 'block', marginBottom: '8px' }}>CALCULAR NÓMINA AUTOMÁTICA</label>
-                      <div style={{ display: 'flex', gap: '5px' }}>
-                        <select
-                          id="roleCalcSelector"
-                          onKeyDown={(e) => e.stopPropagation()}
-                          style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#000', color: '#fff', border: '1px solid #333', fontSize: '0.7rem' }}
-                        >
-                          <option value="DJ">DJ / OP</option>
-                          <option value="FOTO">FOTÓGRAFO</option>
-                          <option value="DECOR">DECORADOR</option>
-                          <option value="LOGISTICA">LOGÍSTICA</option>
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const evt = events.find(e => e.id === finEventId);
-                            if (!evt) return alert('Evento no encontrado');
-
-                            const role = document.getElementById('roleCalcSelector').value;
-                            // Helper function for specific role durations
-                            const getRoleDuration = (roleName) => {
-                              let start = evt.eventDetails.startTime;
-                              let end = evt.eventDetails.endTime;
-
-                              if (roleName === 'FOTO') {
-                                start = evt.eventDetails.photoStartTime || start;
-                                end = evt.eventDetails.photoEndTime || end;
-                              } else if (roleName === 'DECOR') {
-                                start = evt.eventDetails.decorStartTime || start;
-                                end = evt.eventDetails.decorEndTime || end;
-                              } else if (roleName === 'LOGISTICA') {
-                                end = evt.eventDetails.logisticsEndTime || end;
-                              }
-                              return getHours(start, end);
-                            };
-                            const dur = getRoleDuration(role);
-
-                            let pay = 0;
-                            if (role === 'DJ') pay = 35000 + (dur * 13000);
-                            else if (role === 'LOGISTICA') pay = 25000 + (dur * 10000);
-                            else if (role === 'FOTO') pay = dur * 13000;
-                            else if (role === 'DECOR') pay = 40000; // Tarifa plana base
-
-                            setFinAmount(pay);
-                            setFinDesc(`Pago Nómina ${role} - ${evt.client?.name || evt.clientName || 'Evento'}`);
-                            setFinCategory('NÓMINA');
-                          }}
-                          style={{ padding: '8px 12px', background: 'var(--primary-purple)', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.65rem', fontWeight: '900', cursor: 'pointer' }}
-                        >
-                          CALCULAR
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <select
-                  value={finCategory}
-                  onChange={e => setFinCategory(e.target.value)}
-                  style={{ flex: 1, padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.75rem', fontWeight: '800' }}
-                >
-                  {['LOGISTICA', 'EQUIPOS', 'MARKETING', 'NÓMINA', 'MANTENIMIENTO', 'FIJOS', 'VENTA', 'OTROS'].map(cat => (
-                    <option key={cat} value={cat} style={{ background: '#000' }}>{cat}</option>
-                  ))}
-                </select>
-                <input
-                  placeholder="Descripción..."
-                  value={finDesc}
-                  onChange={e => setFinDesc(e.target.value)}
-                  required
-                  style={{ flex: 2, padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontWeight: '700' }}
+        <main className="main-content" style={{ paddingBottom: '120px' }}>
+          {view === 'dashboard' && renderDashboard()}
+          {(view === 'events' || view === 'detail') && (view === 'detail' ? renderDetail() : renderEventsList())}
+          {view === 'create' && renderCreate()}
+          {view === 'inventory' && renderInventory()}
+          {view === 'accounting' && renderAccounting()}
+          {view === 'config' && renderConfig()}
+          {view === 'profile' && renderProfile()}
+          {view === 'quotations' && (() => {
+            try {
+              return (
+                <QuotationsView
+                  quotations={quotations}
+                  onCreate={() => {
+                    setNewEvent({ clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', paymentMethod: 'Nequi' });
+                    setView('create');
+                  }}
+                  onEdit={(quo) => {
+                    setNewEvent({
+                      id: quo.id,
+                      createdAt: quo.createdAt || null,
+                      clientName: quo.client?.name || quo.clientName || '',
+                      clientPhone: quo.client?.phone || '',
+                      clientPhone2: quo.client?.phone2 || '',
+                      date: quo.eventDetails?.date || '',
+                      startTime: quo.eventDetails?.startTime || '',
+                      endTime: quo.eventDetails?.endTime || '',
+                      location: quo.eventDetails?.location || '',
+                      neighborhood: quo.eventDetails?.neighborhood || '',
+                      packName: (() => {
+                        const p = (quo.logistics?.packName || '').toLowerCase();
+                        if (p.includes('memories')) return 'Memories';
+                        if (p.includes('celebration')) return 'Celebration';
+                        return 'Essential';
+                      })(),
+                      totalValue: quo.financials?.totalValue || 0,
+                      deposit: (() => {
+                        const total = Number(quo.financials?.totalValue) || 0;
+                        const savedDep = quo.financials?.deposit;
+                        if (savedDep) return savedDep;
+                        return total > 0 ? Math.round((total * 0.3) / 1000) * 1000 : '';
+                      })(),
+                      managerName: '',
+                      guestCount: quo.eventDetails?.guestCount || 0,
+                      selectedExtras: (() => {
+                        const raw = quo.logistics?.selectedExtras || {};
+                        const clean = {};
+                        Object.keys(raw).forEach(k => {
+                          if (raw[k]) {
+                            const lowerK = k.toLowerCase();
+                            if (lowerK === 'makeup' || lowerK === 'neon' || lowerK.includes('maquillaje')) clean['extra_makeup'] = true;
+                            else clean[k] = true;
+                          }
+                        });
+                        return clean;
+                      })(),
+                      makeupCount: quo.logistics?.makeupCount || 1,
+                      occasion: quo.eventDetails?.occasion || '',
+                      extraHourPrice: quo.financials?.extraHourPrice || (() => {
+                        const p = (quo.logistics?.packName || '').toLowerCase();
+                        if (p.includes('memories') || p.includes('celebration')) return 120000;
+                        return 85000;
+                      })(),
+                      indications: quo.eventDetails?.indications || 'Ninguna',
+                      materialsTime: '',
+                      warehouseTime: '',
+                      materialExplanation: ''
+                    });
+                    setView('create');
+                  }}
+                  onApprove={(quo) => approveQuotation(quo)}
+                  onMarkLost={(quo) => updateQuotationStatus(quo.id, 'LOST')}
+                  onOpenWhatsApp={(quo) => setWhatsappModalQuo(quo)}
+                  onGeneratePDF={(quo) => generateQuotationPDF(quo)}
+                  onSettings={() => setView('settings')}
                 />
-              </div>
-              <input
-                type="tel"
-                inputMode="numeric"
-                placeholder="Monto total ($)"
-                value={formatInputNumber(finAmount)}
-                onChange={e => setFinAmount(parseInputNumber(e.target.value))}
-                required
-                style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontWeight: '900', fontSize: '1.2rem', color: 'var(--primary-cyan)' }}
-              />
+              );
+            } catch (e) {
+              console.error("Crash en view quotations:", e);
+              return <div style={{ padding: '40px', textAlign: 'center' }}>Error en Ventas: {e.message}</div>;
+            }
+          })()}
+          {view === 'settings' && (
+            <div className="fade-in container" style={{ paddingBottom: '140px' }}>
+              <header className="main-header" style={{ padding: '40px 0 20px 0' }}>
+                <button onClick={() => setView('events')} className="nav-btn" style={{ background: 'transparent', border: 'none', paddingLeft: 0, fontWeight: '900', fontSize: '0.8rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '15px' }}>
+                  <IconArrowLeft size={14} /> VOLVER A EVENTOS
+                </button>
+                <h2 style={{ fontSize: '2.2rem', fontWeight: '900', margin: 0 }}>Centro de <span style={{ opacity: 0.3 }}>Control</span></h2>
+                <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '2px', fontSize: '0.65rem' }}>GESTIÓN DE PERFIL Y APP</small>
+              </header>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '12px', display: 'block', fontWeight: '800', letterSpacing: '1px' }}>CANAL DE DINERO</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                  {[
-                    { id: 'Nequi', color: '#ff007a' },
-                    { id: 'Daviplata', color: '#ff4d4d' },
-                    { id: 'Efectivo', color: '#4dff88' }
-                  ].map(m => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setFinMethod(m.id)}
-                      style={{
-                        padding: '15px 5px',
-                        borderRadius: '16px',
-                        border: '1.5px solid',
-                        borderColor: finMethod === m.id ? m.color : 'rgba(255,255,255,0.08)',
-                        background: finMethod === m.id ? `${m.color}22` : 'rgba(255,255,255,0.02)',
-                        color: finMethod === m.id ? '#fff' : 'rgba(255,255,255,0.3)',
-                        fontSize: '0.7rem',
-                        fontWeight: '950',
-                        letterSpacing: '0.5px',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        transform: finMethod === m.id ? 'scale(1.05)' : 'scale(1)',
-                        boxShadow: finMethod === m.id ? `0 10px 20px ${m.color}15` : 'none'
-                      }}
-                    >
-                      {m.id.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-                {/* Hidden input to maintain 'required' validation if needed, or handle in handleSaveTransaction */}
-                <input type="hidden" value={finMethod} required name="hiddenMethod" />
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="button" onClick={() => setShowFinanceModal(null)} style={{ flex: 1, padding: '18px', borderRadius: '18px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontWeight: '900' }}>CANCELAR</button>
-                <button type="submit" style={{ flex: 1, padding: '18px', borderRadius: '18px', background: '#fff', border: 'none', color: '#000', fontWeight: '900' }}>REGISTRAR</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL PAGO DE SALDO FINAL (CLIENTE) */}
-      {paymentModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="fade-in" style={{ width: '90%', maxWidth: '400px', background: '#111', padding: '35px', borderRadius: '40px', border: '1px solid var(--primary-cyan)', boxShadow: '0 20px 50px rgba(0,212,255,0.1)' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '1.4rem', fontWeight: '950', color: '#fff' }}>Recaudar Saldo Final <span style={{ fontSize: '0.45rem', color: 'var(--primary-cyan)', verticalAlign: 'middle', opacity: 0.5 }}>v.RESILIENT</span></h3>
-            <p style={{ margin: '0 0 25px 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
-              Evento: <strong>{
-                (typeof paymentModal.evt?.client === 'string' ? paymentModal.evt.client : paymentModal.evt?.client?.name) ||
-                paymentModal.evt?.clientName ||
-                (paymentModal?.evt?.name || paymentModal?.evt?.clientName || 'Evento sin nombre')
-              }</strong><br />
-              Total: {formatPeso(paymentModal.total)} • Pendiente: <strong style={{ color: paymentModal.total === 0 ? 'var(--danger-red)' : 'var(--primary-cyan)' }}>{formatPeso(paymentModal.pending)}</strong>
-            </p>
-
-            {paymentModal.total === 0 && (
-              <div style={{ background: 'rgba(255,100,100,0.05)', padding: '15px', borderRadius: '20px', border: '1px solid rgba(255,100,100,0.2)', marginBottom: '20px' }}>
-                <span style={{ fontSize: '0.6rem', color: '#ff3860', fontWeight: '900', display: 'block', marginBottom: '10px', textAlign: 'center' }}>⚠️ NO SE DETECTÓ SALDO AUTOMÁTICO</span>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: '900' }}>VALOR TOTAL</label>
-                    <input
-                      type="tel"
-                      placeholder="$ 0"
-                      onChange={(e) => {
-                        const val = Number(e.target.value.replace(/\D/g, '')) || 0;
-                        setPaymentModal({ ...paymentModal, total: val, pending: Math.max(0, val - (paymentModal.deposit || 0)) });
-                      }}
-                      style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid #333', color: '#fff', borderRadius: '8px', padding: '8px', fontSize: '0.8rem', fontWeight: '900' }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: '900' }}>ABONO PREVIO</label>
-                    <input
-                      type="tel"
-                      placeholder="$ 0"
-                      onChange={(e) => {
-                        const val = Number(e.target.value.replace(/\D/g, '')) || 0;
-                        setPaymentModal({ ...paymentModal, deposit: val, pending: Math.max(0, (paymentModal.total || 0) - val) });
-                      }}
-                      style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid #333', color: '#fff', borderRadius: '8px', padding: '8px', fontSize: '0.8rem', fontWeight: '900' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {paymentModal.pending === 0 && paymentModal.total === 0 && (
-              <div style={{ fontSize: '0.4rem', color: '#444', background: 'rgba(0,0,0,0.3)', padding: '5px', borderRadius: '8px', wordBreak: 'break-all', maxHeight: '60px', overflow: 'auto', marginBottom: '10px' }}>
-                DEBUG: {JSON.stringify(paymentModal.evt).slice(0, 300)}...
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['Nequi', 'Daviplata', 'Efectivo'].map(method => (
-                    <div key={method} style={{ display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.2)', padding: '12px 15px', borderRadius: '15px', gap: '4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <label style={{ fontSize: '0.65rem', fontWeight: '900', color: '#888', width: '70px' }}>{method.toUpperCase()}</label>
-                        <input
-                          type="tel"
-                          placeholder="$ 0"
-                          value={formatInputNumber(paymentSplit[method])}
-                          onChange={e => {
-                            setPaymentSplit({ ...paymentSplit, [method]: parseInputNumber(e.target.value) });
-                          }}
-                          style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: '1.2rem', fontWeight: '900', textAlign: 'right', outline: 'none' }}
-                        />
-                      </div>
-                      {paymentSplit[method] > 0 && (
-                        <div style={{ textAlign: 'right', fontSize: '0.65rem', color: 'var(--primary-cyan)', fontWeight: '800', opacity: 0.8 }}>
-                          {formatPeso(paymentSplit[method])}
-                        </div>
-                      )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {/* PERFIL */}
+                <div
+                  className="sales-list-item"
+                  onClick={() => setView('profile')}
+                  style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
+                    <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-cyan)' }}>
+                      <IconUser size={22} />
                     </div>
-                  ))}
+                    <div>
+                      <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Perfil</span>
+                      <small style={{ opacity: 0.4, fontWeight: '700' }}>Identidad operativa</small>
+                    </div>
+                  </div>
+                  <IconArrowRight size={18} style={{ opacity: 0.3 }} />
                 </div>
 
-                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: '900', opacity: 0.5 }}>TOTAL INGRESADO:</span>
-                  <span style={{ fontSize: '1.2rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>
-                    {formatPeso(Number(paymentSplit.Nequi || 0) + Number(paymentSplit.Daviplata || 0) + Number(paymentSplit.Efectivo || 0))}
-                  </span>
-                </div>
-              </div>
+                {/* AJUSTES - Solo Admin */}
+                {userRole === 'admin' && (
+                  <div
+                    className="sales-list-item"
+                    onClick={() => setView('config')}
+                    style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
+                      <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <IconSettings size={22} />
+                      </div>
+                      <div>
+                        <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Ajustes</span>
+                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Variables globales y tarifas</small>
+                      </div>
+                    </div>
+                    <IconArrowRight size={18} style={{ opacity: 0.3 }} />
+                  </div>
+                )}
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button onClick={() => setPaymentModal(null)} style={{ flex: 1, padding: '18px', borderRadius: '20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontWeight: '900' }}>CANCELAR</button>
-                <button onClick={handleSaveEventPayment} style={{ flex: 1.5, padding: '18px', borderRadius: '20px', background: 'var(--primary-cyan)', border: 'none', color: '#000', fontWeight: '900' }}>GUARDAR PAGO</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {approveModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="fade-in" style={{ width: '90%', maxWidth: '400px', background: '#111', padding: '35px', borderRadius: '40px', border: '1px solid var(--primary-purple)' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '1.4rem', fontWeight: '950', color: '#fff', textAlign: 'center' }}>Confirmar Abono</h3>
-            <p style={{ margin: '0 0 25px 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
-              Registrando abono de <strong>{formatPeso(approveModal.quo?.financials?.deposit || 0)}</strong> para <strong>{approveModal.quo?.client?.name || approveModal.quo?.clientName || 'Cliente'}</strong>.
-            </p>
+                {/* ROLES / STAFF - Solo Admin */}
+                {userRole === 'admin' && (
+                  <div
+                    className="sales-list-item"
+                    onClick={() => alert('Gestión de nómina próximamente')}
+                    style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
+                      <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'rgba(188, 111, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-purple)' }}>
+                        <IconStaff size={22} />
+                      </div>
+                      <div>
+                        <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Roles / Staff</span>
+                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Nómina y jerarquías</small>
+                      </div>
+                    </div>
+                    <IconArrowRight size={18} style={{ opacity: 0.3 }} />
+                  </div>
+                )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label style={{ fontSize: '0.7rem', fontWeight: '900', opacity: 0.4, letterSpacing: '1px' }}>MÉTODO DE PAGO</label>
-              {['Nequi', 'Daviplata', 'Efectivo'].map(method => (
+                {/* CERRAR SESIÓN */}
                 <button
-                  key={method}
-                  onClick={() => handleConfirmApproval(method)}
+                  className="sales-list-item"
                   style={{
-                    padding: '20px',
-                    borderRadius: '24px',
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#fff',
-                    fontWeight: '900',
-                    fontSize: '1.1rem',
-                    textAlign: 'left',
+                    marginTop: '20px',
+                    padding: '25px',
+                    borderRadius: '28px',
+                    background: 'rgba(255, 56, 96, 0.05)',
+                    border: '1px solid rgba(255, 56, 96, 0.1)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>{method}</span>
-                  <span style={{ opacity: 0.2 }}>→</span>
-                </button>
-              ))}
-              <button onClick={() => setApproveModal(null)} style={{ marginTop: '15px', padding: '15px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', fontWeight: '800' }}>CANCELAR</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL PAGO DE STAFF */}
-      {staffPayModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="fade-in" style={{ width: '90%', maxWidth: '400px', background: '#111', padding: '35px', borderRadius: '40px', border: '1px solid rgba(188, 111, 241, 0.3)' }}>
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: '950', color: 'var(--primary-purple)' }}>Liquidar Nómina</h3>
-            <p style={{ margin: '0 0 25px 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Selecciona el canal de dinero para pagar a <strong>{staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}</strong>.</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {['Nequi', 'Daviplata', 'Efectivo'].map(method => (
-                <button
-                  key={method}
-                  onClick={async () => {
-                    const dur = getHours(staffPayModal.eventDetails.startTime, staffPayModal.eventDetails.endTime);
-                    const eks = staffPayModal.financials?.extraHours || {};
-
-                    const djPay = 35000 + (dur * 13000) + ((eks.DJ || 0) * 15000);
-                    const pDur = staffPayModal.eventDetails.photoStartTime ? getHours(staffPayModal.eventDetails.photoStartTime, staffPayModal.eventDetails.photoEndTime) : 0;
-                    const photoPay = (pDur * 13000) + ((eks.FOTO || 0) * 15000);
-                    const decorPay = ((staffPayModal.eventDetails.decorStartTime || staffPayModal.logistics.packName === 'Celebration') ? 40000 : 0) + ((eks.DECOR || 0) * 15000);
-                    const managerPay = (dur * 10000) + 25000 + ((eks.LOGISTICA || 0) * 15000);
-                    const totalPay = djPay + photoPay + decorPay + managerPay;
-
-                    // 1. Crear Transacción Goblal (OUT)
-                    const txId = `TX-STAFF-${Date.now()}`;
-                    await setDoc(doc(collection(db, "globalTx"), txId), {
-                      id: txId,
-                      desc: `Nómina Evento: ${staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}`,
-                      amount: totalPay,
-                      method: method,
-                      type: 'OUT',
-                      category: 'NÓMINA',
-                      date: getTodayStr(),
-                      createdAt: new Date().toISOString(),
-                      eventId: staffPayModal.id
-                    });
-
-                    // 2. Marcar como pagado en Firebase
-                    await updateDoc(doc(db, "events", staffPayModal.id), { "logistics.flow.staffPaid": true });
-
-                    setStaffPayModal(null);
-                  }}
-                  style={{
-                    padding: '20px',
-                    borderRadius: '20px',
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#fff',
-                    fontWeight: '900',
-                    fontSize: '1rem',
+                    gap: '15px',
+                    color: '#ff3860',
+                    cursor: 'pointer',
+                    width: '100%',
                     textAlign: 'left'
                   }}
+                  onClick={() => alert('Cerrando sesión...')}
                 >
-                  💳 Pagar por {method}
+                  <IconLogout size={20} />
+                  <span style={{ fontWeight: '950', letterSpacing: '1px', fontSize: '0.9rem' }}>CERRAR SESIÓN</span>
                 </button>
-              ))}
-              <button onClick={() => setStaffPayModal(null)} style={{ marginTop: '10px', padding: '15px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', fontWeight: '800' }}>CANCELAR</button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </main>
 
-      {/* MODAL AGREGAR GASTO PROGRAMADO (RECURRENTE) */}
-      {showAddExpenseModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="fade-in" style={{ width: '90%', maxWidth: '350px', background: '#111', padding: '25px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <h3 style={{ margin: '0 0 20px 0', fontSize: '1.2rem', fontWeight: '950', color: '#fff', textAlign: 'center' }}>Agendar Gasto Mes</h3>
-            <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#888', marginBottom: '20px' }}>Este gasto se repetirá automáticamente todos los meses.</p>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (!newExpenseData.day || !newExpenseData.concept || !newExpenseData.amount) return alert('Completa todos los campos');
+        {!(view === 'create' || view === 'detail') && renderBottomNav()}
+        {renderWhatsAppFollowUpModal()}
 
-              const dayNum = parseInt(newExpenseData.day);
-              if (dayNum < 1 || dayNum > 31) return alert('Día inválido');
+        {showFinanceModal && (
+          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <div className="fade-in" onKeyDown={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '420px', maxHeight: '90vh', overflowY: 'auto', overscrollBehavior: 'contain', padding: '40px 30px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '40px', background: '#080808', boxShadow: '0 30px 60px rgba(0,0,0,0.5)' }}>
+              <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: '900', color: '#fff', textAlign: 'center' }}>Registro de <span style={{ color: showFinanceModal === 'IN' ? 'var(--success-green)' : 'var(--danger-red)' }}>{showFinanceModal === 'IN' ? 'Ingreso' : 'Egreso'}</span></h3>
 
-              try {
-                await addDoc(collection(db, "operative_agenda"), {
-                  day: dayNum, // Storing just the day number
-                  concept: newExpenseData.concept,
-                  amount: Number(newExpenseData.amount),
+              <div style={{ marginTop: '30px', display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '18px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setFinType('GENERAL'); setFinEventId(''); }}
+                  style={{ flex: 1, padding: '12px', borderRadius: '14px', border: 'none', background: finType === 'GENERAL' ? 'rgba(255,255,255,0.1)' : 'transparent', color: finType === 'GENERAL' ? '#fff' : 'rgba(255,255,255,0.4)', fontWeight: '900', fontSize: '0.7rem', letterSpacing: '1px' }}
+                >
+                  GASTO GENERAL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFinType('EVENT')}
+                  style={{ flex: 1, padding: '12px', borderRadius: '14px', border: 'none', background: finType === 'EVENT' ? 'var(--primary-purple)' : 'transparent', color: '#fff', fontWeight: '900', fontSize: '0.7rem', letterSpacing: '1px' }}
+                >
+                  POR EVENTO (Utilidad)
+                </button>
+              </div>
+              {showFinanceModal === 'OUT' && finType === 'GENERAL' && (
+                <p style={{ margin: '10px 0 0 0', fontSize: '0.65rem', color: '#888', textAlign: 'center' }}>
+                  💡 Tip: Si este gasto es de un evento, usa "POR EVENTO" para ver ganancias reales.
+                </p>
+              )}
+
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!finDesc || !finAmount) return alert('Datos incompletos');
+
+                const txId = `TX-${Date.now()}`;
+                const val = Number(finAmount);
+
+                const txObj = {
+                  id: txId,
+                  desc: finDesc,
+                  amount: val,
+                  method: finMethod,
+                  category: finCategory || 'VARIOS',
+                  type: showFinanceModal,
+                  date: getTodayStr(),
                   createdAt: new Date().toISOString()
-                  // No status field needed, calculated dynamically
-                });
+                };
 
-                setNewExpenseData({ day: '', concept: '', amount: '' });
-                setShowAddExpenseModal(false);
-                alert('✅ Gasto mensual programado!');
-              } catch (err) {
-                console.error(err);
-                alert('Error al guardar: ' + err.message);
-              }
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '0.7rem', color: '#666', fontWeight: '700' }}>Día del Pago (Mensual)</label>
+                // Logic for Event Expenses
+                if (finType === 'EVENT' && finEventId) {
+                  txObj.eventId = finEventId;
+                  if (showFinanceModal === 'OUT') {
+                    const evt = events.find(ev => ev.id === finEventId);
+                    if (evt) {
+                      const newExpenses = [...(evt.financials?.extraExpenses || []), {
+                        id: Date.now(),
+                        date: new Date().toLocaleDateString(),
+                        desc: finDesc,
+                        amount: val
+                      }];
+                      await updateDoc(doc(db, "events", finEventId), { "financials.extraExpenses": newExpenses });
+                    }
+                  }
+                }
+
+                // Save Global Tx
+                await setDoc(doc(db, "globalTx", txId), txObj);
+
+                // SYNC AGENDA OPERATIVA: No es necesario actualizar el documento plantilla.
+                // La lógica de renderizado detectará automáticamente la transacción en globalTx y marcará PAGADO en la vista.
+
+                setShowFinanceModal(null);
+                setFinAmount('');
+                setFinDesc('');
+                alert('✅ Transacción registrada correctamente');
+
+              }} style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {finType === 'EVENT' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <label style={{ fontSize: '0.75rem', opacity: 0.5 }}>Seleccionar o Escribir Evento</label>
+                    <input
+                      list="events-list"
+                      value={finEventId}
+                      onChange={e => setFinEventId(e.target.value)}
+                      placeholder="Escribe el nombre o ID del evento..."
+                      style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontWeight: '700' }}
+                      required
+                    />
+                    {events.filter(ev => ev.client?.name || ev.clientName).map(ev => (
+                      <option key={ev.id} value={ev.id}>{ev.client?.name || ev.clientName} (ID: {ev.id})</option>
+                    ))}
+
+                    {/* CALCULADORA DE NÓMINA DINÁMICA */}
+                    {finEventId && (
+                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)', marginTop: '5px' }}>
+                        <label style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)', display: 'block', marginBottom: '8px' }}>CALCULAR NÓMINA AUTOMÁTICA</label>
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                          <select
+                            id="roleCalcSelector"
+                            onKeyDown={(e) => e.stopPropagation()}
+                            style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#000', color: '#fff', border: '1px solid #333', fontSize: '0.7rem' }}
+                          >
+                            <option value="DJ">DJ / OP</option>
+                            <option value="FOTO">FOTÓGRAFO</option>
+                            <option value="DECOR">DECORADOR</option>
+                            <option value="LOGISTICA">LOGÍSTICA</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const evt = events.find(e => e.id === finEventId);
+                              if (!evt) return alert('Evento no encontrado');
+
+                              const role = document.getElementById('roleCalcSelector').value;
+                              // Helper function for specific role durations
+                              const getRoleDuration = (roleName) => {
+                                let start = evt.eventDetails.startTime;
+                                let end = evt.eventDetails.endTime;
+
+                                if (roleName === 'FOTO') {
+                                  start = evt.eventDetails.photoStartTime || start;
+                                  end = evt.eventDetails.photoEndTime || end;
+                                } else if (roleName === 'DECOR') {
+                                  start = evt.eventDetails.decorStartTime || start;
+                                  end = evt.eventDetails.decorEndTime || end;
+                                } else if (roleName === 'LOGISTICA') {
+                                  end = evt.eventDetails.logisticsEndTime || end;
+                                }
+                                return getHours(start, end);
+                              };
+                              const dur = getRoleDuration(role);
+
+                              let pay = 0;
+                              if (role === 'DJ') pay = 35000 + (dur * 13000);
+                              else if (role === 'LOGISTICA') pay = 25000 + (dur * 10000);
+                              else if (role === 'FOTO') pay = dur * 13000;
+                              else if (role === 'DECOR') pay = 40000; // Tarifa plana base
+
+                              setFinAmount(pay);
+                              setFinDesc(`Pago Nómina ${role} - ${evt.client?.name || evt.clientName || 'Evento'}`);
+                              setFinCategory('NÓMINA');
+                            }}
+                            style={{ padding: '8px 12px', background: 'var(--primary-purple)', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.65rem', fontWeight: '900', cursor: 'pointer' }}
+                          >
+                            CALCULAR
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select
+                    value={finCategory}
+                    onChange={e => setFinCategory(e.target.value)}
+                    style={{ flex: 1, padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.75rem', fontWeight: '800' }}
+                  >
+                    {['LOGISTICA', 'EQUIPOS', 'MARKETING', 'NÓMINA', 'MANTENIMIENTO', 'FIJOS', 'VENTA', 'OTROS'].map(cat => (
+                      <option key={cat} value={cat} style={{ background: '#000' }}>{cat}</option>
+                    ))}
+                  </select>
                   <input
-                    type="number"
-                    min="1" max="31"
-                    placeholder="Ej: 5 (para el día 5 de cada mes)"
+                    placeholder="Descripción..."
+                    value={finDesc}
+                    onChange={e => setFinDesc(e.target.value)}
                     required
-                    value={newExpenseData.day}
-                    onChange={e => setNewExpenseData({ ...newExpenseData, day: e.target.value })}
-                    style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff' }}
+                    style={{ flex: 2, padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontWeight: '700' }}
                   />
                 </div>
-                <div>
-                  <label style={{ fontSize: '0.7rem', color: '#666', fontWeight: '700' }}>Concepto</label>
-                  <input type="text" placeholder="Ej: Arriendo" required value={newExpenseData.concept} onChange={e => setNewExpenseData({ ...newExpenseData, concept: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.7rem', color: '#666', fontWeight: '700' }}>Valor Estimado</label>
-                  <input type="tel" placeholder="$ 0" required value={formatInputNumber(newExpenseData.amount)} onChange={e => setNewExpenseData({ ...newExpenseData, amount: parseInputNumber(e.target.value) })} style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#facc15', fontWeight: 'bold', fontSize: '1.1rem' }} />
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Monto total ($)"
+                  value={formatInputNumber(finAmount)}
+                  onChange={e => setFinAmount(parseInputNumber(e.target.value))}
+                  required
+                  style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontWeight: '900', fontSize: '1.2rem', color: 'var(--primary-cyan)' }}
+                />
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '12px', display: 'block', fontWeight: '800', letterSpacing: '1px' }}>CANAL DE DINERO</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                    {[
+                      { id: 'Nequi', color: '#ff007a' },
+                      { id: 'Daviplata', color: '#ff4d4d' },
+                      { id: 'Efectivo', color: '#4dff88' }
+                    ].map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setFinMethod(m.id)}
+                        style={{
+                          padding: '15px 5px',
+                          borderRadius: '16px',
+                          border: '1.5px solid',
+                          borderColor: finMethod === m.id ? m.color : 'rgba(255,255,255,0.08)',
+                          background: finMethod === m.id ? `${m.color}22` : 'rgba(255,255,255,0.02)',
+                          color: finMethod === m.id ? '#fff' : 'rgba(255,255,255,0.3)',
+                          fontSize: '0.7rem',
+                          fontWeight: '950',
+                          letterSpacing: '0.5px',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          transform: finMethod === m.id ? 'scale(1.05)' : 'scale(1)',
+                          boxShadow: finMethod === m.id ? `0 10px 20px ${m.color}15` : 'none'
+                        }}
+                      >
+                        {m.id.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Hidden input to maintain 'required' validation if needed, or handle in handleSaveTransaction */}
+                  <input type="hidden" value={finMethod} required name="hiddenMethod" />
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                  <button type="button" onClick={() => setShowAddExpenseModal(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#666', fontWeight: '800' }}>CANCELAR</button>
-                  <button type="submit" style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#fff', border: 'none', color: '#000', fontWeight: '900' }}>AGENDAR</button>
+                  <button type="button" onClick={() => setShowFinanceModal(null)} style={{ flex: 1, padding: '18px', borderRadius: '18px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontWeight: '900' }}>CANCELAR</button>
+                  <button type="submit" style={{ flex: 1, padding: '18px', borderRadius: '18px', background: '#fff', border: 'none', color: '#000', fontWeight: '900' }}>REGISTRAR</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL PAGO DE SALDO FINAL (CLIENTE) */}
+        {paymentModal && (
+          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="fade-in" style={{ width: '90%', maxWidth: '400px', background: '#111', padding: '35px', borderRadius: '40px', border: '1px solid var(--primary-cyan)', boxShadow: '0 20px 50px rgba(0,212,255,0.1)' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '1.4rem', fontWeight: '950', color: '#fff' }}>Recaudar Saldo Final <span style={{ fontSize: '0.45rem', color: 'var(--primary-cyan)', verticalAlign: 'middle', opacity: 0.5 }}>v.RESILIENT</span></h3>
+              <p style={{ margin: '0 0 25px 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
+                Evento: <strong>{
+                  (typeof paymentModal.evt?.client === 'string' ? paymentModal.evt.client : paymentModal.evt?.client?.name) ||
+                  paymentModal.evt?.clientName ||
+                  (paymentModal?.evt?.name || paymentModal?.evt?.clientName || 'Evento sin nombre')
+                }</strong><br />
+                Total: {formatPeso(paymentModal.total)} • Pendiente: <strong style={{ color: paymentModal.total === 0 ? 'var(--danger-red)' : 'var(--primary-cyan)' }}>{formatPeso(paymentModal.pending)}</strong>
+              </p>
+
+              {paymentModal.total === 0 && (
+                <div style={{ background: 'rgba(255,100,100,0.05)', padding: '15px', borderRadius: '20px', border: '1px solid rgba(255,100,100,0.2)', marginBottom: '20px' }}>
+                  <span style={{ fontSize: '0.6rem', color: '#ff3860', fontWeight: '900', display: 'block', marginBottom: '10px', textAlign: 'center' }}>⚠️ NO SE DETECTÓ SALDO AUTOMÁTICO</span>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: '900' }}>VALOR TOTAL</label>
+                      <input
+                        type="tel"
+                        placeholder="$ 0"
+                        onChange={(e) => {
+                          const val = Number(e.target.value.replace(/\D/g, '')) || 0;
+                          setPaymentModal({ ...paymentModal, total: val, pending: Math.max(0, val - (paymentModal.deposit || 0)) });
+                        }}
+                        style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid #333', color: '#fff', borderRadius: '8px', padding: '8px', fontSize: '0.8rem', fontWeight: '900' }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: '900' }}>ABONO PREVIO</label>
+                      <input
+                        type="tel"
+                        placeholder="$ 0"
+                        onChange={(e) => {
+                          const val = Number(e.target.value.replace(/\D/g, '')) || 0;
+                          setPaymentModal({ ...paymentModal, deposit: val, pending: Math.max(0, (paymentModal.total || 0) - val) });
+                        }}
+                        style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid #333', color: '#fff', borderRadius: '8px', padding: '8px', fontSize: '0.8rem', fontWeight: '900' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {paymentModal.pending === 0 && paymentModal.total === 0 && (
+                <div style={{ fontSize: '0.4rem', color: '#444', background: 'rgba(0,0,0,0.3)', padding: '5px', borderRadius: '8px', wordBreak: 'break-all', maxHeight: '60px', overflow: 'auto', marginBottom: '10px' }}>
+                  DEBUG: {JSON.stringify(paymentModal.evt).slice(0, 300)}...
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {['Nequi', 'Daviplata', 'Efectivo'].map(method => (
+                      <div key={method} style={{ display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.2)', padding: '12px 15px', borderRadius: '15px', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <label style={{ fontSize: '0.65rem', fontWeight: '900', color: '#888', width: '70px' }}>{method.toUpperCase()}</label>
+                          <input
+                            type="tel"
+                            placeholder="$ 0"
+                            value={formatInputNumber(paymentSplit[method])}
+                            onChange={e => {
+                              setPaymentSplit({ ...paymentSplit, [method]: parseInputNumber(e.target.value) });
+                            }}
+                            style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: '1.2rem', fontWeight: '900', textAlign: 'right', outline: 'none' }}
+                          />
+                        </div>
+                        {paymentSplit[method] > 0 && (
+                          <div style={{ textAlign: 'right', fontSize: '0.65rem', color: 'var(--primary-cyan)', fontWeight: '800', opacity: 0.8 }}>
+                            {formatPeso(paymentSplit[method])}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '900', opacity: 0.5 }}>TOTAL INGRESADO:</span>
+                    <span style={{ fontSize: '1.2rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>
+                      {formatPeso(Number(paymentSplit.Nequi || 0) + Number(paymentSplit.Daviplata || 0) + Number(paymentSplit.Efectivo || 0))}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  <button onClick={() => setPaymentModal(null)} style={{ flex: 1, padding: '18px', borderRadius: '20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontWeight: '900' }}>CANCELAR</button>
+                  <button onClick={handleSaveEventPayment} style={{ flex: 1.5, padding: '18px', borderRadius: '20px', background: 'var(--primary-cyan)', border: 'none', color: '#000', fontWeight: '900' }}>GUARDAR PAGO</button>
                 </div>
               </div>
-            </form>
+            </div>
           </div>
+        )}
+        {approveModal && (
+          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="fade-in" style={{ width: '90%', maxWidth: '400px', background: '#111', padding: '35px', borderRadius: '40px', border: '1px solid var(--primary-purple)' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '1.4rem', fontWeight: '950', color: '#fff', textAlign: 'center' }}>Confirmar Abono</h3>
+              <p style={{ margin: '0 0 25px 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
+                Registrando abono de <strong>{formatPeso(approveModal.quo?.financials?.deposit || 0)}</strong> para <strong>{approveModal.quo?.client?.name || approveModal.quo?.clientName || 'Cliente'}</strong>.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: '900', opacity: 0.4, letterSpacing: '1px' }}>MÉTODO DE PAGO</label>
+                {['Nequi', 'Daviplata', 'Efectivo'].map(method => (
+                  <button
+                    key={method}
+                    onClick={() => handleConfirmApproval(method)}
+                    style={{
+                      padding: '20px',
+                      borderRadius: '24px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: '#fff',
+                      fontWeight: '900',
+                      fontSize: '1.1rem',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <span>{method}</span>
+                    <span style={{ opacity: 0.2 }}>→</span>
+                  </button>
+                ))}
+                <button onClick={() => setApproveModal(null)} style={{ marginTop: '15px', padding: '15px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', fontWeight: '800' }}>CANCELAR</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL PAGO DE STAFF */}
+        {staffPayModal && (
+          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="fade-in" style={{ width: '90%', maxWidth: '400px', background: '#111', padding: '35px', borderRadius: '40px', border: '1px solid rgba(188, 111, 241, 0.3)' }}>
+              <h3 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: '950', color: 'var(--primary-purple)' }}>Liquidar Nómina</h3>
+              <p style={{ margin: '0 0 25px 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Selecciona el canal de dinero para pagar a <strong>{staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}</strong>.</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {['Nequi', 'Daviplata', 'Efectivo'].map(method => (
+                  <button
+                    key={method}
+                    onClick={async () => {
+                      const dur = getHours(staffPayModal.eventDetails.startTime, staffPayModal.eventDetails.endTime);
+                      const eks = staffPayModal.financials?.extraHours || {};
+
+                      const djPay = 35000 + (dur * 13000) + ((eks.DJ || 0) * 15000);
+                      const pDur = staffPayModal.eventDetails.photoStartTime ? getHours(staffPayModal.eventDetails.photoStartTime, staffPayModal.eventDetails.photoEndTime) : 0;
+                      const photoPay = (pDur * 13000) + ((eks.FOTO || 0) * 15000);
+                      const decorPay = ((staffPayModal.eventDetails.decorStartTime || staffPayModal.logistics.packName === 'Celebration') ? 40000 : 0) + ((eks.DECOR || 0) * 15000);
+                      const managerPay = (dur * 10000) + 25000 + ((eks.LOGISTICA || 0) * 15000);
+                      const totalPay = djPay + photoPay + decorPay + managerPay;
+
+                      // 1. Crear Transacción Goblal (OUT)
+                      const txId = `TX-STAFF-${Date.now()}`;
+                      await setDoc(doc(collection(db, "globalTx"), txId), {
+                        id: txId,
+                        desc: `Nómina Evento: ${staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}`,
+                        amount: totalPay,
+                        method: method,
+                        type: 'OUT',
+                        category: 'NÓMINA',
+                        date: getTodayStr(),
+                        createdAt: new Date().toISOString(),
+                        eventId: staffPayModal.id
+                      });
+
+                      // 2. Marcar como pagado en Firebase
+                      await updateDoc(doc(db, "events", staffPayModal.id), { "logistics.flow.staffPaid": true });
+
+                      setStaffPayModal(null);
+                    }}
+                    style={{
+                      padding: '20px',
+                      borderRadius: '20px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: '#fff',
+                      fontWeight: '900',
+                      fontSize: '1rem',
+                      textAlign: 'left'
+                    }}
+                  >
+                    💳 Pagar por {method}
+                  </button>
+                ))}
+                <button onClick={() => setStaffPayModal(null)} style={{ marginTop: '10px', padding: '15px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', fontWeight: '800' }}>CANCELAR</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL AGREGAR GASTO PROGRAMADO (RECURRENTE) */}
+        {showAddExpenseModal && (
+          <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="fade-in" style={{ width: '90%', maxWidth: '350px', background: '#111', padding: '25px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <h3 style={{ margin: '0 0 20px 0', fontSize: '1.2rem', fontWeight: '950', color: '#fff', textAlign: 'center' }}>Agendar Gasto Mes</h3>
+              <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#888', marginBottom: '20px' }}>Este gasto se repetirá automáticamente todos los meses.</p>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newExpenseData.day || !newExpenseData.concept || !newExpenseData.amount) return alert('Completa todos los campos');
+
+                const dayNum = parseInt(newExpenseData.day);
+                if (dayNum < 1 || dayNum > 31) return alert('Día inválido');
+
+                try {
+                  await addDoc(collection(db, "operative_agenda"), {
+                    day: dayNum, // Storing just the day number
+                    concept: newExpenseData.concept,
+                    amount: Number(newExpenseData.amount),
+                    createdAt: new Date().toISOString()
+                    // No status field needed, calculated dynamically
+                  });
+
+                  setNewExpenseData({ day: '', concept: '', amount: '' });
+                  setShowAddExpenseModal(false);
+                  alert('✅ Gasto mensual programado!');
+                } catch (err) {
+                  console.error(err);
+                  alert('Error al guardar: ' + err.message);
+                }
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#666', fontWeight: '700' }}>Día del Pago (Mensual)</label>
+                    <input
+                      type="number"
+                      min="1" max="31"
+                      placeholder="Ej: 5 (para el día 5 de cada mes)"
+                      required
+                      value={newExpenseData.day}
+                      onChange={e => setNewExpenseData({ ...newExpenseData, day: e.target.value })}
+                      style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#666', fontWeight: '700' }}>Concepto</label>
+                    <input type="text" placeholder="Ej: Arriendo" required value={newExpenseData.concept} onChange={e => setNewExpenseData({ ...newExpenseData, concept: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#666', fontWeight: '700' }}>Valor Estimado</label>
+                    <input type="tel" placeholder="$ 0" required value={formatInputNumber(newExpenseData.amount)} onChange={e => setNewExpenseData({ ...newExpenseData, amount: parseInputNumber(e.target.value) })} style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#facc15', fontWeight: 'bold', fontSize: '1.1rem' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button type="button" onClick={() => setShowAddExpenseModal(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#666', fontWeight: '800' }}>CANCELAR</button>
+                    <button type="submit" style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#fff', border: 'none', color: '#000', fontWeight: '900' }}>AGENDAR</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  } catch (error) {
+    console.error("DEBUG NEXXA - CRITICAL ERROR:", error);
+    console.error("DEBUG NEXXA - Error Stack:", error.stack);
+    console.error("DEBUG NEXXA - Current State:", { user: userData, events: events?.length, quotations: quotations?.length });
+
+    return (
+      <div style={{
+        height: '100vh',
+        background: '#0a0a0a',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        padding: '20px',
+        color: '#fff'
+      }}>
+        <div style={{
+          background: 'rgba(255,56,96,0.1)',
+          border: '2px solid #ff3860',
+          borderRadius: '20px',
+          padding: '30px',
+          maxWidth: '500px',
+          textAlign: 'center'
+        }}>
+          <h2 style={{ color: '#ff3860', marginBottom: '15px' }}>⚠️ Error Crítico</h2>
+          <p style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '10px' }}>
+            La aplicación encontró un error inesperado.
+          </p>
+          <pre style={{
+            background: 'rgba(0,0,0,0.3)',
+            padding: '15px',
+            borderRadius: '10px',
+            fontSize: '0.7rem',
+            textAlign: 'left',
+            overflow: 'auto',
+            maxHeight: '200px'
+          }}>
+            {error.message}
+          </pre>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: '20px',
+              padding: '12px 24px',
+              background: '#fff',
+              color: '#000',
+              border: 'none',
+              borderRadius: '12px',
+              fontWeight: '900',
+              cursor: 'pointer'
+            }}
+          >
+            RECARGAR APLICACIÓN
+          </button>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
 }
 
 
