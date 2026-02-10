@@ -1,0 +1,11 @@
+{
+  "name": "nexxa-cleanup",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "cleanup": "node cleanup-firebase.js"
+  },
+  "dependencies": {
+    "firebase": "^10.7.1"
+  }
+}
