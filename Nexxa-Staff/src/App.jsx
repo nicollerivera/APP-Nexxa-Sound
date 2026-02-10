@@ -3100,21 +3100,24 @@ function App() {
         <div className="control-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           {inventory.length === 0 ? (
             <div className="empty-state" style={{ opacity: 0.2 }}>No hay items en inventario.</div>
-          ) : inventory.map((item, index) => (
-            <div key={item?.id || index} className="control-item">
-              <div style={{ width: '48px', height: '48px', borderRadius: '15px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IconBox size={24} style={{ opacity: 0.4 }} />
+          ) : inventory.map((item, index) => {
+            if (!item) return null;
+            return (
+              <div key={item?.id || index} className="control-item">
+                <div style={{ width: '48px', height: '48px', borderRadius: '15px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <IconBox size={24} style={{ opacity: 0.4 }} />
+                </div>
+                <div style={{ paddingLeft: '20px', flex: 1 }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#fff' }}>{item?.name || 'Item sin nombre'}</h4>
+                  <small style={{ opacity: 0.3, fontWeight: '700', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.8px', marginTop: '4px', display: 'block' }}>{item.category}</small>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1.6rem', fontWeight: '900', color: item.available < 3 ? 'var(--danger-red)' : 'var(--primary-cyan)', lineHeight: 1 }}>{item.available}</div>
+                  <small style={{ opacity: 0.3, fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.5px' }}>DISP DE {item.total}</small>
+                </div>
               </div>
-              <div style={{ paddingLeft: '20px', flex: 1 }}>
-                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#fff' }}>{item?.name || 'Item sin nombre'}</h4>
-                <small style={{ opacity: 0.3, fontWeight: '700', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.8px', marginTop: '4px', display: 'block' }}>{item.category}</small>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '1.6rem', fontWeight: '900', color: item.available < 3 ? 'var(--danger-red)' : 'var(--primary-cyan)', lineHeight: 1 }}>{item.available}</div>
-                <small style={{ opacity: 0.3, fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.5px' }}>DISP DE {item.total}</small>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     );
@@ -3787,17 +3790,20 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                           ex => newEvent.selectedExtras?.[ex.id]
                         );
                         if (activeExtras.length === 0) return null;
-                        return activeExtras.map(ex => (
-                          <div key={ex.id} style={{ marginBottom: '4px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#bc6ff1' }}>
-                              <span>+ {ex?.name || 'Extra'}:</span>
-                              <strong>${ex.price.toLocaleString()}</strong>
+                        return activeExtras.map(ex => {
+                          if (!ex) return null;
+                          return (
+                            <div key={ex.id} style={{ marginBottom: '4px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#bc6ff1' }}>
+                                <span>+ {ex?.name || 'Extra'}:</span>
+                                <strong>${ex.price.toLocaleString()}</strong>
+                              </div>
+                              <div style={{ fontSize: '0.65rem', color: '#999', paddingLeft: '10px', fontStyle: 'italic' }}>
+                                {ex.details}
+                              </div>
                             </div>
-                            <div style={{ fontSize: '0.65rem', color: '#999', paddingLeft: '10px', fontStyle: 'italic' }}>
-                              {ex.details}
-                            </div>
-                          </div>
-                        ));
+                          )
+                        });
                       })()}
                     </div>
                   ) : <div>Tarifa Manual</div>}
@@ -4296,6 +4302,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 }
                 return true;
               }).map(st => {
+                if (!st) return null;
                 const assigned = (evt.staff || []).find(s => s && s.role === st.role);
                 return (
                   <div key={st.role} style={{
@@ -4898,33 +4905,36 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {eventTransactions
                     .filter(t => t.desc?.includes('Saldo Final') && t.type === 'IN')
-                    .map((t, i) => (
-                      <div key={i} style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        padding: '8px 12px',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px'
-                      }}>
-                        <div>
-                          <span style={{ display: 'block', fontSize: '0.45rem', opacity: 0.4, fontWeight: '900' }}>{t.method.toUpperCase()}</span>
-                          <span style={{ fontSize: '0.7rem', fontWeight: '950', color: '#fff' }}>{formatPeso(t.amount)}</span>
+                    .map((t, i) => {
+                      if (!t) return null;
+                      return (
+                        <div key={i} style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          padding: '8px 12px',
+                          borderRadius: '12px',
+                          border: '1px solid rgba(255,255,255,0.05)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px'
+                        }}>
+                          <div>
+                            <span style={{ display: 'block', fontSize: '0.45rem', opacity: 0.4, fontWeight: '900' }}>{t.method.toUpperCase()}</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '950', color: '#fff' }}>{formatPeso(t.amount)}</span>
+                          </div>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (confirm('¿Eliminar este registro de pago de la tesorería?')) {
+                                await deleteDoc(doc(db, "globalTx", t.id));
+                              }
+                            }}
+                            style={{ background: 'transparent', border: 'none', color: '#ff3860', padding: '4px', cursor: 'pointer', opacity: 0.4 }}
+                          >
+                            <IconTrash size={12} />
+                          </button>
                         </div>
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (confirm('¿Eliminar este registro de pago de la tesorería?')) {
-                              await deleteDoc(doc(db, "globalTx", t.id));
-                            }
-                          }}
-                          style={{ background: 'transparent', border: 'none', color: '#ff3860', padding: '4px', cursor: 'pointer', opacity: 0.4 }}
-                        >
-                          <IconTrash size={12} />
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   {eventTransactions.filter(t => t.desc?.includes('Saldo Final') && t.type === 'IN').length === 0 && (
                     <div style={{ width: '100%', marginTop: '5px' }}>
                       <span style={{ fontSize: '0.65rem', opacity: 0.6, display: 'block' }}>Cálculo de Recaudo Real:</span>
@@ -5080,18 +5090,21 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 <h3 style={{ fontSize: '0.8rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#ffcc00' }}>
                   <IconAlertTriangle size={14} /> ATENCIÓN
                 </h3>
-                {alerts.map(a => (
-                  <div key={a.id} style={{ background: 'rgba(255, 204, 0, 0.05)', border: '1px solid rgba(255, 204, 0, 0.2)', borderRadius: '16px', padding: '10px 15px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(255, 204, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffcc00' }}>
-                      <IconStaff size={14} />
+                {alerts.map(a => {
+                  if (!a) return null;
+                  return (
+                    <div key={a.id} style={{ background: 'rgba(255, 204, 0, 0.05)', border: '1px solid rgba(255, 204, 0, 0.2)', borderRadius: '16px', padding: '10px 15px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(255, 204, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffcc00' }}>
+                        <IconStaff size={14} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontWeight: '800', fontSize: '0.8rem', display: 'block', color: '#ffcc00' }}>Falta Staff</span>
+                        <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{a.client?.name || 'Evento'} • {a.eventDetails?.date ? new Date(a.eventDetails.date).getDate() : ''}/{a.eventDetails?.date ? new Date(a.eventDetails.date).getMonth() + 1 : ''}</span>
+                      </div>
+                      <button onClick={() => { setSelectedEventId(a.id); setView('detail'); }} style={{ background: '#ffcc00', border: 'none', color: '#000', padding: '6px 10px', borderRadius: '8px', fontSize: '0.6rem', fontWeight: '900' }}>ASIGNAR</button>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontWeight: '800', fontSize: '0.8rem', display: 'block', color: '#ffcc00' }}>Falta Staff</span>
-                      <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{a.client?.name || 'Evento'} • {a.eventDetails?.date ? new Date(a.eventDetails.date).getDate() : ''}/{a.eventDetails?.date ? new Date(a.eventDetails.date).getMonth() + 1 : ''}</span>
-                    </div>
-                    <button onClick={() => { setSelectedEventId(a.id); setView('detail'); }} style={{ background: '#ffcc00', border: 'none', color: '#000', padding: '6px 10px', borderRadius: '8px', fontSize: '0.6rem', fontWeight: '900' }}>ASIGNAR</button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )
           }
@@ -5884,220 +5897,223 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           </div>
 
           <div className="sales-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {quotations.filter(q => q && (q.client?.name || q.clientName)).map(quo => (
-              <div key={quo.id} className="sales-list-item" onClick={() => {
-                setNewEvent({
-                  id: quo.id,
-                  clientName: quo.client?.name || '',
-                  clientPhone: quo.client?.phone || '',
-                  clientPhone2: quo.client?.phone2 || '',
-                  date: quo.eventDetails?.date || '',
-                  startTime: quo.eventDetails?.startTime || '',
-                  endTime: quo.eventDetails?.endTime || '',
-                  location: quo.eventDetails?.location || '',
-                  neighborhood: quo.eventDetails?.neighborhood || '',
-                  packName: (() => {
-                    const p = (quo.logistics?.packName || '').toLowerCase();
-                    if (p.includes('memories')) return 'Memories';
-                    if (p.includes('celebration')) return 'Celebration';
-                    return 'Essential';
-                  })(),
-                  totalValue: quo.financials?.totalValue || 0,
-                  deposit: (() => {
-                    const total = Number(quo.financials?.totalValue) || 0;
-                    const savedDep = quo.financials?.deposit;
-                    if (savedDep) return savedDep;
-                    // Auto-calc 30% if not saved
-                    return total > 0 ? Math.round((total * 0.3) / 1000) * 1000 : '';
-                  })(),
-                  managerName: '',
-                  guestCount: quo.eventDetails?.guestCount || 0,
-                  selectedExtras: (() => {
-                    const raw = quo.logistics?.selectedExtras || {};
-                    const clean = {};
-                    Object.keys(raw).forEach(k => {
-                      if (raw[k]) {
-                        const lowerK = k.toLowerCase();
-                        if (lowerK === 'makeup' || lowerK === 'neon' || lowerK.includes('maquillaje')) clean['extra_makeup'] = true;
-                        else clean[k] = true;
-                      }
-                    });
-                    return clean;
-                  })(),
-                  makeupCount: quo.logistics?.makeupCount || 1,
-                  occasion: quo.eventDetails?.occasion || '',
-                  extraHourPrice: quo.financials?.extraHourPrice || (() => {
-                    const p = (quo.logistics?.packName || '').toLowerCase();
-                    if (p.includes('memories') || p.includes('celebration')) return 120000;
-                    return 85000;
-                  })(),
-                  indications: quo.eventDetails?.indications || 'Ninguna',
-                  materialsTime: '',
-                  warehouseTime: '',
-                  materialExplanation: ''
-                });
-                setView('create');
-              }} style={{
-                padding: '16px 20px',
-                borderRadius: '16px',
-                background: 'rgba(255,255,255,0.015)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                position: 'relative',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                {/* CORNER RIBBON INDICATOR */}
-                <div style={{
-                  position: 'absolute',
-                  top: '15px',
-                  right: '-35px',
-                  width: '120px',
-                  height: '30px',
-                  background: quo.status === 'APPROVED' ? 'var(--success-green)' : (quo.status === 'LOST' ? '#ff3860' : 'var(--primary-cyan)'),
-                  transform: 'rotate(45deg)',
+            {quotations.filter(q => q && (q.client?.name || q.clientName)).map(quo => {
+              if (!quo) return null;
+              return (
+                <div key={quo.id} className="sales-list-item" onClick={() => {
+                  setNewEvent({
+                    id: quo.id,
+                    clientName: quo.client?.name || '',
+                    clientPhone: quo.client?.phone || '',
+                    clientPhone2: quo.client?.phone2 || '',
+                    date: quo.eventDetails?.date || '',
+                    startTime: quo.eventDetails?.startTime || '',
+                    endTime: quo.eventDetails?.endTime || '',
+                    location: quo.eventDetails?.location || '',
+                    neighborhood: quo.eventDetails?.neighborhood || '',
+                    packName: (() => {
+                      const p = (quo.logistics?.packName || '').toLowerCase();
+                      if (p.includes('memories')) return 'Memories';
+                      if (p.includes('celebration')) return 'Celebration';
+                      return 'Essential';
+                    })(),
+                    totalValue: quo.financials?.totalValue || 0,
+                    deposit: (() => {
+                      const total = Number(quo.financials?.totalValue) || 0;
+                      const savedDep = quo.financials?.deposit;
+                      if (savedDep) return savedDep;
+                      // Auto-calc 30% if not saved
+                      return total > 0 ? Math.round((total * 0.3) / 1000) * 1000 : '';
+                    })(),
+                    managerName: '',
+                    guestCount: quo.eventDetails?.guestCount || 0,
+                    selectedExtras: (() => {
+                      const raw = quo.logistics?.selectedExtras || {};
+                      const clean = {};
+                      Object.keys(raw).forEach(k => {
+                        if (raw[k]) {
+                          const lowerK = k.toLowerCase();
+                          if (lowerK === 'makeup' || lowerK === 'neon' || lowerK.includes('maquillaje')) clean['extra_makeup'] = true;
+                          else clean[k] = true;
+                        }
+                      });
+                      return clean;
+                    })(),
+                    makeupCount: quo.logistics?.makeupCount || 1,
+                    occasion: quo.eventDetails?.occasion || '',
+                    extraHourPrice: quo.financials?.extraHourPrice || (() => {
+                      const p = (quo.logistics?.packName || '').toLowerCase();
+                      if (p.includes('memories') || p.includes('celebration')) return 120000;
+                      return 85000;
+                    })(),
+                    indications: quo.eventDetails?.indications || 'Ninguna',
+                    materialsTime: '',
+                    warehouseTime: '',
+                    materialExplanation: ''
+                  });
+                  setView('create');
+                }} style={{
+                  padding: '16px 20px',
+                  borderRadius: '16px',
+                  background: 'rgba(255,255,255,0.015)',
+                  border: '1px solid rgba(255,255,255,0.06)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
-                  zIndex: 1
+                  position: 'relative',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  flexDirection: 'column',
+                  gap: '8px'
                 }}>
-                  <span style={{ fontSize: '0.55rem', fontWeight: '950', color: '#000', letterSpacing: '1px' }}>{quo.status}</span>
-                </div>
-                {/* HEADER: NAME AND PRICE */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '40px', marginBottom: '8px', width: '100%' }}>
-                  <div style={{ minWidth: 0, flex: 1, paddingRight: '10px' }}>
-                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', lineHeight: '1.2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{quo.client?.name || 'Cliente sin nombre'}</h4>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '0.65rem', opacity: 0.5, fontWeight: '500' }}>
-                      📅 {quo.eventDetails?.date} • {quo.logistics?.packName || 'Personalizado'}
-                    </p>
+                  {/* CORNER RIBBON INDICATOR */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '15px',
+                    right: '-35px',
+                    width: '120px',
+                    height: '30px',
+                    background: quo.status === 'APPROVED' ? 'var(--success-green)' : (quo.status === 'LOST' ? '#ff3860' : 'var(--primary-cyan)'),
+                    transform: 'rotate(45deg)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
+                    zIndex: 1
+                  }}>
+                    <span style={{ fontSize: '0.55rem', fontWeight: '950', color: '#000', letterSpacing: '1px' }}>{quo.status}</span>
                   </div>
-                  <div>
-                    <div style={{ fontWeight: '900', fontSize: '0.9rem', color: 'var(--primary-cyan)', textAlign: 'right' }}>{formatPeso(quo.financials?.totalValue || 0)}</div>
+                  {/* HEADER: NAME AND PRICE */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '40px', marginBottom: '8px', width: '100%' }}>
+                    <div style={{ minWidth: 0, flex: 1, paddingRight: '10px' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', lineHeight: '1.2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{quo.client?.name || 'Cliente sin nombre'}</h4>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.65rem', opacity: 0.5, fontWeight: '500' }}>
+                        📅 {quo.eventDetails?.date} • {quo.logistics?.packName || 'Personalizado'}
+                      </p>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '900', fontSize: '0.9rem', color: 'var(--primary-cyan)', textAlign: 'right' }}>{formatPeso(quo.financials?.totalValue || 0)}</div>
+                    </div>
                   </div>
-                </div>
 
-                {/* BADGES ROW */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '15px' }}>
-                  {Object.keys(quo.logistics?.selectedExtras || {}).length > 0 && (
-                    <span style={{ fontSize: '0.6rem', background: 'rgba(188, 111, 241, 0.1)', color: 'var(--primary-purple)', padding: '4px 10px', borderRadius: '8px', fontWeight: '800' }}>
-                      +{Object.keys(quo.logistics?.selectedExtras || {}).length} Extras
-                    </span>
-                  )}
+                  {/* BADGES ROW */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '15px' }}>
+                    {Object.keys(quo.logistics?.selectedExtras || {}).length > 0 && (
+                      <span style={{ fontSize: '0.6rem', background: 'rgba(188, 111, 241, 0.1)', color: 'var(--primary-purple)', padding: '4px 10px', borderRadius: '8px', fontWeight: '800' }}>
+                        +{Object.keys(quo.logistics?.selectedExtras || {}).length} Extras
+                      </span>
+                    )}
 
-                  {quo.status === 'SENT' && quo.createdAt && (
-                    <span style={{
-                      fontSize: '0.6rem',
-                      background: 'rgba(255,255,255,0.05)',
-                      color: (new Date() - parseFirestoreDate(quo.createdAt)) / (1000 * 60 * 60 * 24) > 15 ? '#ffcc00' : '#aaa',
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      fontWeight: '700'
-                    }}>
-                      ⏱ {Math.floor((new Date() - parseFirestoreDate(quo.createdAt)) / (1000 * 60 * 60 * 24))} DÍAS ABIERTO
-                    </span>
-                  )}
-                </div>
-
-                {/* ACTION BUTTONS WRAP ROW (Mobile Optimized) */}
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '6px',
-                  justifyContent: 'flex-start',
-                  width: '100%'
-                }}>
-                  {/* CONFIRM BUTTON */}
-                  {quo.status === 'SENT' && (
-                    <>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); approveQuotation(quo); }}
-                        style={{
-                          padding: '0',
-                          width: '20px',
-                          height: '20px',
-                          background: 'linear-gradient(135deg, #a855f7 0%, #d8b4fe 100%)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '10px',
-                          cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          boxShadow: '0 2px 5px rgba(168, 85, 247, 0.3)'
-                        }}
-                        title="Registrar Abono"
-                      >
-                        <span style={{ fontSize: '6px' }}>💰</span>
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); if (confirm('¿Marcar este lead como Venta Perdida?')) updateQuotationStatus(quo.id, 'LOST'); }}
-                        style={{
-                          padding: '0',
-                          width: '20px',
-                          height: '20px',
-                          background: 'rgba(255, 56, 96, 0.08)',
-                          color: '#ff3860',
-                          border: '1px solid rgba(255, 56, 96, 0.1)',
-                          borderRadius: '10px',
-                          cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}
-                      >
-                        <IconTrash size={6} />
-                      </button>
-                    </>
-                  )}
-
-                  {/* TOOLS */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setWhatsappModalQuo(quo); }}
-                    style={{
-                      padding: '0',
-                      width: '20px',
-                      height: '20px',
-                      background: 'rgba(37, 211, 102, 0.06)',
-                      color: '#25d366',
-                      border: '1px solid rgba(37, 211, 102, 0.1)',
-                      borderRadius: '10px',
-                      cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}
-                    title="Seguimiento WhatsApp"
-                  >
-                    <IconWhatsApp size={10} />
-                  </button>
-
-                  <button
-                    onClick={(e) => { e.stopPropagation(); generateQuotationPDF(quo); }}
-                    style={{
-                      padding: '0',
-                      width: '20px',
-                      height: '20px',
-                      background: 'rgba(0, 242, 255, 0.06)',
-                      color: 'var(--primary-cyan)',
-                      border: '1px solid rgba(0, 242, 255, 0.1)',
-                      borderRadius: '10px',
-                      cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}
-                    title="Generar PDF"
-                  >
-                    <IconFileText size={10} />
-                  </button>
-
-
-                </div>
-
-                {quo.status === 'APPROVED' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary-cyan)', opacity: 0.8, marginTop: '10px' }}>
-                    <IconCheck size={14} />
-                    <span style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Misionado</span>
+                    {quo.status === 'SENT' && quo.createdAt && (
+                      <span style={{
+                        fontSize: '0.6rem',
+                        background: 'rgba(255,255,255,0.05)',
+                        color: (new Date() - parseFirestoreDate(quo.createdAt)) / (1000 * 60 * 60 * 24) > 15 ? '#ffcc00' : '#aaa',
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        fontWeight: '700'
+                      }}>
+                        ⏱ {Math.floor((new Date() - parseFirestoreDate(quo.createdAt)) / (1000 * 60 * 60 * 24))} DÍAS ABIERTO
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
-            ))
+
+                  {/* ACTION BUTTONS WRAP ROW (Mobile Optimized) */}
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    justifyContent: 'flex-start',
+                    width: '100%'
+                  }}>
+                    {/* CONFIRM BUTTON */}
+                    {quo.status === 'SENT' && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); approveQuotation(quo); }}
+                          style={{
+                            padding: '0',
+                            width: '20px',
+                            height: '20px',
+                            background: 'linear-gradient(135deg, #a855f7 0%, #d8b4fe 100%)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 2px 5px rgba(168, 85, 247, 0.3)'
+                          }}
+                          title="Registrar Abono"
+                        >
+                          <span style={{ fontSize: '6px' }}>💰</span>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (confirm('¿Marcar este lead como Venta Perdida?')) updateQuotationStatus(quo.id, 'LOST'); }}
+                          style={{
+                            padding: '0',
+                            width: '20px',
+                            height: '20px',
+                            background: 'rgba(255, 56, 96, 0.08)',
+                            color: '#ff3860',
+                            border: '1px solid rgba(255, 56, 96, 0.1)',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          <IconTrash size={6} />
+                        </button>
+                      </>
+                    )}
+
+                    {/* TOOLS */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setWhatsappModalQuo(quo); }}
+                      style={{
+                        padding: '0',
+                        width: '20px',
+                        height: '20px',
+                        background: 'rgba(37, 211, 102, 0.06)',
+                        color: '#25d366',
+                        border: '1px solid rgba(37, 211, 102, 0.1)',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}
+                      title="Seguimiento WhatsApp"
+                    >
+                      <IconWhatsApp size={10} />
+                    </button>
+
+                    <button
+                      onClick={(e) => { e.stopPropagation(); generateQuotationPDF(quo); }}
+                      style={{
+                        padding: '0',
+                        width: '20px',
+                        height: '20px',
+                        background: 'rgba(0, 242, 255, 0.06)',
+                        color: 'var(--primary-cyan)',
+                        border: '1px solid rgba(0, 242, 255, 0.1)',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}
+                      title="Generar PDF"
+                    >
+                      <IconFileText size={10} />
+                    </button>
+
+
+                  </div>
+
+                  {quo.status === 'APPROVED' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary-cyan)', opacity: 0.8, marginTop: '10px' }}>
+                      <IconCheck size={14} />
+                      <span style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Misionado</span>
+                    </div>
+                  )}
+                </div>
+              )
+            })
             }
             {quotations.length === 0 && <div className="empty-state" style={{ padding: '80px 0', opacity: 0.3 }}>No hay cotizaciones registradas.</div>}
           </div>
