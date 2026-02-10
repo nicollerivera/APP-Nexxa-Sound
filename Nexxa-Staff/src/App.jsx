@@ -5765,42 +5765,57 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     }
 
                     return closedEvents.map(evt => {
-                      if (!evt) return null;
-                      return (
-                        <div
-                          key={evt.id}
-                          onClick={() => { setSelectedEventId(evt.id); setView('detail'); }}
-                          style={{
-                            background: 'rgba(255,255,255,0.02)',
-                            padding: '15px 20px',
-                            borderRadius: '20px',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              <span style={{ fontSize: '0.55rem', fontWeight: '950', color: 'var(--success-green)', opacity: 0.6 }}>{evt.id}</span>
-                              <span style={{ fontSize: '0.5rem', fontWeight: '900', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success-green)', padding: '2px 6px', borderRadius: '4px' }}>CERRADO</span>
+                      // ULTRA-PROTECCIÓN: Validar CADA evento cerrado
+                      try {
+                        if (!evt || typeof evt !== 'object') return null;
+                        if (!evt.id) return null;
+
+                        // Validar que tenga nombre
+                        const clientName = evt?.client?.name || evt?.clientName;
+                        if (!clientName) {
+                          console.warn("⚠️ Evento cerrado sin nombre:", evt.id);
+                          return null;
+                        }
+
+                        return (
+                          <div
+                            key={evt.id}
+                            onClick={() => { setSelectedEventId(evt.id); setView('detail'); }}
+                            style={{
+                              background: 'rgba(255,255,255,0.02)',
+                              padding: '15px 20px',
+                              borderRadius: '20px',
+                              border: '1px solid rgba(255,255,255,0.05)',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '0.55rem', fontWeight: '950', color: 'var(--success-green)', opacity: 0.6 }}>{evt.id}</span>
+                                <span style={{ fontSize: '0.5rem', fontWeight: '900', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success-green)', padding: '2px 6px', borderRadius: '4px' }}>CERRADO</span>
+                              </div>
+                              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '900', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {clientName}
+                              </h4>
+                              <div style={{ fontSize: '0.65rem', opacity: 0.4, fontWeight: '700', marginTop: '2px' }}>
+                                📅 {evt.eventDetails?.date}
+                              </div>
                             </div>
-                            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '900', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {evt.client?.name || evt.clientName || 'Sin Nombre'}
-                            </h4>
-                            <div style={{ fontSize: '0.65rem', opacity: 0.4, fontWeight: '700', marginTop: '2px' }}>
-                              📅 {evt.eventDetails?.date}
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: '0.9rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>
+                                {formatPeso(evt.financials?.totalValue || 0)}
+                              </div>
+                              <div style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.3 }}>TOTAL BRUTO</div>
                             </div>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>
-                              {formatPeso(evt.financials?.totalValue || 0)}
-                            </div>
-                            <div style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.3 }}>TOTAL BRUTO</div>
-                          </div>
-                        </div>
-                      )
+                        );
+                      } catch (err) {
+                        console.error("Error rendering closed event:", evt?.id, err);
+                        return null;
+                      }
                     });
                   })()}
                 </div>
