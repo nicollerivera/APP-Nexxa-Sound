@@ -5575,93 +5575,117 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   const tomorrow = getTomorrowStr();
 
                   return filtered.map((evt, idx) => {
-                    if (!evt || typeof evt !== 'object') return null; // Radical Safety Check
-                    console.log("Rendering Event Row:", evt.id, evt.client?.name || evt.clientName); // Debug
-                    const flow = evt.logistics?.flow || {};
-                    const eventDate = evt.eventDetails?.date;
-                    const showHeader = eventDate !== lastDate;
-                    lastDate = eventDate;
+                    // ULTRA-PROTECCIÓN: Validar CADA propiedad
+                    try {
+                      if (!evt || typeof evt !== 'object') return null;
+                      if (!evt.id) return null; // Sin ID, no renderizar
 
-                    let dateLabel = eventDate;
-                    let headerColor = 'rgba(255,255,255,0.4)';
-                    if (eventDate === today) { dateLabel = 'HOY'; headerColor = 'var(--primary-cyan)'; }
-                    else if (eventDate === tomorrow) { dateLabel = 'MAÑANA'; headerColor = 'var(--primary-purple)'; }
-                    else if (eventDate) {
-                      const d = new Date(eventDate + 'T12:00:00');
-                      const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-                      dateLabel = `${days[d.getDay()]} ${eventDate.split('-').reverse().slice(0, 2).join('/')}`;
+                      // Validar que tenga nombre
+                      const clientName = evt?.client?.name || evt?.clientName;
+                      if (!clientName) {
+                        console.warn("⚠️ Evento sin nombre en renderizado:", evt.id);
+                        return null; // No renderizar eventos sin nombre
+                      }
+
+                      console.log("Rendering Event Row:", evt.id, clientName);
+
+                      const flow = evt.logistics?.flow || {};
+                      const eventDate = evt.eventDetails?.date;
+                      const showHeader = eventDate !== lastDate;
+                      lastDate = eventDate;
+
+                      let dateLabel = eventDate;
+                      let headerColor = 'rgba(255,255,255,0.4)';
+                      if (eventDate === today) { dateLabel = 'HOY'; headerColor = 'var(--primary-cyan)'; }
+                      else if (eventDate === tomorrow) { dateLabel = 'MAÑANA'; headerColor = 'var(--primary-purple)'; }
+                      else if (eventDate) {
+                        const d = new Date(eventDate + 'T12:00:00');
+                        const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+                        dateLabel = `${days[d.getDay()]} ${eventDate.split('-').reverse().slice(0, 2).join('/')}`;
+                      }
+
+                      return (
+                        <React.Fragment key={evt.id}>
+                          {showHeader && (
+                            <div style={{ padding: '8px 5px', marginTop: idx === 0 ? '0' : '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '0.65rem', fontWeight: '950', letterSpacing: '1px', color: headerColor }}>{dateLabel}</span>
+                              <span style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.2 }}>{eventDate}</span>
+                            </div>
+                          )}
+                          <div className="execution-card" onClick={() => { setSelectedEventId(evt.id); setView('detail'); }} style={{
+                            padding: '12px 14px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.01)', position: 'relative', overflow: 'hidden'
+                          }}>
+                            <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: evt.status === 'SENT' ? 'var(--primary-purple)' : (flow.equipmentReturned ? 'var(--success-green)' : 'var(--brand-gradient)') }}></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                                  <span style={{ fontSize: '0.45rem', fontWeight: '900', color: evt.status === 'SENT' ? 'var(--primary-purple)' : 'var(--primary-cyan)', opacity: 0.8 }}>{evt.id}</span>
+                                  <span style={{ fontSize: '0.4rem', fontWeight: '950', background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '1px 4px', borderRadius: '3px', opacity: 0.6 }}>{evt.status}</span>
+                                  <span style={{ fontSize: '0.35rem', fontWeight: '900', color: 'rgba(255,255,255,0.2)', marginLeft: '4px' }}>
+                                    [P:{flow.clientPaid ? 'Y' : 'N'} R:{flow.equipmentReturned ? 'Y' : 'N'} I:{evt.logistics?.items?.length || 0}]
+                                  </span>
+                                  {evt.status === 'SENT' && <span style={{ fontSize: '0.45rem', fontWeight: '900', background: 'rgba(188, 111, 241, 0.1)', color: 'var(--primary-purple)', padding: '2px 4px', borderRadius: '3px' }}>COTIZACIÓN</span>}
+                                </div>
+                                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clientName}</h3>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', opacity: 0.5, fontSize: '0.6rem', fontWeight: '700' }}>
+                                  <IconLocation size={9} />
+                                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{evt.eventDetails?.location || 'Por definir'}</span>
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right', minWidth: '70px', paddingLeft: '8px' }}>
+                                <div style={{ fontSize: '1rem', fontWeight: '950', color: 'var(--primary-cyan)', letterSpacing: '-0.5px' }}>
+                                  {(() => {
+                                    try {
+                                      const timeStr = getEarliestTime(evt);
+                                      if (!timeStr || typeof timeStr !== 'string') return '00:00';
+                                      const [h, m] = timeStr.split(':').map(Number);
+                                      if (isNaN(h) || isNaN(m)) return '00:00';
+                                      const ap = h >= 12 ? 'PM' : 'AM';
+                                      return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ap}`;
+                                    } catch (e) {
+                                      console.error("Error parsing time:", e);
+                                      return '00:00';
+                                    }
+                                  })()}
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`¿Archivar evento de ${clientName} manualmente?`)) {
+                                      updateDoc(doc(db, "events", evt.id), {
+                                        status: 'CLOSED',
+                                        "logistics.flow.equipmentReturned": true,
+                                        "logistics.flow.clientPaid": true
+                                      });
+                                    }
+                                  }}
+                                  style={{ background: 'rgba(255,56,96,0.1)', border: 'none', color: '#ff3860', padding: '4px 8px', borderRadius: '6px', fontSize: '0.5rem', fontWeight: '900', marginTop: '5px', cursor: 'pointer' }}
+                                >
+                                  ARCHIVAR
+                                </button>
+                                <div style={{ fontSize: '0.4rem', fontWeight: '900', opacity: 0.3, letterSpacing: '0.5px', marginTop: '1px' }}>1ER LLAMADO</div>
+                                <button onClick={(e) => { e.stopPropagation(); generateMissionPDF(evt); }} style={{ marginTop: '5px', padding: '4px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '6px', color: '#fff' }}>
+                                  <IconPDF size={12} />
+                                </button>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '3px', marginTop: '12px' }}>
+                              {[
+                                { label: 'STAFF', done: flow.staffConfirmed, color: 'var(--primary-purple)' },
+                                { label: 'OUT', done: flow.equipmentDelivered, color: 'var(--primary-cyan)' },
+                                { label: 'SHOW', done: flow.equipmentDelivered && !flow.equipmentReturned, color: '#fff' },
+                                { label: 'FIN', done: flow.equipmentReturned, color: 'var(--success-green)' }
+                              ].map((step) => (
+                                <div key={step.label} style={{ flex: 1, height: '4px', borderRadius: '2px', background: step.done ? step.color : 'rgba(255,255,255,0.05)', boxShadow: step.done ? `0 0 8px ${step.color}44` : 'none' }}></div>
+                              ))}
+                            </div>
+                          </div>
+                        </React.Fragment>
+                      );
+                    } catch (err) {
+                      console.error("Error rendering event:", evt?.id, err);
+                      return null;
                     }
-
-                    return (
-                      <React.Fragment key={evt.id}>
-                        {showHeader && (
-                          <div style={{ padding: '8px 5px', marginTop: idx === 0 ? '0' : '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: '950', letterSpacing: '1px', color: headerColor }}>{dateLabel}</span>
-                            <span style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.2 }}>{eventDate}</span>
-                          </div>
-                        )}
-                        <div className="execution-card" onClick={() => { setSelectedEventId(evt.id); setView('detail'); }} style={{
-                          padding: '12px 14px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.01)', position: 'relative', overflow: 'hidden'
-                        }}>
-                          <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: evt.status === 'SENT' ? 'var(--primary-purple)' : (flow.equipmentReturned ? 'var(--success-green)' : 'var(--brand-gradient)') }}></div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                                <span style={{ fontSize: '0.45rem', fontWeight: '900', color: evt.status === 'SENT' ? 'var(--primary-purple)' : 'var(--primary-cyan)', opacity: 0.8 }}>{evt.id}</span>
-                                <span style={{ fontSize: '0.4rem', fontWeight: '950', background: 'rgba(255,255,255,0.05)', color: '#fff', padding: '1px 4px', borderRadius: '3px', opacity: 0.6 }}>{evt.status}</span>
-                                <span style={{ fontSize: '0.35rem', fontWeight: '900', color: 'rgba(255,255,255,0.2)', marginLeft: '4px' }}>
-                                  [P:{flow.clientPaid ? 'Y' : 'N'} R:{flow.equipmentReturned ? 'Y' : 'N'} I:{evt.logistics?.items?.length || 0}]
-                                </span>
-                                {evt.status === 'SENT' && <span style={{ fontSize: '0.45rem', fontWeight: '900', background: 'rgba(188, 111, 241, 0.1)', color: 'var(--primary-purple)', padding: '2px 4px', borderRadius: '3px' }}>COTIZACIÓN</span>}
-                              </div>
-                              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{evt.client?.name || evt.clientName || 'Sin Nombre'}</h3>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', opacity: 0.5, fontSize: '0.6rem', fontWeight: '700' }}>
-                                <IconLocation size={9} />
-                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{evt.eventDetails?.location || 'Por definir'}</span>
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right', minWidth: '70px', paddingLeft: '8px' }}>
-                              <div style={{ fontSize: '1rem', fontWeight: '950', color: 'var(--primary-cyan)', letterSpacing: '-0.5px' }}>
-                                {(() => {
-                                  const [h, m] = getEarliestTime(evt).split(':').map(Number);
-                                  const ap = h >= 12 ? 'PM' : 'AM';
-                                  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ap}`;
-                                })()}
-                              </div>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (confirm(`¿Archivar evento de ${evt.client?.name || 'Carlos'} manualmente?`)) {
-                                    updateDoc(doc(db, "events", evt.id), {
-                                      status: 'CLOSED',
-                                      "logistics.flow.equipmentReturned": true,
-                                      "logistics.flow.clientPaid": true
-                                    });
-                                  }
-                                }}
-                                style={{ background: 'rgba(255,56,96,0.1)', border: 'none', color: '#ff3860', padding: '4px 8px', borderRadius: '6px', fontSize: '0.5rem', fontWeight: '900', marginTop: '5px', cursor: 'pointer' }}
-                              >
-                                ARCHIVAR
-                              </button>
-                              <div style={{ fontSize: '0.4rem', fontWeight: '900', opacity: 0.3, letterSpacing: '0.5px', marginTop: '1px' }}>1ER LLAMADO</div>
-                              <button onClick={(e) => { e.stopPropagation(); generateMissionPDF(evt); }} style={{ marginTop: '5px', padding: '4px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '6px', color: '#fff' }}>
-                                <IconPDF size={12} />
-                              </button>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: '3px', marginTop: '12px' }}>
-                            {[
-                              { label: 'STAFF', done: flow.staffConfirmed, color: 'var(--primary-purple)' },
-                              { label: 'OUT', done: flow.equipmentDelivered, color: 'var(--primary-cyan)' },
-                              { label: 'SHOW', done: flow.equipmentDelivered && !flow.equipmentReturned, color: '#fff' },
-                              { label: 'FIN', done: flow.equipmentReturned, color: 'var(--success-green)' }
-                            ].map((step) => (
-                              <div key={step.label} style={{ flex: 1, height: '4px', borderRadius: '2px', background: step.done ? step.color : 'rgba(255,255,255,0.05)', boxShadow: step.done ? `0 0 8px ${step.color}44` : 'none' }}></div>
-                            ))}
-                          </div>
-                        </div>
-                      </React.Fragment>
-                    );
                   });
                 })()}
               </div>
