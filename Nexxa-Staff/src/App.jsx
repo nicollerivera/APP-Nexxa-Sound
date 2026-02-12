@@ -6545,8 +6545,19 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
         zIndex: 1, backdropFilter: 'blur(20px)'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ width: '60px', height: '60px', background: 'var(--brand-gradient)', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px auto', boxShadow: '0 10px 30px rgba(0, 212, 255, 0.3)' }}>
-            <IconLogoNexxa size={32} color="#000" />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            <img
+              src="/logo-staff-robot.png"
+              alt="Nexxa Staff"
+              style={{
+                width: '140px',
+                height: '140px',
+                objectFit: 'contain',
+                borderRadius: '50%',
+                boxShadow: '0 0 50px rgba(0, 242, 255, 0.2)',
+                border: '2px solid rgba(0, 242, 255, 0.3)'
+              }}
+            />
           </div>
           <h2 style={{ fontSize: '1.8rem', fontWeight: '950', margin: 0, letterSpacing: '-1px' }}>Nexxa <span style={{ color: 'var(--primary-cyan)' }}>Staff</span></h2>
           <p style={{ opacity: 0.4, fontSize: '0.8rem', marginTop: '8px', fontWeight: '700' }}>Inicia sesión para continuar</p>
