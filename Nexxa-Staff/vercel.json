@@ -1,0 +1,5 @@
+{
+    "buildCommand": "vite build",
+    "cleanUrls": true,
+    "framework": "vite"
+}
