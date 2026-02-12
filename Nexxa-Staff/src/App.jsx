@@ -382,19 +382,21 @@ function App() {
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('nexxa_user');
-      const parsedUser = saved ? JSON.parse(saved) : null;
+      // PREVENT CRASH: If saved is "undefined" string or similar
+      if (!saved || saved === 'undefined' || saved === 'null') return null;
+
+      const parsedUser = JSON.parse(saved);
 
       // RESET DE MEMORIA RADICAL: Limpiar TODO si hay datos corruptos
-      if (parsedUser && !parsedUser.name) {
-        console.error("🔴 USUARIO SIN NOMBRE - LIMPIANDO TODO LOCALSTORAGE:", parsedUser);
-        localStorage.clear(); // LIMPIAR TODO
+      // Check for 'name' specifically as it seems to be the crash point
+      if (!parsedUser || typeof parsedUser !== 'object') {
+        localStorage.removeItem('nexxa_user');
         return null;
       }
 
-      // Validación adicional de tipo
-      if (parsedUser && typeof parsedUser !== 'object') {
-        console.error("🔴 USUARIO CORRUPTO - LIMPIANDO:", parsedUser);
-        localStorage.clear();
+      if (!parsedUser.name) {
+        console.error("🔴 USUARIO SIN NOMBRE - LIMPIANDO TODO LOCALSTORAGE:", parsedUser);
+        localStorage.clear(); // LIMPIAR TODO
         return null;
       }
 
