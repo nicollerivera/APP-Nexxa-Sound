@@ -3,6 +3,7 @@
 import QuotationsView from './components/QuotationsView';
 import AccountingView from './components/AccountingView';
 import CreateEventView from './components/CreateEventView';
+import InventoryView from './components/InventoryView';
 import { getDynamicExtras } from './utils/helpers';
 
 // --- IMPORTS MOVED ---
@@ -366,12 +367,7 @@ function App() {
   const [staffPayModal, setStaffPayModal] = useState(null);
   const [whatsappModalQuo, setWhatsappModalQuo] = useState(null); // { quo, type }
   const [sectionState, setSectionState] = useState({ s1: true, s2: false, s3: false });
-  const [showAddModal, setShowAddModal] = useState(false);
   const toggleSection = (key) => setSectionState(prev => ({ ...prev, [key]: !prev[key] }));
-  const [isEditingAds, setIsEditingAds] = useState(false);
-  const [localAdsBuffer, setLocalAdsBuffer] = useState({});
-  const [adAllocations, setAdAllocations] = useState({});
-  const [editingAccount, setEditingAccount] = useState(null); // 'Nequi', 'Daviplata', 'Efectivo'
   const [tempBalanceVal, setTempBalanceVal] = useState('');
   const [approveModal, setApproveModal] = useState(null); // { quo }
   const [paymentModal, setPaymentModal] = useState(null); // { evt, type: 'DEPOSIT' | 'FINAL' }
@@ -686,28 +682,7 @@ function App() {
     }
   };
 
-  // --- INVENTORY LOGIC ---
-  const handleAddInventory = async (e) => {
-    e.preventDefault();
-    const name = e.target.name.value;
-    const category = e.target.category.value;
-    const qty = Number(e.target.qty.value);
 
-    const newItem = {
-      // id: `inv-${Date.now()}`, // Auto-ID by Firestore is better, or use custom if strictly needed
-      // We will let Firestore generate ID or use a custom ID structure if legacy requires it.
-      // Ideally Auto. But let's stick to the object shape.
-      category,
-      name,
-      total: qty,
-      available: qty, // New items are fully available by default
-      status: 'OK'
-    };
-
-    // FIRESTORE ADD
-    await setDoc(doc(collection(db, "inventory"), `inv-${Date.now()}`), newItem);
-    setShowAddModal(false);
-  };
 
 
   const reportDamage = async (itemId, description) => {
@@ -1669,71 +1644,7 @@ function App() {
   };
 
 
-  // --- VIEW: INVENTORY (CONTROL) ---
-  const renderInventory = () => {
-    return (
-      <div className="fade-in container" style={{ paddingBottom: '30px' }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '35px', flexDirection: 'column', gap: '15px' }}>
-          <button onClick={() => setView('dashboard')} style={{ background: 'transparent', border: 'none', color: 'var(--primary-cyan)', padding: 0, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '900', fontSize: '0.75rem', cursor: 'pointer' }}>
-            <IconArrowLeft size={18} /> VOLVER
-          </button>
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: '900', letterSpacing: '1px' }}>Control <span style={{ opacity: 0.3 }}>Bodega</span></h2>
-            <button
-              className="primary-btn"
-              onClick={() => setShowAddModal(true)}
-              style={{ margin: 0, padding: '12px 24px', borderRadius: '14px', fontSize: '0.75rem', fontWeight: '900', letterSpacing: '1px' }}
-            >
-              + STOCK
-            </button>
-          </div>
-        </header>
 
-        <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '24px', padding: '15px 25px', marginBottom: '35px', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <IconHistory size={18} style={{ opacity: 0.3 }} />
-          <input
-            placeholder="Buscar equipo o categorÃ­a..."
-            style={{ margin: 0, background: 'transparent', border: 'none', padding: '10px 0', fontSize: '1rem', color: '#fff', outline: 'none', width: '100%' }}
-          />
-        </div>
-
-        <div className="control-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {inventory.length === 0 ? (
-            <div className="empty-state" style={{ opacity: 0.2 }}>No hay items en inventario.</div>
-          ) : inventory.map((item, index) => {
-            if (!item) return null;
-            return (
-              <div key={item?.id || index} className="control-item">
-                <div style={{ width: '48px', height: '48px', borderRadius: '15px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <IconBox size={24} style={{ opacity: 0.4 }} />
-                </div>
-                <div style={{ paddingLeft: '20px', flex: 1 }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#fff' }}>{item?.name || 'Item sin nombre'}</h4>
-                  <small style={{ opacity: 0.3, fontWeight: '700', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.8px', marginTop: '4px', display: 'block' }}>{item?.category || 'Sin categorÃ­a'}</small>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.6rem', fontWeight: '900', color: (item?.available || 0) < 3 ? 'var(--danger-red)' : 'var(--primary-cyan)', lineHeight: 1 }}>{item?.available || 0}</div>
-                  <small style={{ opacity: 0.3, fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.5px' }}>DISP DE {item?.total || 0}</small>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const deleteInventoryItem = (id) => {
-    if (confirm('Â¿Eliminar?')) setInventory(inventory.filter(i => i.id !== id));
-  };
-  const [editingItem, setEditingItem] = useState(null);
-  const handleEditInventory = (e) => {
-    e.preventDefault();
-    if (!e?.target) return;
-    const { name, category, total, available } = e.target;
-    setInventory(inventory.map(i => i.id === editingItem.id ? { ...i, name: name.value, category: category.value, total: Number(total.value), available: Number(available.value) } : i));
-    setEditingItem(null);
-  };
 
 
   // --- VIEWS ---
@@ -4280,7 +4191,12 @@ function App() {
               setView={setView}
             />
           )}
-          {view === 'inventory' && renderInventory()}
+          {view === 'inventory' && (
+            <InventoryView
+              inventory={inventory}
+              setView={setView}
+            />
+          )}
           {view === 'accounting' && (
             <AccountingView
               db={db}
