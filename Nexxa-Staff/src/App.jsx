@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 
 import QuotationsView from './components/QuotationsView';
+import AccountingView from './components/AccountingView';
 
 // --- IMPORTS MOVED ---
 import { formatPeso, months, getHours, parseFirestoreDate, parseLocalStrDate, getTodayStr, getTomorrowStr, subtractMinutes, formatInputNumber, parseInputNumber } from './utils/helpers';
@@ -199,18 +200,18 @@ function App() {
   // 1. SYNC EVENTS
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "events"), (snapshot) => {
-      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
+      // PROTECCIÃ“N RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
-        console.error("⚠️ onSnapshot events: snapshot.docs no es un array");
+        console.error("âš ï¸ onSnapshot events: snapshot.docs no es un array");
         return;
       }
 
       const liveEvents = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
-      // AUDITORÍA: Detectar eventos sin client.name
+      // AUDITORÃA: Detectar eventos sin client.name
       liveEvents.forEach(evt => {
         if (!evt.client || (!evt.client.name && !evt.clientName)) {
-          console.error("🔴 EVENTO SIN NOMBRE DETECTADO:", {
+          console.error("ðŸ”´ EVENTO SIN NOMBRE DETECTADO:", {
             id: evt.id,
             client: evt.client,
             clientName: evt.clientName,
@@ -219,16 +220,16 @@ function App() {
         }
       });
 
-      // FILTRO DE SEGURIDAD: Eliminar eventos sin datos críticos
+      // FILTRO DE SEGURIDAD: Eliminar eventos sin datos crÃ­ticos
       const validEvents = liveEvents.filter(evt => {
         const hasValidClient = evt && (evt.client?.name || evt.clientName);
         if (!hasValidClient) {
-          console.warn("⚠️ Evento filtrado por falta de nombre:", evt?.id);
+          console.warn("âš ï¸ Evento filtrado por falta de nombre:", evt?.id);
         }
         return hasValidClient;
       });
 
-      // Orden cronológico: Los eventos más cercanos a suceder aparecen primero
+      // Orden cronolÃ³gico: Los eventos mÃ¡s cercanos a suceder aparecen primero
       setEvents(validEvents.sort((a, b) => {
         if (!a || !b) return 0;
         const dateA = a.eventDetails?.date || '';
@@ -243,18 +244,18 @@ function App() {
   // 1.5 SYNC QUOTATIONS
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
-      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
+      // PROTECCIÃ“N RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
-        console.error("⚠️ onSnapshot quotations: snapshot.docs no es un array");
+        console.error("âš ï¸ onSnapshot quotations: snapshot.docs no es un array");
         return;
       }
 
       const liveQuo = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
-      // AUDITORÍA: Detectar cotizaciones sin client.name
+      // AUDITORÃA: Detectar cotizaciones sin client.name
       liveQuo.forEach(quo => {
         if (!quo.client || (!quo.client.name && !quo.clientName)) {
-          console.error("🔴 COTIZACIÓN SIN NOMBRE DETECTADA:", {
+          console.error("ðŸ”´ COTIZACIÃ“N SIN NOMBRE DETECTADA:", {
             id: quo.id,
             client: quo.client,
             clientName: quo.clientName
@@ -273,7 +274,7 @@ function App() {
         if (a.status === 'SENT' && b.status !== 'SENT') return -1;
         if (a.status !== 'SENT' && b.status === 'SENT') return 1;
 
-        // 2. ORDEN CRONOLÓGICO: Más reciente primero
+        // 2. ORDEN CRONOLÃ“GICO: MÃ¡s reciente primero
         const dateA = parseFirestoreDate(a.createdAt);
         const dateB = parseFirestoreDate(b.createdAt);
         if (dateA && dateB && dateA.getTime && dateB.getTime && dateA.getTime() !== dateB.getTime()) return dateB - dateA;
@@ -288,18 +289,18 @@ function App() {
   // 2. SYNC INVENTORY
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "inventory"), (snapshot) => {
-      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
+      // PROTECCIÃ“N RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
-        console.error("⚠️ onSnapshot inventory: snapshot.docs no es un array");
+        console.error("âš ï¸ onSnapshot inventory: snapshot.docs no es un array");
         return;
       }
 
       const liveInv = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
-      // AUDITORÍA: Detectar items sin name
+      // AUDITORÃA: Detectar items sin name
       liveInv.forEach(item => {
         if (!item.name) {
-          console.error("🔴 ITEM DE INVENTARIO SIN NOMBRE:", {
+          console.error("ðŸ”´ ITEM DE INVENTARIO SIN NOMBRE:", {
             id: item.id,
             category: item.category,
             fullData: item
@@ -395,7 +396,7 @@ function App() {
       }
 
       if (!parsedUser.name) {
-        console.error("🔴 USUARIO SIN NOMBRE - LIMPIANDO TODO LOCALSTORAGE:", parsedUser);
+        console.error("ðŸ”´ USUARIO SIN NOMBRE - LIMPIANDO TODO LOCALSTORAGE:", parsedUser);
         localStorage.clear(); // LIMPIAR TODO
         return null;
       }
@@ -425,10 +426,10 @@ function App() {
   });
   const [authLoading, setAuthLoading] = useState(false);
 
-  // 🔍 FUNCIÓN DE AUDITORÍA TEMPORAL - Detectar registros corruptos
+  // ðŸ” FUNCIÃ“N DE AUDITORÃA TEMPORAL - Detectar registros corruptos
   useEffect(() => {
     const auditFirebaseData = async () => {
-      console.log("🔍 INICIANDO AUDITORÍA DE FIREBASE...");
+      console.log("ðŸ” INICIANDO AUDITORÃA DE FIREBASE...");
 
       try {
         // Auditar EVENTOS
@@ -442,12 +443,12 @@ function App() {
         });
 
         if (corruptedEvents.length > 0) {
-          console.error("🔴 EVENTOS CORRUPTOS ENCONTRADOS:", corruptedEvents.length);
+          console.error("ðŸ”´ EVENTOS CORRUPTOS ENCONTRADOS:", corruptedEvents.length);
           corruptedEvents.forEach(evt => {
             console.error("  - ID:", evt.id, "| Client:", evt.data.client, "| ClientName:", evt.data.clientName);
           });
         } else {
-          console.log("✅ Todos los eventos tienen nombre");
+          console.log("âœ… Todos los eventos tienen nombre");
         }
 
         // Auditar COTIZACIONES
@@ -461,12 +462,12 @@ function App() {
         });
 
         if (corruptedQuotations.length > 0) {
-          console.error("🔴 COTIZACIONES CORRUPTAS ENCONTRADAS:", corruptedQuotations.length);
+          console.error("ðŸ”´ COTIZACIONES CORRUPTAS ENCONTRADAS:", corruptedQuotations.length);
           corruptedQuotations.forEach(quo => {
             console.error("  - ID:", quo.id, "| Client:", quo.data.client, "| ClientName:", quo.data.clientName);
           });
         } else {
-          console.log("✅ Todas las cotizaciones tienen nombre");
+          console.log("âœ… Todas las cotizaciones tienen nombre");
         }
 
         // Auditar INVENTARIO
@@ -480,26 +481,26 @@ function App() {
         });
 
         if (corruptedInventory.length > 0) {
-          console.error("🔴 ITEMS DE INVENTARIO CORRUPTOS ENCONTRADOS:", corruptedInventory.length);
+          console.error("ðŸ”´ ITEMS DE INVENTARIO CORRUPTOS ENCONTRADOS:", corruptedInventory.length);
           corruptedInventory.forEach(item => {
             console.error("  - ID:", item.id, "| Category:", item.data.category, "| Name:", item.data.name);
           });
         } else {
-          console.log("✅ Todos los items de inventario tienen nombre");
+          console.log("âœ… Todos los items de inventario tienen nombre");
         }
 
-        console.log("🔍 AUDITORÍA COMPLETADA");
+        console.log("ðŸ” AUDITORÃA COMPLETADA");
 
       } catch (error) {
-        console.error("❌ Error en auditoría:", error);
+        console.error("âŒ Error en auditorÃ­a:", error);
       }
     };
 
-    // Ejecutar auditoría solo una vez al montar
+    // Ejecutar auditorÃ­a solo una vez al montar
     if (user) {
       auditFirebaseData();
     }
-  }, [user]); // Solo cuando el usuario inicia sesión
+  }, [user]); // Solo cuando el usuario inicia sesiÃ³n
 
 
   const handleLogin = (e) => {
@@ -526,7 +527,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    if (confirm('¿Cerrar sesión en el panel?')) {
+    if (confirm('Â¿Cerrar sesiÃ³n en el panel?')) {
       setUser(null);
       setUserRole(null);
       localStorage.removeItem('nexxa_user');
@@ -555,8 +556,8 @@ function App() {
     fiscalAddress: '',
     whatsapp: '3204863127',
     email: 'contacto@nexxasound.com',
-    city: 'Bogotá D.C.',
-    signature: 'Atte: El equipo de Nexxa Sound 🎧'
+    city: 'BogotÃ¡ D.C.',
+    signature: 'Atte: El equipo de Nexxa Sound ðŸŽ§'
   });
 
   // --- ESTADO: AGENDA OPERATIVA (GASTOS PROGRAMADOS RECURRENTES) ---
@@ -573,7 +574,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // --- MONITOR DE CIERRE AUTOMÁTICO (Turbo Context) ---
+  // --- MONITOR DE CIERRE AUTOMÃTICO (Turbo Context) ---
   useEffect(() => {
     if (view === 'detail' && selectedEventId) {
       const currentEvt = events.find(e => e.id === selectedEventId);
@@ -628,14 +629,14 @@ function App() {
     overtimePolicy: 'ALWAYS_CHARGE', // ALWAYS_CHARGE | NEGOTIABLE
 
     // 4. MENSAJES (TEMPLATES)
-    msgQuote: '¡Hola {cliente}! 🎧 Adjunto tu cotización personalizada para tu evento en {fecha}.',
+    msgQuote: 'Â¡Hola {cliente}! ðŸŽ§ Adjunto tu cotizaciÃ³n personalizada para tu evento en {fecha}.',
     msgAdvisory: '{cliente}, para tu evento de {invitados} pax en {zona}, te sugerimos lo siguiente...',
-    msgConfirm: '¡Excelente! Hemos recibido tu abono de {monto}. Tu fecha {fecha} está 100% confirmada. 🔒',
-    msgPost: '¡Gracias por confiar en Nexxa! Esperamos que hayas disfrutado tu experiencia. ⭐',
+    msgConfirm: 'Â¡Excelente! Hemos recibido tu abono de {monto}. Tu fecha {fecha} estÃ¡ 100% confirmada. ðŸ”’',
+    msgPost: 'Â¡Gracias por confiar en Nexxa! Esperamos que hayas disfrutado tu experiencia. â­',
 
     // 5. FINANZAS
     initialCash: 0,
-    expenseCategorias: ['Transporte', 'Alimentación', 'Nómina', 'Mantenimiento', 'Equipos', 'Marketing'],
+    expenseCategorias: ['Transporte', 'AlimentaciÃ³n', 'NÃ³mina', 'Mantenimiento', 'Equipos', 'Marketing'],
     defaultPayment: 'Nequi',
 
     // 7. NOTIFICACIONES
@@ -715,7 +716,7 @@ function App() {
       status: 'PENDING' // PENDING | SOLVED
     };
     await setDoc(doc(collection(db, "damageReports"), `rep-${Date.now()}`), newReport);
-    alert('⚠️ Daño reportado correctamente');
+    alert('âš ï¸ DaÃ±o reportado correctamente');
   };
 
   // FORM STATE FOR NEW EVENT (WITH AUTO-SAVE DRAFT - LOCAL ONLY FOR NOW implies per-device draft)
@@ -777,20 +778,20 @@ function App() {
     // Mandatory Roles based on Package
     if (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') {
       if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
-        return alert(`⚠️ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÍA.`);
+        return alert(`âš ï¸ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÃA.`);
       }
       const photoDur = getHours(newEvent.photoStartTime, newEvent.photoEndTime);
       if (photoDur <= 0) {
-        return alert('⚠️ EL HORARIO DE FOTOGRAFÍA NO PUEDE SER DE 0 HORAS.');
+        return alert('âš ï¸ EL HORARIO DE FOTOGRAFÃA NO PUEDE SER DE 0 HORAS.');
       }
     }
     if (newEvent.packName === 'Celebration') {
       if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
-        return alert('⚠️ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
+        return alert('âš ï¸ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÃ“N.');
       }
       const decorDur = getHours(newEvent.decorStartTime, newEvent.decorEndTime);
       if (decorDur <= 0) {
-        return alert('⚠️ EL HORARIO DE DECORACIÓN NO PUEDE SER DE 0 HORAS.');
+        return alert('âš ï¸ EL HORARIO DE DECORACIÃ“N NO PUEDE SER DE 0 HORAS.');
       }
     }
 
@@ -805,26 +806,26 @@ function App() {
     let defaultItems = [];
     if (newEvent.packName === 'Essential') {
       defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Luces LED + Soporte Trípode', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Máquina Humo + Control + Líquido', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
+        { name: 'Cabinas Activas 15" + TrÃ­podes', qty: 2, status: 'PENDING', area: 'DJ' },
+        { name: 'PC PortÃ¡til + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Luces LED + Soporte TrÃ­pode', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'MÃ¡quina Humo + Control + LÃ­quido', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Kit EnergÃ­a (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÃSTICA' }
       ];
     } else if (newEvent.packName === 'Memories') {
       defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
+        { name: 'Cabinas Activas 15" + TrÃ­podes', qty: 2, status: 'PENDING', area: 'DJ' },
         { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
-        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
+        { name: 'CÃ¡mara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
+        { name: 'PC PortÃ¡til + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Kit EnergÃ­a (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÃSTICA' }
       ];
     } else if (newEvent.packName === 'Celebration') {
       defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 4, status: 'PENDING', area: 'DJ' },
+        { name: 'Cabinas Activas 15" + TrÃ­podes', qty: 4, status: 'PENDING', area: 'DJ' },
         { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
+        { name: 'CÃ¡mara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
+        { name: 'Kit EnergÃ­a (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÃSTICA' }
       ];
     }
 
@@ -871,13 +872,13 @@ function App() {
       // 2. GENERATE PDF
       await generateQuotationPDF(eventObj);
 
-      alert('✅ Cotización Guardada y Enviada.');
+      alert('âœ… CotizaciÃ³n Guardada y Enviada.');
       setView('quotations');
       setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '' });
       localStorage.removeItem('nexxa_draft_event');
     } catch (err) {
       console.error(err);
-      alert('Error en la conversión: ' + err.message);
+      alert('Error en la conversiÃ³n: ' + err.message);
     }
   };
 
@@ -886,7 +887,7 @@ function App() {
   // --- ACTIONS ---
 
   const approveQuotation = (quo) => {
-    // Abrir modal para confirmar método de abono
+    // Abrir modal para confirmar mÃ©todo de abono
     setApproveModal({ quo });
   };
 
@@ -939,14 +940,14 @@ function App() {
       const createItem = (name, qty, area) => ({ name, qty, area, status: 'PENDING', deliveredTime: null, returnedTime: null });
 
       const djItems = [
-        createItem('CABINAS ACTIVAS 15 Pulgadas + TRÍPODES', packName === 'Celebration' ? 4 : 2, 'DJ'),
-        createItem('PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 a 1', 1, 'DJ'),
-        createItem('LUCES LED x4 + SOPORTE TRÍPODE', packName === 'Celebration' ? 2 : 1, 'DJ'),
-        createItem('MÁQUINA HUMO + CONTROL + LÍQUIDO', 1, 'DJ'),
+        createItem('CABINAS ACTIVAS 15 Pulgadas + TRÃPODES', packName === 'Celebration' ? 4 : 2, 'DJ'),
+        createItem('PC PORTÃTIL + CARGADOR + CABLE AUDIO 2 a 1', 1, 'DJ'),
+        createItem('LUCES LED x4 + SOPORTE TRÃPODE', packName === 'Celebration' ? 2 : 1, 'DJ'),
+        createItem('MÃQUINA HUMO + CONTROL + LÃQUIDO', 1, 'DJ'),
         createItem('KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', 1, 'DJ'),
         createItem('MAQUILLAJE NEON (PINTURAS, PINCEL, MAQUILLADOR, 2H)', 1, 'DJ')
       ];
-      const photoItems = [createItem('CÁMARA', 1, 'PHOTO'), createItem('MICRO SD', 1, 'PHOTO')];
+      const photoItems = [createItem('CÃMARA', 1, 'PHOTO'), createItem('MICRO SD', 1, 'PHOTO')];
       const decorItems = [createItem('BOMBAS', 150, 'DECOR'), createItem('INFLADOR', 1, 'DECOR')];
 
       if (packName === 'Essential') defaultItems = [...djItems];
@@ -978,12 +979,12 @@ function App() {
       }
 
       setApproveModal(null);
-      alert(`✅ Evento Creado: ${eventId}`);
+      alert(`âœ… Evento Creado: ${eventId}`);
       setView('events');
 
     } catch (err) {
       console.error(err);
-      alert('Error en aprobación: ' + err.message);
+      alert('Error en aprobaciÃ³n: ' + err.message);
     }
   };
 
@@ -1046,7 +1047,7 @@ function App() {
     'Personalizado': { base: 0, extraDJ: 0, extraPhoto: 0 }
   };
 
-  // --- DATA DINÁMICA DE EXTRAS ---
+  // --- DATA DINÃMICA DE EXTRAS ---
   const getDynamicExtras = (guests, userMakeupCount) => {
     const g = Math.max(10, Number(guests) || 10);
 
@@ -1078,7 +1079,7 @@ function App() {
     return [
       {
         id: 'extra_makeup',
-        name: `Maquillaje Neón`,
+        name: `Maquillaje NeÃ³n`,
         price: makeupPrice,
         qty: qty,
         isMakeup: true,
@@ -1097,14 +1098,14 @@ function App() {
         name: 'Accesorios Memories',
         price: priceMemories,
         area: 'Decor',
-        details: `2 Espumas, 2 Cañones + (${g} Pitos, ${g} Manillas)`
+        details: `2 Espumas, 2 CaÃ±ones + (${g} Pitos, ${g} Manillas)`
       },
       {
         id: 'acc_celebration',
         name: 'Accesorios Celebration',
         price: priceCelebration,
         area: 'Decor',
-        details: `3 Espumas, 3 Cañones + (${g} de: Pitos, Manillas, Collares, Antifaces)`
+        details: `3 Espumas, 3 CaÃ±ones + (${g} de: Pitos, Manillas, Collares, Antifaces)`
       }
     ];
   };
@@ -1122,20 +1123,20 @@ function App() {
       // Mandatory Roles based on Package
       if (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') {
         if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
-          return alert(`⚠️ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÍA.`);
+          return alert(`âš ï¸ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÃA.`);
         }
         const photoDur = getHours(newEvent.photoStartTime, newEvent.photoEndTime);
         if (photoDur <= 0) {
-          return alert('⚠️ EL HORARIO DE FOTOGRAFÍA NO PUEDE SER DE 0 HORAS.');
+          return alert('âš ï¸ EL HORARIO DE FOTOGRAFÃA NO PUEDE SER DE 0 HORAS.');
         }
       }
       if (newEvent.packName === 'Celebration') {
         if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
-          return alert('⚠️ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
+          return alert('âš ï¸ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÃ“N.');
         }
         const decorDur = getHours(newEvent.decorStartTime, newEvent.decorEndTime);
         if (decorDur <= 0) {
-          return alert('⚠️ EL HORARIO DE DECORACIÓN NO PUEDE SER DE 0 HORAS.');
+          return alert('âš ï¸ EL HORARIO DE DECORACIÃ“N NO PUEDE SER DE 0 HORAS.');
         }
       }
 
@@ -1143,7 +1144,7 @@ function App() {
       if (newEvent.startTime && newEvent.endTime) {
         const duration = getHours(newEvent.startTime, newEvent.endTime);
         if (duration < appConfig.minEventDuration) {
-          if (!confirm(`⚠️ ALERTA DE MÍNIMO:\nLa duración es de ${duration.toFixed(1)} horas.\nEl mínimo operativo es de ${appConfig.minEventDuration} horas.\n\n¿Guardar de todos modos?`)) {
+          if (!confirm(`âš ï¸ ALERTA DE MÃNIMO:\nLa duraciÃ³n es de ${duration.toFixed(1)} horas.\nEl mÃ­nimo operativo es de ${appConfig.minEventDuration} horas.\n\nÂ¿Guardar de todos modos?`)) {
             return;
           }
         }
@@ -1160,54 +1161,54 @@ function App() {
     let defaultItems = [];
     if (newEvent.packName === 'Essential') {
       defaultItems = [
-        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 2, checked: false, area: 'DJ' },
-        { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'LUCES LED X4 + SOPORTE TRÍPODE', qty: 1, checked: false, area: 'DJ' },
-        { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
+        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÃPODES', qty: 2, checked: false, area: 'DJ' },
+        { name: 'PC PORTÃTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
+        { name: 'LUCES LED X4 + SOPORTE TRÃPODE', qty: 1, checked: false, area: 'DJ' },
+        { name: 'MÃQUINA HUMO + CONTROL + LÃQUIDO', qty: 1, checked: false, area: 'DJ' },
+        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÃSTICA' }
       ];
     } else if (newEvent.packName === 'Memories') {
       defaultItems = [
-        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 2, checked: false, area: 'DJ' },
+        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÃPODES', qty: 2, checked: false, area: 'DJ' },
         { name: 'BAJOS 18" ACTIVOS', qty: 2, checked: false, area: 'DJ' },
-        { name: 'ESTRUCTURA PORTERÍA LUCES', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CABEZA MÓVIL BEAM / SPOT', qty: 2, checked: false, area: 'DJ' },
+        { name: 'ESTRUCTURA PORTERÃA LUCES', qty: 1, checked: false, area: 'DJ' },
+        { name: 'CABEZA MÃ“VIL BEAM / SPOT', qty: 2, checked: false, area: 'DJ' },
         { name: 'PAR LED RGBW', qty: 6, checked: false, area: 'DJ' },
-        { name: 'CÁMARA', qty: 1, checked: false, area: 'PHOTO' },
+        { name: 'CÃMARA', qty: 1, checked: false, area: 'PHOTO' },
         { name: 'MICRO SD', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
+        { name: 'PC PORTÃTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
+        { name: 'MÃQUINA HUMO + CONTROL + LÃQUIDO', qty: 1, checked: false, area: 'DJ' },
+        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÃSTICA' }
       ];
     } else if (newEvent.packName === 'Celebration') {
       defaultItems = [
-        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 4, checked: false, area: 'DJ' },
+        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÃPODES', qty: 4, checked: false, area: 'DJ' },
         { name: 'BAJOS 18" ACTIVOS', qty: 2, checked: false, area: 'DJ' },
         { name: 'CABINA RETORNO DJ', qty: 1, checked: false, area: 'DJ' },
-        { name: 'ESTRUCTURA PORTERÍA LUCES 4M', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CABEZA MÓVIL BEAM / SPOT', qty: 4, checked: false, area: 'DJ' },
+        { name: 'ESTRUCTURA PORTERÃA LUCES 4M', qty: 1, checked: false, area: 'DJ' },
+        { name: 'CABEZA MÃ“VIL BEAM / SPOT', qty: 4, checked: false, area: 'DJ' },
         { name: 'PAR LED RGBW', qty: 8, checked: false, area: 'DJ' },
-        { name: 'CÁMARA', qty: 1, checked: false, area: 'PHOTO' },
+        { name: 'CÃMARA', qty: 1, checked: false, area: 'PHOTO' },
         { name: 'MICRO SD', qty: 1, checked: false, area: 'PHOTO' },
         { name: 'BOMBAS', qty: 150, checked: false, area: 'DECOR' },
         { name: 'INFLADOR', qty: 1, checked: false, area: 'DECOR' },
-        { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
+        { name: 'PC PORTÃTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
+        { name: 'MÃQUINA HUMO + CONTROL + LÃQUIDO', qty: 1, checked: false, area: 'DJ' },
+        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÃSTICA' }
       ];
     } else {
       defaultItems = [
-        { name: 'KIT SONIDO BÁSICO NEXXA', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ILUMINACIÓN BÁSICO NEXXA', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CABLEADO Y EXTENSIONES AC', qty: 1, checked: false, area: 'LOGÍSTICA' }
+        { name: 'KIT SONIDO BÃSICO NEXXA', qty: 1, checked: false, area: 'DJ' },
+        { name: 'KIT ILUMINACIÃ“N BÃSICO NEXXA', qty: 1, checked: false, area: 'DJ' },
+        { name: 'CABLEADO Y EXTENSIONES AC', qty: 1, checked: false, area: 'LOGÃSTICA' }
       ];
     }
 
-    // 1.1 AÑADIR MATERIALES DE EXTRAS SELECCIONADOS
+    // 1.1 AÃ‘ADIR MATERIALES DE EXTRAS SELECCIONADOS
     const dynamicExtras = getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount);
     dynamicExtras.forEach(ex => {
       if (newEvent.selectedExtras && newEvent.selectedExtras[ex.id]) {
-        // Solo añadir si no existe ya para evitar duplicados en ediciones
+        // Solo aÃ±adir si no existe ya para evitar duplicados en ediciones
         if (ex && !defaultItems.some(i => i && i.name === ex.name)) {
           defaultItems.push({
             name: ex.name,
@@ -1219,7 +1220,7 @@ function App() {
       }
     });
 
-    // 2. VERIFICACIÓN DE STOCK (Only for CONFIRMED)
+    // 2. VERIFICACIÃ“N DE STOCK (Only for CONFIRMED)
     let conflictMsg = '';
     if (status === 'CONFIRMED') {
       const newStart = newEvent.startTime ? parseInt(newEvent.startTime.replace(':', '')) : 0;
@@ -1251,13 +1252,13 @@ function App() {
         const invItem = inventory.find(i => i && i.name === reqItem.name);
         if (invItem) {
           if ((usedQty + reqItem.qty) > invItem.total) {
-            conflictMsg += `\n❌ ${reqItem.name}: Stock ${invItem.total} | Uso: ${usedQty} | Pides: ${reqItem.qty}`;
+            conflictMsg += `\nâŒ ${reqItem.name}: Stock ${invItem.total} | Uso: ${usedQty} | Pides: ${reqItem.qty}`;
           }
         }
       });
 
       if (conflictMsg) {
-        const proceed = window.confirm(`⚠️ STOCK INSUFICIENTE:\n${conflictMsg}\n¿Confirmar de todos modos?`);
+        const proceed = window.confirm(`âš ï¸ STOCK INSUFICIENTE:\n${conflictMsg}\nÂ¿Confirmar de todos modos?`);
         if (!proceed) return;
       }
     }
@@ -1320,7 +1321,7 @@ function App() {
     // FIRESTORE UPSERT
     try {
       await setDoc(doc(db, "events", finalId), eventObj);
-      alert(status === 'DRAFT' ? '📝 Borrador Guardado' : (newEvent.id ? '✅ Evento Actualizado' : '✅ Evento Creado'));
+      alert(status === 'DRAFT' ? 'ðŸ“ Borrador Guardado' : (newEvent.id ? 'âœ… Evento Actualizado' : 'âœ… Evento Creado'));
 
       setView('events');
       const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '' };
@@ -1370,7 +1371,7 @@ function App() {
 
   const deleteEvent = async (id, e) => {
     e.stopPropagation();
-    if (window.confirm('¿Estás seguro de ELIMINAR este evento? No se puede deshacer.')) {
+    if (window.confirm('Â¿EstÃ¡s seguro de ELIMINAR este evento? No se puede deshacer.')) {
       await deleteDoc(doc(db, "events", id));
     }
   };
@@ -1407,14 +1408,14 @@ function App() {
       return Number(c) || 0;
     };
 
-    // Búsqueda en el evento
+    // BÃºsqueda en el evento
     const totalKeys = ['totalValue', 'total', 'price', 'valor', 'monto', 'valorTotal', 'costo', 'pricePackage', 'total_value', 'total_amount', 'amount'];
     const depositKeys = ['deposit', 'abono', 'monto_abono', 'pagado', 'adelanto', 'deposit_amount', 'anticipo'];
 
     let total = clean(deepSearch(evt, totalKeys));
     let paid = clean(deepSearch(evt, depositKeys));
 
-    // AGREGAR VALOR DE HORAS EXTRAS AL CLIENTE (NUEVA LÓGICA)
+    // AGREGAR VALOR DE HORAS EXTRAS AL CLIENTE (NUEVA LÃ“GICA)
     const eks = evt.financials?.extraHours || {};
     const extrasTotal = (Number(eks.DJ || 0) * 85000) +
       (Number(eks.FOTO || 0) * 35000) +
@@ -1422,7 +1423,7 @@ function App() {
 
     total += extrasTotal;
 
-    // INTELIGENCIA: Si el evento no tiene dinero, lo buscamos en su COTIZACIÓN original
+    // INTELIGENCIA: Si el evento no tiene dinero, lo buscamos en su COTIZACIÃ“N original
     if (total === 0) {
       const normalize = (s) => String(s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
@@ -1460,7 +1461,7 @@ function App() {
     const { Nequi, Daviplata, Efectivo } = paymentSplit;
 
     const totalPay = Number(Nequi) + Number(Daviplata) + Number(Efectivo);
-    if (totalPay === 0) return alert('Ingrese un monto válido');
+    if (totalPay === 0) return alert('Ingrese un monto vÃ¡lido');
 
     try {
       // 1. Create Transactions
@@ -1472,7 +1473,7 @@ function App() {
         const clientName = evt?.client?.name || evt?.clientName || 'Cliente';
         const eventIdStr = evt?.id || 'N/A';
 
-        // Determinar descripción si hay extras
+        // Determinar descripciÃ³n si hay extras
         const hasExtras = Object.values(evt.financials?.extraHours || {}).some(v => parseFloat(v) > 0);
         const description = hasExtras
           ? `Saldo Final + Extras Evento: ${clientName} (${eventIdStr})`
@@ -1517,14 +1518,14 @@ function App() {
       };
 
       setPaymentModal(null);
-      alert('✅ Pago registrado y caja actualizada');
+      alert('âœ… Pago registrado y caja actualizada');
 
       // We check if we can close
       await checkAutoClose(updatedEvt);
 
     } catch (err) {
       console.error("Payment Save Error:", err);
-      alert(`Error guardando pago: ${err.message || 'Error desconocido'}. Revisa la consola para más detalles.`);
+      alert(`Error guardando pago: ${err.message || 'Error desconocido'}. Revisa la consola para mÃ¡s detalles.`);
     }
   };
 
@@ -1547,9 +1548,9 @@ function App() {
     // SI ES PAGO DE CLIENTE, ABRIR MODAL
     if (area === 'clientPaid') {
       if (evt.logistics?.flow?.clientPaid) {
-        // Si ya pagó, opcionalmente permitir desmarcar (ej: error), o bloquear.
-        // Permitamos desmarcar por corrección.
-        if (confirm('El pago ya está registrado. ¿Deseas anular la marca de "Cobro Confirmado" para este evento? (Nota: El dinero ya registrado en tesorería no se borrará)')) {
+        // Si ya pagÃ³, opcionalmente permitir desmarcar (ej: error), o bloquear.
+        // Permitamos desmarcar por correcciÃ³n.
+        if (confirm('El pago ya estÃ¡ registrado. Â¿Deseas anular la marca de "Cobro Confirmado" para este evento? (Nota: El dinero ya registrado en tesorerÃ­a no se borrarÃ¡)')) {
           await updateDoc(doc(db, "events", evtId), { "logistics.flow.clientPaid": false });
         }
       } else {
@@ -1558,7 +1559,7 @@ function App() {
       return;
     }
 
-    // SI ES PAGO DE STAFF, ABRIR MODAL PARA SELECCIONAR MÉTODO
+    // SI ES PAGO DE STAFF, ABRIR MODAL PARA SELECCIONAR MÃ‰TODO
     if (area === 'staffPaid') {
       if (evt.logistics?.flow?.staffPaid) {
         // Si ya estaba pagado, simplemente desmarcarlo
@@ -1638,7 +1639,7 @@ function App() {
   const getCollectionResponsibility = (evt) => {
     const times = [
       { role: 'DJ / OPERADOR', time: evt.eventDetails?.startTime || '23:59' }, // Default late if not present
-      { role: 'FOTÓGRAFO', time: evt.eventDetails?.photoStartTime || '23:59' },
+      { role: 'FOTÃ“GRAFO', time: evt.eventDetails?.photoStartTime || '23:59' },
       { role: 'DECORADOR', time: evt.eventDetails?.decorStartTime || '23:59' } // Decorator usually finishes last
     ].filter(t => t.time !== '23:59'); // Filter out roles that don't have a time
 
@@ -1653,8 +1654,8 @@ function App() {
     const earliestRoles = times.filter(t => t?.time === earliestTime);
 
     if (earliestRoles.length > 1) {
-      // Tie-breaker logic: DJ > FOTÓGRAFO > DECORADOR
-      const roleOrder = ['DJ / OPERADOR', 'FOTÓGRAFO', 'DECORADOR'];
+      // Tie-breaker logic: DJ > FOTÃ“GRAFO > DECORADOR
+      const roleOrder = ['DJ / OPERADOR', 'FOTÃ“GRAFO', 'DECORADOR'];
       const responsible = earliestRoles.sort((a, b) => roleOrder.indexOf(a?.role) - roleOrder.indexOf(b?.role))[0];
       return { responsibleRole: responsible.role, isTieBreak: true };
     } else {
@@ -1662,12 +1663,12 @@ function App() {
     }
   };
 
-  // --- VIEW: CENTER HUB (ACCIONES RÁPIDAS) ---
+  // --- VIEW: CENTER HUB (ACCIONES RÃPIDAS) ---
   const renderHomeHub = () => {
     return (
       <div className="fade-in container" style={{ paddingBottom: '140px' }}>
         <header className="main-header" style={{ padding: '60px 0 30px 0' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: '900', margin: 0, lineHeight: '1.1' }}>¿Qué hacemos<br /><span style={{ opacity: 0.3 }}>ahora?</span></h2>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: '900', margin: 0, lineHeight: '1.1' }}>Â¿QuÃ© hacemos<br /><span style={{ opacity: 0.3 }}>ahora?</span></h2>
         </header>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1688,7 +1689,7 @@ function App() {
                 <div style={{ width: '50px', height: '50px', background: 'rgba(255,255,255,0.2)', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px' }}>
                   <IconPlus size={24} color="#fff" />
                 </div>
-                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', margin: 0 }}>Crear Cotización</h3>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', margin: 0 }}>Crear CotizaciÃ³n</h3>
                 <p style={{ margin: '5px 0 0 0', opacity: 0.8, fontSize: '0.9rem', fontWeight: '600' }}>Nuevo cliente o evento.</p>
               </div>
               <div style={{ background: '#fff', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1726,1518 +1727,6 @@ function App() {
     );
   };
 
-  // --- VIEW: DECISIÓN (FINANZAS) ---
-  // --- VIEW: BALANCE (FINANZAS) ---
-  const renderAccounting = () => {
-    try {
-      // --- LÓGICA DE FILTRADO Y MÉTRICAS ---
-      const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-
-      // Filtrar transacciones por mes seleccionado
-      const filteredGlobalTx = globalTx.filter(t => {
-        const d = new Date(t.createdAt);
-        return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-      });
-
-      const filteredEvents = events.filter(e => {
-        if (!e.eventDetails?.date) return false;
-        const d = new Date(e.eventDetails.date);
-        return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-      });
-
-      // Mes Anterior para Comparativa
-      const prevMonthIdx = selectedMonth === 0 ? 11 : selectedMonth - 1;
-      const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
-
-      const prevTx = globalTx.filter(t => {
-        const d = new Date(t.createdAt);
-        return d.getMonth() === prevMonthIdx && d.getFullYear() === prevYear;
-      });
-
-      const getMonthStats = (txs) => {
-        const totalIn = txs.filter(t => t.type === 'IN').reduce((acc, t) => acc + t.amount, 0);
-        const totalOut = txs.filter(t => t.type === 'OUT').reduce((acc, t) => acc + t.amount, 0);
-        return { income: totalIn, expense: totalOut, balance: totalIn - totalOut };
-      };
-
-      const stats = getMonthStats(filteredGlobalTx);
-      const currentIncome = stats.income;
-      const currentBalance = stats.balance;
-
-      const prevStats = getMonthStats(prevTx);
-      const lastMonthBalance = prevStats.balance;
-
-      const diff = lastMonthBalance === 0 ? 0 : ((currentBalance - lastMonthBalance) / Math.abs(lastMonthBalance)) * 100;
-
-      // Estadísticas de categorías para el mes seleccionado
-      const expenseByCat = filteredGlobalTx.filter(t => t.type === 'OUT').reduce((acc, t) => {
-        const cat = t.category || 'VARIOS';
-        acc[cat] = (acc[cat] || 0) + t.amount;
-        return acc;
-      }, {});
-
-      const topExpenseCat = Object.entries(expenseByCat).sort((a, b) => b[1] - a[1])[0] || ['-', 0];
-
-      // --- LÓGICA DE COMPROMISOS (CONEXIÓN CON TESORERÍA) ---
-      const commitments = [
-        { day: '05', title: 'Mantenimiento Equipos', amount: 150000, category: 'EQUIPOS' },
-        { day: '10', title: 'Arriendo Bodega', amount: 850000, category: 'LOCAL' },
-        { day: '15', title: 'Servicios Públicos', amount: 220000, category: 'VARIOS' },
-        { day: '28', title: 'Antigravity (Software)', amount: 90000, category: 'MARKETING' }
-      ];
-
-      const processedAgenda = commitments.map(c => {
-        // Buscar si hay un gasto en el historial que coincida con la categoría o descripción
-        const isPaid = filteredGlobalTx.some(tx =>
-          tx.type === 'OUT' && (tx.category === c.category || (tx.desc || '').toLowerCase().includes((c.title || '').toLowerCase()))
-        );
-
-        const dayNum = parseInt(c.day);
-        const isOverdue = dayNum < new Date().getDate() && !isPaid && selectedMonth === new Date().getMonth();
-
-        return {
-          ...c,
-          status: isPaid ? 'PAGADO' : (isOverdue ? 'VENCIDO' : 'PENDIENTE'),
-          color: isPaid ? 'var(--success-green)' : (isOverdue ? 'var(--danger-red)' : 'rgba(255,255,255,0.2)')
-        };
-      });
-
-      // --- LÓGICA DE GRÁFICA SEMANAL ---
-      const weeklyIncome = [0, 0, 0, 0]; // 4 semanas
-      filteredEvents.forEach(e => {
-        if (!e.eventDetails?.date) return;
-        const day = new Date(e.eventDetails.date).getDate();
-        const week = Math.min(Math.floor((day - 1) / 7), 3);
-        weeklyIncome[week] += (e.financials?.deposit || 0);
-      });
-      filteredGlobalTx.filter(t => t.type === 'IN').forEach(t => {
-        const day = new Date(t.createdAt).getDate();
-        const week = Math.min(Math.floor((day - 1) / 7), 3);
-        weeklyIncome[week] += t.amount;
-      });
-      const maxWeekly = Math.max(...weeklyIncome, 1);
-
-      // --- LÓGICA DE VELAS JAPONESAS REALISTAS (CONECTADAS A TESORERÍA) ---
-      const getRealCandles = () => {
-        // Tomamos los últimos 10-15 movimientos o periodos
-        const txs = [...filteredGlobalTx].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); // Use createdAt for sorting
-        if (txs.length === 0) return Array(10).fill({ open: 100, close: 100, high: 105, low: 95, isUp: true });
-
-        let currentAccountBalance = 0;
-        const candles = [];
-
-        // Agrupamos txs para crear velas (usamos bloques de transacciones para simular periodos)
-        const chunkSize = Math.max(Math.ceil(txs.length / 12), 1);
-
-        for (let i = 0; i < txs.length; i += chunkSize) {
-          const chunk = txs.slice(i, i + chunkSize);
-          const open = currentAccountBalance;
-          let high = open;
-          let low = open;
-
-          chunk.forEach(t => {
-            currentAccountBalance += (t.type === 'IN' ? t.amount : -t.amount);
-            if (currentAccountBalance > high) high = currentAccountBalance;
-            if (currentAccountBalance < low) low = currentAccountBalance;
-          });
-
-          const close = currentAccountBalance;
-          // Pequeño ajuste para que las mechas siempre sean visibles
-          const adjustedHigh = Math.max(high, open, close) * 1.05;
-          const adjustedLow = Math.min(low, open, close) * 0.95;
-
-          candles.push({
-            open,
-            close,
-            high: adjustedHigh,
-            low: adjustedLow,
-            isUp: close >= open
-          });
-        }
-
-        // Si hay pocas velas, rellenamos con las últimas para que no se vea vacío
-        while (candles.length < 12) {
-          const last = candles[candles.length - 1] || { open: 0, close: 0, high: 100, low: 0, isUp: true };
-          candles.push({ ...last });
-        }
-
-        return candles.slice(-12); // Mostramos las últimas 12
-      };
-
-      const realCandles = getRealCandles();
-      const maxVal = Math.max(...realCandles.map(c => c.high), 1);
-      const minVal = Math.min(...realCandles.map(c => c.low), 0);
-      const range = maxVal - minVal || 1;
-
-      // Bandas de Bollinger Reales (Basadas en el flujo real)
-      const realBands = realCandles.map((c, i) => {
-        const dev = range * 0.15;
-        return {
-          mid: (c.open + c.close) / 2,
-          top: Math.max(c.open, c.close) + dev,
-          bot: Math.min(c.open, c.close) - dev
-        };
-      });
-
-      // Cálculo de balances por cuenta (HISTÓRICO REAL ACUMULADO)
-      // NOTA: Se ha elimiado la suma automática de 'events' para evitar duplicidad con los ajustes manuales.
-      // Ahora la fuente de verdad es EXCLUSIVAMENTE 'globalTx'.
-      const getAccountBalance = (method) => {
-        return globalTx.filter(t => t.method === method).reduce((acc, t) => acc + (t.type === 'IN' ? Number(t.amount) : -Number(t.amount)), 0);
-      };
-
-      return (
-        <div className="fade-in container" style={{ paddingBottom: '160px' }}>
-          {/* HEADER EJECUTIVO (FIJO) */}
-          <header style={{ margin: '20px 0 15px 0' }}>
-            <button onClick={() => setView('dashboard')} style={{ background: 'transparent', border: 'none', color: 'var(--primary-cyan)', padding: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '950', fontSize: '0.65rem', cursor: 'pointer', opacity: 0.6 }}>
-              <IconArrowLeft size={14} /> DASHBOARD
-            </button>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: '950', letterSpacing: '-1px' }}>Finance <span style={{ opacity: 0.3 }}>Nexxa</span></h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button
-                  onClick={() => setShowMonthSelector(true)}
-                  style={{ background: 'var(--brand-gradient)', border: 'none', color: '#000', padding: '10px 18px', borderRadius: '14px', fontSize: '0.7rem', fontWeight: '950', cursor: 'pointer', boxShadow: '0 10px 20px rgba(0,0,0,0.3)' }}
-                >
-                  {months[selectedMonth].toUpperCase()} {selectedYear}
-                </button>
-                <button
-                  onClick={() => setView('settings')}
-                  style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                >
-                  <IconUser size={18} />
-                </button>
-              </div>
-            </div>
-          </header>
-
-          {/* NAVEGACIÓN DE PESTAÑAS INTERNAS */}
-          <nav style={{ display: 'flex', gap: '5px', marginBottom: '20px', background: 'rgba(255,255,255,0.02)', padding: '5px', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            {['TESORERIA', 'RESUMEN', 'MARKETING'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setAccountingTab(tab)}
-                style={{ flex: 1, padding: '12px 5px', borderRadius: '14px', border: 'none', background: accountingTab === tab ? 'rgba(255,255,255,0.08)' : 'transparent', color: accountingTab === tab ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.3)', fontSize: '0.65rem', fontWeight: '950', letterSpacing: '1px', transition: 'all 0.3s' }}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-
-          {/* CONTENIDO DÍNAMICO SEGÚN PESTAÑA */}
-          {accountingTab === 'RESUMEN' && (
-            <div className="fade-in">
-              {/* CARD MAESTRA (LA MARCA - SUPER COMPACT ROW) */}
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(0, 242, 255, 0.1) 0%, rgba(188, 111, 241, 0.1) 100%)',
-                border: '1px solid rgba(0, 242, 255, 0.2)',
-                padding: '15px 20px',
-                borderRadius: '20px',
-                marginBottom: '15px',
-                position: 'relative',
-                overflow: 'hidden',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ position: 'absolute', right: '-10px', top: '-20px', opacity: 0.05, transform: 'rotate(-15deg)' }}>
-                  <IconLogoNexxa size={100} />
-                </div>
-
-                {/* Left: Label + Amount */}
-                <div style={{ zIndex: 1 }}>
-                  <small style={{ color: 'var(--primary-cyan)', fontWeight: '950', letterSpacing: '1px', fontSize: '0.55rem', display: 'block', marginBottom: '2px' }}>PROFIT {months[selectedMonth].toUpperCase()}</small>
-                  <div style={{ fontSize: '1.8rem', fontWeight: '950', letterSpacing: '-1px', color: '#fff', lineHeight: 1 }}>
-                    {formatPeso(currentBalance)}
-                  </div>
-                </div>
-
-                {/* Right: Stats */}
-                <div style={{ zIndex: 1, textAlign: 'right' }}>
-                  <div style={{ background: diff >= 0 ? 'var(--success-green)' : 'var(--danger-red)', padding: '2px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px', marginBottom: '2px' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: '950', color: '#000' }}>
-                      {diff >= 0 ? '↑' : '↓'} {Math.abs(diff).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.45rem', fontWeight: '800', opacity: 0.5, letterSpacing: '0.5px' }}>VS MES PASADO</div>
-                </div>
-              </div>
-
-              {/* REPARTICIÓN DE ACTIVOS (COMPACT GRID) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                {[
-                  { label: 'NEXXA CORP (50%)', val: currentBalance * 0.5, color: 'var(--primary-cyan)', icon: '🏛️' },
-                  { label: 'OPERATIVO JULI (20%)', val: currentBalance * 0.2, color: 'var(--primary-purple)', icon: '🟣' },
-                  { label: 'PATRIMONIO YO (30%)', val: currentBalance * 0.3, color: 'var(--primary-pink)', icon: '💎' }
-                ].map(p => (
-                  <div key={p.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--glass-bg)', padding: '10px 15px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ fontSize: '0.9rem' }}>{p.icon}</div>
-                      <div>
-                        <div style={{ fontSize: '0.6rem', fontWeight: '950', color: '#fff' }}>{p.label}</div>
-                        <div style={{ width: '25px', height: '2px', background: p.color, borderRadius: '10px', marginTop: '2px' }}></div>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '950', color: '#fff' }}>{formatPeso(p.val)}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* AGENDA OPERATIVA - GASTOS PROGRAMADOS (DYNAMIC) */}
-              <div style={{ marginTop: '15px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h3 style={{ fontSize: '0.8rem', fontWeight: '950', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>📅</span> Agenda Operativa
-                  </h3>
-                  <button
-                    onClick={() => setShowAddExpenseModal(true)}
-                    style={{
-                      background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
-                      width: '24px', height: '24px', color: '#fff', fontSize: '1rem',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-
-                {(() => {
-                  // 1. Filtrar gastos programados (ahora son recurrentes, por lo que mostramos TODOS, pero calculamos su estado para el mes seleccionado)
-                  // Se ordena por día del mes
-                  const sortedExpenses = [...scheduledExpenses].sort((a, b) => parseInt(a.day) - parseInt(b.day));
-
-                  const today = new Date();
-                  // Fecha de Referencia para el mes seleccionado en el Resumen
-                  // (Usamos el año seleccionado y el mes seleccionado)
-                  const currentViewDate = new Date(selectedYear, selectedMonth, 1);
-                  const isCurrentMonth = today.getMonth() === selectedMonth && today.getFullYear() === selectedYear;
-
-                  if (sortedExpenses.length === 0) {
-                    return <div style={{ opacity: 0.5, fontSize: '0.7rem', fontStyle: 'italic', padding: '10px', textAlign: 'center', border: '1px dashed #333', borderRadius: '10px' }}>No hay gastos recurrentes.</div>;
-                  }
-
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {sortedExpenses.map(expense => {
-                        const day = parseInt(expense.day);
-                        // Construir la fecha objetivo para este mes
-                        const targetDate = new Date(selectedYear, selectedMonth, day);
-                        const dateStr = `${day.toString().padStart(2, '0')}/${(selectedMonth + 1).toString().padStart(2, '0')}`;
-
-                        // Lógica de ESTADO DINÁMICO
-                        // 1. Check if PAID: Buscar en globalTx una salida (OUT) en este mes/año que coincida con el concepto (fuzzy match básico)
-                        // Normalizamos strings para comparar: "Arriendo Bodega" vs "Pago Arriendo"
-                        const hasPayment = globalTx.some(tx => {
-                          const txDate = new Date(tx.createdAt); // o tx.date si guardas YYYY-MM-DD
-                          const isSameMonth = txDate.getMonth() === selectedMonth && txDate.getFullYear() === selectedYear;
-                          if (!isSameMonth || tx.type !== 'OUT') return false;
-
-                          // Comparación flexible
-                          const c1 = expense.concept.toLowerCase();
-                          const c2 = (tx.desc || '').toLowerCase();
-                          return c2.includes(c1) || c1.includes(c2);
-                        });
-
-                        let status = 'PENDIENTE';
-                        if (hasPayment) {
-                          status = 'PAGADO';
-                        } else {
-                          // Si no está pagado, verificamos si ya venció
-                          if (isCurrentMonth) {
-                            // Si estamos viendo el mes actual, comparamos con hoy
-                            if (today.getDate() > day) status = 'VENCIDO';
-                          } else if (currentViewDate < new Date(today.getFullYear(), today.getMonth(), 1)) {
-                            // Si estamos viendo un mes pasado y no se pagó -> VENCIDO
-                            status = 'VENCIDO';
-                          }
-                          // Si es mes futuro -> PENDIENTE
-                        }
-
-                        return (
-                          <div
-                            key={expense.id}
-                            style={{
-                              background: 'rgba(255,255,255,0.02)',
-                              border: `1px solid ${status === 'VENCIDO' ? 'rgba(255,82,82,0.3)' : status === 'PAGADO' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255,255,255,0.06)'}`,
-                              borderRadius: '12px',
-                              padding: '8px 12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              opacity: status === 'PAGADO' ? 0.6 : 1
-                            }}
-                          >
-                            {/* Fecha Exacta */}
-                            <div style={{
-                              background: status === 'VENCIDO' ? 'rgba(255,82,82,0.1)' : 'rgba(255,255,255,0.05)',
-                              border: `1px solid ${status === 'VENCIDO' ? 'rgba(255,82,82,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                              borderRadius: '8px',
-                              padding: '4px 8px',
-                              minWidth: '35px',
-                              textAlign: 'center'
-                            }}>
-                              <div style={{ fontSize: '0.65rem', fontWeight: '950', color: status === 'VENCIDO' ? 'var(--danger-red)' : '#fff' }}>
-                                {dateStr}
-                              </div>
-                            </div>
-
-                            {/* Info */}
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '0.7rem', fontWeight: '900', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: status === 'PAGADO' ? 'line-through' : 'none' }}>
-                                {expense.concept}
-                              </div>
-                            </div>
-
-                            {/* Monto + Estado Mini */}
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '0.75rem', fontWeight: '950', color: '#fff' }}>
-                                {formatPeso(expense.amount)}
-                              </div>
-                              <small style={{
-                                fontSize: '0.4rem',
-                                fontWeight: '900',
-                                color: status === 'VENCIDO' ? 'var(--danger-red)' : status === 'PAGADO' ? 'var(--success-green)' : 'rgba(255,255,255,0.3)',
-                                letterSpacing: '0.5px',
-                                display: 'block'
-                              }}>
-                                {status}
-                              </small>
-                            </div>
-
-                            {/* Delete Action (Optional, hidden usually but good for debugging) */}
-                            <div onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm('¿Eliminar este gasto recurrente?')) deleteDoc(doc(db, "operative_agenda", expense.id));
-                            }} style={{ marginLeft: '5px', cursor: 'pointer', opacity: 0.3 }}>×</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </div>
-
-            </div>
-          )}
-
-          {accountingTab === 'TESORERIA' && (
-            <div className="fade-in">
-              {/* CUENTAS Y BILLETERAS */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-                {[
-                  { name: 'Nequi', color: '#ff007a' },
-                  { name: 'Daviplata', color: '#ff4d4d' },
-                  { name: 'Efectivo', color: '#4dff88' }
-                ].map(bank => {
-                  const currentBal = getAccountBalance(bank.name);
-                  const isEditing = editingAccount === bank.name;
-
-                  return (
-                    <div
-                      key={bank.name}
-                      onClick={() => {
-                        if (!isEditing) {
-                          setEditingAccount(bank.name);
-                          setTempBalanceVal(currentBal.toString());
-                        }
-                      }}
-                      style={{ background: 'var(--glass-bg)', padding: '15px 10px', borderRadius: '20px', border: isEditing ? `1px solid ${bank.color}` : '1px solid rgba(255,255,255,0.05)', textAlign: 'center', cursor: 'pointer', position: 'relative' }}
-                    >
-                      {isEditing ? (
-                        <div onClick={e => e.stopPropagation()}>
-                          <input
-                            autoFocus
-                            type="tel"
-                            value={tempBalanceVal}
-                            onChange={e => setTempBalanceVal(e.target.value.replace(/\D/g, ''))}
-                            onBlur={async () => {
-                              // SAVE ADJUSTMENT
-                              const realVal = Number(tempBalanceVal);
-                              const diff = realVal - currentBal;
-                              if (diff !== 0) {
-                                const txId = `TX-ADJ-${Date.now()}`;
-                                await setDoc(doc(db, "globalTx", txId), {
-                                  id: txId,
-                                  desc: `Ajuste Saldo: ${bank.name}`,
-                                  amount: Math.abs(diff),
-                                  method: bank.name,
-                                  type: diff > 0 ? 'IN' : 'OUT',
-                                  category: 'AJUSTE',
-                                  date: new Date().toISOString().split('T')[0],
-                                  createdAt: new Date().toISOString()
-                                });
-                                alert(`✅ Saldo ajustado a ${formatPeso(realVal)}`);
-                              }
-                              setEditingAccount(null);
-                            }}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') e.target.blur();
-                            }}
-                            style={{ width: '100%', background: 'transparent', border: 'none', color: '#fff', textAlign: 'center', fontSize: '1rem', fontWeight: '950', outline: 'none' }}
-                          />
-                          <small style={{ display: 'block', fontSize: '0.5rem', color: bank.color }}>Presiona enter</small>
-                        </div>
-                      ) : (
-                        <>
-                          <div style={{ fontSize: '0.8rem', fontWeight: '950', color: currentBal >= 0 ? '#fff' : 'var(--danger-red)' }}>{formatPeso(currentBal)}</div>
-                          <small style={{ fontSize: '0.45rem', fontWeight: '900', opacity: 0.3, letterSpacing: '1px' }}>{bank?.name?.toUpperCase()}</small>
-                          <div style={{ position: 'absolute', top: '5px', right: '5px', opacity: 0.2, fontSize: '0.5rem' }}>✎</div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* BOTONES DE ACCIÓN RÁPIDA (INTEGRADOS PARA NO ESTORBAR) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-                <button
-                  onClick={() => { setFinType('GENERAL'); setShowFinanceModal('IN'); }}
-                  style={{ background: 'var(--success-green)', color: '#000', padding: '15px', borderRadius: '18px', fontWeight: '950', border: 'none', fontSize: '0.75rem', letterSpacing: '1px' }}
-                >
-                  + INGRESO
-                </button>
-                <button
-                  onClick={() => { setFinType('GENERAL'); setShowFinanceModal('OUT'); }}
-                  style={{ background: '#fff', color: '#000', padding: '15px', borderRadius: '18px', fontWeight: '950', border: 'none', fontSize: '0.75rem', letterSpacing: '1px' }}
-                >
-                  - GASTO
-                </button>
-              </div>
-
-              {/* CONTROL DE MOVIMIENTOS (LISTADO ESTilo EXCEL ROBUSTO) */}
-              <div style={{ background: 'rgba(255,255,255,0.01)', borderRadius: '25px', border: '1px solid rgba(255,255,255,0.04)', overflow: 'hidden' }}>
-                <div style={{ padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <small style={{ fontWeight: '950', opacity: 0.3, letterSpacing: '1px' }}>HISTORIAL DE FLUJO</small>
-                  <small style={{ color: 'var(--primary-cyan)', fontWeight: '900' }}>{filteredGlobalTx.length} items</small>
-                </div>
-                {filteredGlobalTx.length === 0 ? (
-                  <div style={{ padding: '40px 20px', textAlign: 'center', opacity: 0.2, fontSize: '0.8rem' }}>Sin movimientos este mes</div>
-                ) : (
-                  filteredGlobalTx.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((tx, idx) => (
-                    <div key={tx.id} style={{ padding: '15px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: idx === filteredGlobalTx.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.02)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: tx.type === 'IN' ? 'rgba(0,255,163,0.1)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {tx.type === 'IN' ? <IconPlus size={14} color="var(--success-green)" /> : <IconArrowLeft size={14} color="#fff" style={{ transform: 'rotate(-45deg)' }} />}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: '900' }}>{tx.desc}</div>
-                          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                            <small style={{ fontSize: '0.55rem', opacity: 0.3, textTransform: 'uppercase' }}>{tx.category}</small>
-                            <small style={{ fontSize: '0.55rem', opacity: 0.3 }}>•</small>
-                            <small
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                const next = tx.method === 'Nequi' ? 'Daviplata' : (tx.method === 'Daviplata' ? 'Efectivo' : 'Nequi');
-                                if (confirm(`¿Corregir método a ${next}?`)) {
-                                  await updateDoc(doc(db, "globalTx", tx.id), { method: next });
-                                }
-                              }}
-                              style={{ fontSize: '0.55rem', opacity: 0.6, cursor: 'pointer', borderBottom: '1px dotted rgba(255,255,255,0.3)' }}
-                              title="Clic para corregir método"
-                            >
-                              {tx.method || 'S/M'}
-                            </small>
-                            {tx.eventId && (
-                              <>
-                                <small style={{ fontSize: '0.55rem', opacity: 0.3 }}>•</small>
-                                <small style={{ fontSize: '0.55rem', color: 'var(--primary-purple)', fontWeight: '800' }}>#{tx.eventId.split('-').slice(-1)}</small>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: '950', color: tx.type === 'IN' ? 'var(--success-green)' : '#fff' }}>{tx.type === 'IN' ? '+' : '-'} {formatPeso(tx.amount)}</div>
-                          <small style={{ fontSize: '0.5rem', opacity: 0.2 }}>{new Date(tx.createdAt).toLocaleDateString()}</small>
-                        </div>
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (confirm('¿Eliminar esta transacción definitivamente de la tesorería?')) {
-                              await deleteDoc(doc(db, "globalTx", tx.id));
-                            }
-                          }}
-                          style={{ background: 'transparent', border: 'none', color: '#ff3860', padding: '8px', cursor: 'pointer', opacity: 0.3 }}
-                        >
-                          <IconTrash size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
-          {accountingTab === 'METRICAS' && (
-            <div className="fade-in" style={{ paddingBottom: '20px' }}>
-
-              {/* TERMINAL DE TRADING NEXXA (CANDLESTICK VIEW) */}
-              <div style={{ background: '#020202', borderRadius: '20px', border: '1px solid rgba(0, 242, 255, 0.2)', overflow: 'hidden', marginBottom: '10px', position: 'relative' }}>
-
-                {/* SELECTOR DE TEMPORALIDAD */}
-                <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {['H', 'D', 'W', 'M', 'Y'].map(tf => (
-                      <button
-                        key={tf}
-                        onClick={() => setTradingTimeframe(tf)}
-                        style={{ background: tradingTimeframe === tf ? 'var(--primary-cyan)' : 'transparent', border: 'none', color: tradingTimeframe === tf ? '#000' : 'rgba(255,255,255,0.4)', fontSize: '0.55rem', fontWeight: '950', padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'monospace' }}
-                      >
-                        {tf}
-                      </button>
-                    ))}
-                  </div>
-                  <small style={{ fontFamily: 'monospace', fontSize: '0.5rem', color: 'var(--success-green)', fontWeight: '950' }}>● LIVE_FEED</small>
-                </div>
-
-                {/* ÁREA DE VELAS REALISTAS CONEXAS (90PX) */}
-                <div style={{ height: '90px', position: 'relative', background: '#020202', padding: '5px' }}>
-                  <div style={{ position: 'absolute', inset: 0, opacity: 0.05, backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '15px 15px' }}></div>
-
-                  <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'relative', zIndex: 2, overflow: 'visible' }}>
-                    {(() => {
-                      const step = 100 / (realCandles.length - 1);
-                      const getY = (val) => 90 - ((val - minVal) / range) * 80;
-
-                      // Trazado de Bandas de Bollinger Reales
-                      const topPath = realBands.map((b, i) => `${i * step},${getY(b.top)}`).join(' L ');
-                      const midPath = realBands.map((b, i) => `${i * step},${getY(b.mid)}`).join(' L ');
-                      const botPath = realBands.map((b, i) => `${i * step},${getY(b.bot)}`).join(' L ');
-
-                      return (
-                        <>
-                          {/* Bandas Conectadas */}
-                          <path d={`M ${topPath}`} fill="none" stroke="rgba(255, 165, 0, 0.2)" strokeWidth="0.5" strokeDasharray="1,1" />
-                          <path d={`M ${midPath}`} fill="none" stroke="rgba(255, 165, 0, 0.4)" strokeWidth="0.5" />
-                          <path d={`M ${botPath}`} fill="none" stroke="rgba(255, 165, 0, 0.2)" strokeWidth="0.5" strokeDasharray="1,1" />
-
-                          {/* Velas Conectadas (Open[n] = Close[n-1]) */}
-                          {realCandles.map((c, i) => {
-                            const x = i * step;
-                            const yOpen = getY(c.open);
-                            const yClose = getY(c.close);
-                            const yHigh = getY(c.high);
-                            const yLow = getY(c.low);
-                            const color = c.isUp ? '#00ffa3' : '#ff385c';
-
-                            return (
-                              <g key={i}>
-                                {/* Mecha Real */}
-                                <line x1={x} y1={yHigh} x2={x} y2={yLow} stroke={color} strokeWidth="0.2" />
-                                {/* Cuerpo Real */}
-                                <rect
-                                  x={x - 1.5}
-                                  y={Math.min(yOpen, yClose)}
-                                  width="3"
-                                  height={Math.max(Math.abs(yOpen - yClose), 1)}
-                                  fill={color}
-                                  style={{ filter: `drop-shadow(0 0 1px ${color}aa)` }}
-                                />
-                              </g>
-                            );
-                          })}
-                        </>
-                      );
-                    })()}
-                  </svg>
-                </div>
-
-                {/* TICKER DE VALORES */}
-                <div style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.01)', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <small style={{ fontSize: '0.45rem', color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>VOL: <span style={{ color: '#fff' }}>{formatPeso(currentIncome)}</span></small>
-                    <small style={{ fontSize: '0.45rem', color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>P/L: <span style={{ color: 'var(--success-green)' }}>+{((currentBalance / (currentIncome || 1)) * 100).toFixed(1)}%</span></small>
-                  </div>
-                  <small style={{ fontSize: '0.45rem', color: 'rgba(255,255,255,0.2)', fontFamily: 'monospace' }}>NEXXA_FIN_OS_v2.0</small>
-                </div>
-              </div>
-
-
-            </div>
-          )}
-
-          {accountingTab === 'MARKETING' && (
-            <div className="fade-in" style={{ paddingBottom: '30px' }}>
-              {/* ANÁLISIS DE INVERSIÓN Y ROI (UNIFICADO) */}
-              <div style={{ marginBottom: '25px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '950', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span>📊</span> Inteligencia de Marketing
-                  </h3>
-                  <button
-                    onClick={async () => {
-                      if (!isEditingAds) {
-                        // START EDITING: Init buffer
-                        setLocalAdsBuffer({ ...adAllocations });
-                        setIsEditingAds(true);
-                      } else {
-                        // SAVE
-                        const allocId = `ALLOC-${selectedYear}-${selectedMonth}`;
-                        try {
-                          await setDoc(doc(db, "marketing_allocations", allocId), {
-                            id: allocId,
-                            month: selectedMonth,
-                            year: selectedYear,
-                            channels: localAdsBuffer,
-                            lastUpdated: new Date().toISOString()
-                          }, { merge: true });
-                          setIsEditingAds(false);
-                        } catch (err) {
-                          console.error(err);
-                          alert('Error al guardar');
-                        }
-                      }
-                    }}
-                    style={{
-                      background: isEditingAds ? 'var(--success-green)' : 'rgba(255,255,255,0.08)',
-                      color: isEditingAds ? '#000' : '#fff',
-                      border: isEditingAds ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                      padding: '10px 16px',
-                      borderRadius: '12px',
-                      fontSize: '0.65rem',
-                      fontWeight: '950',
-                      letterSpacing: '0.5px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      boxShadow: isEditingAds ? '0 0 15px rgba(0,255,163,0.3)' : 'none'
-                    }}
-                  >
-                    {isEditingAds ? 'GUARDAR INVERSIÓN' : 'CONFIGURAR INVERSIÓN'}
-                  </button>
-                </div>
-
-                {(() => {
-                  const marketingChannels = ['Instagram', 'Meta (Face/Insta)', 'Google', 'TikTok', 'WhatsApp', 'Otro'];
-
-                  // 1. OBTENER GASTO REAL EN BALANCE (Total, sin filtrar por ADS:)
-                  // Sumamos TODO lo que esté categorizado como MARKETING en este mes
-                  let totalBalanceMarketing = 0;
-                  globalTx.forEach(tx => {
-                    const d = new Date(tx.createdAt); // OR tx.date
-                    if (
-                      tx.type === 'OUT' &&
-                      tx.category === 'MARKETING' &&
-                      d.getMonth() === selectedMonth &&
-                      d.getFullYear() === selectedYear
-                    ) {
-                      totalBalanceMarketing += tx.amount;
-                    }
-                  });
-
-                  // 2. USAR LAS ASIGNACIONES MANUALES (adAllocations)
-                  // Estas vienen del documento 'marketing_allocations' sincronizado en el useEffect
-                  const currentAllocations = adAllocations || {};
-                  const totalAllocated = Object.values(currentAllocations).reduce((a, b) => a + Number(b), 0);
-                  const remainingToAllocate = totalBalanceMarketing - totalAllocated;
-
-                  // FUNCIÓN DE GUARDADO PARA EL MODO EDICIÓN (Actualiza documento info, NO crea transacciones)
-                  const handleSaveAdSpend = async (channel, amount) => {
-                    const val = Number(amount);
-                    const allocId = `ALLOC-${selectedYear}-${selectedMonth}`;
-
-                    // Crear copia del estado actual y actualizar
-                    const newAllocations = { ...currentAllocations, [channel]: val };
-
-                    // Guardar en Firestore (Documento Sidecar)
-                    try {
-                      await setDoc(doc(db, "marketing_allocations", allocId), {
-                        id: allocId,
-                        month: selectedMonth,
-                        year: selectedYear,
-                        channels: newAllocations,
-                        lastUpdated: new Date().toISOString()
-                      }, { merge: true });
-                    } catch (err) {
-                      console.error("Error saving allocation:", err);
-                    }
-                  };
-
-                  // PRE-CALCULAR Y ORDENAR MÉTRICAS
-                  const calculatedChannels = marketingChannels.map(channel => {
-                    const leads = quotations.filter(q => (q.leadSource || '').toLowerCase().includes(channel.toLowerCase().split(' ')[0])).length;
-
-                    // Revenue: sum of APPROVED quotations
-                    const revenue = quotations
-                      .filter(q => (q.leadSource || '').toLowerCase().includes(channel.toLowerCase().split(' ')[0]))
-                      .filter(q => ['APPROVED', 'CONFIRMED', 'CLOSED', 'SENT'].includes(q.status))
-                      .reduce((sum, q) => sum + (Number(q.financials?.totalValue) || 0), 0);
-
-                    // Costs (FROM ALLOCATIONS)
-                    const investment = currentAllocations[channel] || 0;
-
-                    // Metrics
-                    const profit = revenue - investment;
-                    const roi = investment > 0 ? (profit / investment) * 100 : 0;
-                    const costPerLead = leads > 0 ? investment / leads : 0;
-                    const isProfitable = roi > 0;
-
-                    return { channel, leads, revenue, investment, profit, roi, costPerLead, isProfitable };
-                  }).sort((a, b) => b.roi - a.roi); // ORDENAR POR ROI DESCENDENTE
-
-                  const winner = calculatedChannels[0]; // El mejor canal
-                  const hasWinner = winner && winner.roi > 0 && winner.investment > 0;
-
-                  return (
-                    <div>
-                      {/* TOTAL MENSUAL CARD (Compact) */}
-                      <div style={{
-                        background: 'rgba(255, 165, 0, 0.03)',
-                        border: '1px solid rgba(255, 165, 0, 0.2)',
-                        borderRadius: '16px',
-                        padding: '15px',
-                        marginBottom: '15px',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        flexDirection: 'column'
-                      }}>
-                        <div style={{ position: 'absolute', right: '-5px', top: '-5px', opacity: 0.1, transform: 'rotate(-10deg)' }}>
-                          <span style={{ fontSize: '60px' }}>📢</span>
-                        </div>
-                        <small style={{ fontSize: '0.55rem', fontWeight: '900', color: '#ffcc00', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>INVERSIÓN TOTAL MENSUAL</small>
-                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                          <div>
-                            <div style={{ fontSize: '2rem', fontWeight: '950', color: '#ffcc00', letterSpacing: '-1px', lineHeight: '1' }}>
-                              {formatPeso(totalBalanceMarketing)}
-                            </div>
-                            <small style={{ fontSize: '0.55rem', color: '#888' }}>En Balance</small>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '1rem', fontWeight: '900', color: remainingToAllocate >= 0 ? 'var(--success-green)' : 'var(--danger-red)' }}>
-                              {formatPeso(Math.abs(remainingToAllocate))}
-                            </div>
-                            <small style={{ fontSize: '0.45rem', fontWeight: '900', opacity: 0.6, letterSpacing: '0.5px' }}>
-                              {remainingToAllocate >= 0 ? 'POR ASIGNAR' : 'EXCEDIDO'}
-                            </small>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* CHANNEL CARDS GRID */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
-                        {/* SPECIAL WINNER CARD (Compact) */}
-                        {!isEditingAds && hasWinner && (
-                          <div className="fade-in" style={{
-                            gridColumn: '1 / -1',
-                            background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(0,0,0,0) 100%)',
-                            border: '1px solid rgba(255, 215, 0, 0.3)',
-                            borderRadius: '16px',
-                            padding: '15px',
-                            marginBottom: '5px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '15px',
-                            position: 'relative',
-                            overflow: 'hidden'
-                          }}>
-                            <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>🏆</div>
-                            <div>
-                              <small style={{ fontSize: '0.5rem', letterSpacing: '1.5px', fontWeight: '900', color: '#ffcc00', textTransform: 'uppercase' }}>CANAL MÁS RENTABLE</small>
-                              <h2 style={{ margin: '2px 0', fontSize: '1.4rem', fontWeight: '950', color: '#fff' }}>{winner.channel}</h2>
-                              <p style={{ margin: 0, fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.2' }}>
-                                Retorno del <strong style={{ color: 'var(--success-green)' }}>{winner.roi.toFixed(0)}%</strong>
-                              </p>
-                            </div>
-                            <div style={{ position: 'absolute', right: -10, bottom: -10, opacity: 0.1 }}>
-                              <span style={{ fontSize: '5rem' }}>⭐</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {calculatedChannels.map(({ channel, leads, revenue, investment, profit, roi, costPerLead, isProfitable }) => {
-                          if (isEditingAds) {
-                            return (
-                              <div key={channel} style={{ background: '#0a0a0a', padding: '8px 10px', borderRadius: '12px', border: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem' }}>
-                                    {channel === 'Instagram' ? '📸' : channel.includes('Meta') ? '♾️' : channel === 'Google' ? '🔍' : channel === 'TikTok' ? '🎵' : channel === 'WhatsApp' ? '💬' : '🌐'}
-                                  </div>
-                                  <span style={{ fontWeight: '950', color: '#fff', fontSize: '0.7rem' }}>{channel.split(' ')[0]}</span>
-                                </div>
-                                <div style={{ width: '80px' }}>
-                                  <input
-                                    type="tel"
-                                    placeholder="$ 0"
-                                    // Show formatted with dots (es-CO), or empty if 0
-                                    value={localAdsBuffer[channel] ? new Intl.NumberFormat('es-CO').format(localAdsBuffer[channel]) : ''}
-                                    onChange={(e) => {
-                                      // Remove dots and other non-digits to get raw integer
-                                      const raw = e.target.value.replace(/\D/g, '');
-                                      setLocalAdsBuffer(prev => ({ ...prev, [channel]: raw === '' ? 0 : Number(raw) }));
-                                    }}
-                                    style={{
-                                      width: '100%',
-                                      background: 'transparent',
-                                      border: 'none',
-                                      borderBottom: '1px solid #333',
-                                      color: '#fff',
-                                      fontSize: '0.9rem',
-                                      fontWeight: '900',
-                                      textAlign: 'right',
-                                      padding: '5px 0',
-                                      outline: 'none'
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          // MODE: DISPLAY
-                          if (investment === 0 && leads === 0) return null;
-
-                          return (
-                            <div key={channel} style={{
-                              background: '#050505',
-                              border: hasWinner && winner.channel === channel ? '1px solid rgba(255, 215, 0, 0.4)' : '1px solid rgba(255,255,255,0.06)',
-                              borderRadius: '14px',
-                              padding: '10px 12px',
-                              position: 'relative',
-                              overflow: 'hidden',
-                              boxShadow: hasWinner && winner.channel === channel ? '0 4px 20px rgba(255, 215, 0, 0.1)' : '0 2px 10px rgba(0,0,0,0.2)'
-                            }}>
-                              {/* ROI INDICATOR */}
-                              <div style={{
-                                position: 'absolute', top: '10px', right: '12px',
-                                textAlign: 'right'
-                              }}>
-                                <small style={{ display: 'block', fontSize: '0.45rem', fontWeight: '900', color: '#666', letterSpacing: '1px' }}>ROI</small>
-                                <span style={{ fontSize: '0.9rem', fontWeight: '950', color: isProfitable ? 'var(--success-green)' : (investment > 0 ? 'var(--danger-red)' : '#666') }}>
-                                  {investment > 0 ? `${roi.toFixed(0)}%` : 'N/A'}
-                                </span>
-                              </div>
-
-                              <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                  {channel === 'Instagram' ? '📸' : channel.includes('Meta') ? '♾️' : channel === 'Google' ? '🔍' : channel === 'TikTok' ? '🎵' : channel === 'WhatsApp' ? '💬' : '🌐'}
-                                </div>
-                                <div>
-                                  <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: '950', color: '#fff' }}>{channel}</h4>
-                                  <p style={{ margin: '1px 0 0 0', fontSize: '0.55rem', color: '#888', fontWeight: '700' }}>Inversión:
-                                    <span style={{ color: '#fff' }}> {formatPeso(investment)}</span>
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px', borderTop: '1px solid #1a1a1a', paddingTop: '8px' }}>
-                                <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.01)', padding: '6px', borderRadius: '8px' }}>
-                                  <div style={{ fontSize: '0.8rem', fontWeight: '950', color: '#fff' }}>{leads}</div>
-                                  <small style={{ fontSize: '0.4rem', fontWeight: '900', color: '#555', letterSpacing: '0.5px' }}>LEADS</small>
-                                </div>
-                                <div style={{ textAlign: 'center', background: 'rgba(0, 255, 163, 0.02)', padding: '6px', borderRadius: '8px', border: '1px solid rgba(0, 255, 163, 0.05)' }}>
-                                  <div style={{ fontSize: '0.65rem', fontWeight: '950', color: 'var(--success-green)' }}>{formatPeso(revenue)}</div>
-                                  <small style={{ fontSize: '0.4rem', fontWeight: '900', color: 'var(--success-green)', opacity: 0.6, letterSpacing: '0.5px' }}>INGRESOS</small>
-                                </div>
-                                <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.01)', padding: '6px', borderRadius: '8px' }}>
-                                  <div style={{ fontSize: '0.65rem', fontWeight: '950', color: '#fff' }}>{formatPeso(costPerLead)}</div>
-                                  <small style={{ fontSize: '0.4rem', fontWeight: '900', color: '#555', letterSpacing: '0.5px' }}>COSTO/LEAD</small>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {/* EMPTY STATE */}
-                        {!isEditingAds && totalBalanceMarketing === 0 && quotations.length === 0 && (
-                          <div style={{ textAlign: 'center', padding: '40px 20px', opacity: 0.4, border: '2px dashed #333', borderRadius: '24px' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📉</div>
-                            <p style={{ margin: 0, fontWeight: '800', fontSize: '0.9rem' }}>Sin datos</p>
-                            <small style={{ fontSize: '0.7rem' }}>Configura inversión o crea cotizaciones.</small>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-
-
-                })()}
-
-
-              </div>
-            </div>
-          )
-          }
-
-          {
-            accountingTab === 'METRICAS' && (
-              <div className="fade-in">
-                {/* ANÁLISIS DE CANALES DE ADQUISICIÓN */}
-                <div style={{ marginBottom: '25px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '950', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span>📊</span> Análisis de Canales de Marketing
-                    </h3>
-                    {/* Botón temporal para generar datos de ejemplo */}
-                    {quotations.filter(q => q.leadSource).length === 0 && (
-                      <button
-                        onClick={async () => {
-                          if (!confirm('¿Crear 5 cotizaciones de ejemplo para visualizar las métricas?')) return;
-
-                          const sampleQuotations = [
-                            {
-                              id: `QUO-DEMO-${Date.now()}-1`,
-                              status: 'APPROVED',
-                              createdAt: new Date().toISOString(),
-                              client: { name: 'María González', phone: '3001234567', phone2: '' },
-                              eventDetails: { date: '2026-03-15', occasion: 'Cumpleaños' },
-                              logistics: {
-                                packName: 'Memories',
-                                startTime: '19:00',
-                                endTime: '23:00',
-                                location: 'Calle 123 #45-67',
-                                neighborhood: 'Chapinero',
-                                guestCount: 80,
-                                selectedExtras: {}
-                              },
-                              financials: { totalValue: 650000, deposit: 195000, paymentMethod: 'Nequi' },
-                              leadSource: 'Instagram'
-                            },
-                            {
-                              id: `QUO-DEMO-${Date.now()}-2`,
-                              status: 'SENT',
-                              createdAt: new Date().toISOString(),
-                              client: { name: 'Carlos Rodríguez', phone: '3109876543', phone2: '' },
-                              eventDetails: { date: '2026-03-18', occasion: 'Aniversario' },
-                              logistics: {
-                                packName: 'Essential',
-                                startTime: '18:00',
-                                endTime: '22:00',
-                                location: 'Carrera 7 #80-45',
-                                neighborhood: 'Usaquén',
-                                guestCount: 50,
-                                selectedExtras: {}
-                              },
-                              financials: { totalValue: 450000, deposit: 135000, paymentMethod: 'Daviplata' },
-                              leadSource: 'Facebook'
-                            },
-                            {
-                              id: `QUO-DEMO-${Date.now()}-3`,
-                              status: 'APPROVED',
-                              createdAt: new Date().toISOString(),
-                              client: { name: 'Ana Martínez', phone: '3157654321', phone2: '' },
-                              eventDetails: { date: '2026-03-20', occasion: 'Boda' },
-                              logistics: {
-                                packName: 'Celebration',
-                                startTime: '17:00',
-                                endTime: '23:00',
-                                location: 'Avenida 15 #100-20',
-                                neighborhood: 'Suba',
-                                guestCount: 150,
-                                selectedExtras: {}
-                              },
-                              financials: { totalValue: 1020000, deposit: 306000, paymentMethod: 'Nequi' },
-                              leadSource: 'Recomendación'
-                            },
-                            {
-                              id: `QUO-DEMO-${Date.now()}-4`,
-                              status: 'APPROVED',
-                              createdAt: new Date().toISOString(),
-                              client: { name: 'Pedro Sánchez', phone: '3201112233', phone2: '' },
-                              eventDetails: { date: '2026-03-22', occasion: 'Graduación' },
-                              logistics: {
-                                packName: 'Memories',
-                                startTime: '20:00',
-                                endTime: '01:00',
-                                location: 'Calle 85 #12-34',
-                                neighborhood: 'Chicó',
-                                guestCount: 100,
-                                selectedExtras: {}
-                              },
-                              financials: { totalValue: 735000, deposit: 220500, paymentMethod: 'Efectivo' },
-                              leadSource: 'Instagram'
-                            },
-                            {
-                              id: `QUO-DEMO-${Date.now()}-5`,
-                              status: 'SENT',
-                              createdAt: new Date().toISOString(),
-                              client: { name: 'Laura Díaz', phone: '3158889999', phone2: '' },
-                              eventDetails: { date: '2026-03-25', occasion: 'Fiesta Corporativa' },
-                              logistics: {
-                                packName: 'Essential',
-                                startTime: '19:00',
-                                endTime: '22:00',
-                                location: 'Carrera 15 #93-45',
-                                neighborhood: 'Chicó Norte',
-                                guestCount: 60,
-                                selectedExtras: {}
-                              },
-                              financials: { totalValue: 450000, deposit: 135000, paymentMethod: 'Nequi' },
-                              leadSource: 'Google'
-                            }
-                          ];
-
-                          try {
-                            for (const quo of sampleQuotations) {
-                              await setDoc(doc(db, 'quotations', quo.id), quo);
-                            }
-                            alert('✅ 5 cotizaciones de ejemplo creadas!\n\nAhora verás las métricas de canales.');
-                          } catch (error) {
-                            alert('❌ Error: ' + error.message);
-                          }
-                        }}
-                        style={{
-                          background: 'var(--brand-gradient)',
-                          border: 'none',
-                          padding: '8px 15px',
-                          borderRadius: '12px',
-                          fontSize: '0.65rem',
-                          fontWeight: '950',
-                          color: '#000',
-                          cursor: 'pointer',
-                          letterSpacing: '0.5px'
-                        }}
-                      >
-                        + DATOS DEMO
-                      </button>
-                    )}
-                  </div>
-
-                  {(() => {
-                    // Calcular métricas por canal
-                    const channels = ['Facebook', 'Instagram', 'Google', 'Recomendación', 'WhatsApp', 'TikTok', 'Otro'];
-                    const channelIcons = {
-                      'Facebook': '📘',
-                      'Instagram': '📸',
-                      'Google': '🔍',
-                      'Recomendación': '👥',
-                      'WhatsApp': '💬',
-                      'TikTok': '🎵',
-                      'Otro': '🌐'
-                    };
-
-                    const channelStats = channels.map(channel => {
-                      const channelQuotations = quotations.filter(q => q.leadSource === channel);
-                      const totalLeads = channelQuotations.length;
-                      const convertedLeads = channelQuotations.filter(q => q.status === 'APPROVED').length;
-                      const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
-                      const revenue = channelQuotations
-                        .filter(q => q.status === 'APPROVED')
-                        .reduce((sum, q) => sum + (Number(q.financials?.totalValue) || 0), 0);
-
-                      return {
-                        channel,
-                        icon: channelIcons[channel],
-                        totalLeads,
-                        convertedLeads,
-                        conversionRate,
-                        revenue
-                      };
-                    }).filter(stat => stat.totalLeads > 0) // Solo mostrar canales con datos
-                      .sort((a, b) => b.revenue - a.revenue); // Ordenar por ingresos
-
-                    const totalLeadsAll = channelStats.reduce((sum, s) => sum + s.totalLeads, 0);
-                    const totalRevenueAll = channelStats.reduce((sum, s) => sum + s.revenue, 0);
-
-                    if (channelStats.length === 0) {
-                      return (
-                        <div style={{
-                          background: 'rgba(255,255,255,0.02)',
-                          padding: '40px',
-                          borderRadius: '24px',
-                          textAlign: 'center',
-                          border: '1px solid rgba(255,255,255,0.05)'
-                        }}>
-                          <div style={{ fontSize: '3rem', marginBottom: '15px', opacity: 0.3 }}>📊</div>
-                          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
-                            No hay datos de canales aún.<br />
-                            Empieza a registrar de dónde vienen tus clientes en cada cotización.
-                          </p>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <>
-                        {/* RESUMEN GENERAL */}
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr 1fr',
-                          gap: '8px',
-                          marginBottom: '12px'
-                        }}>
-                          <div style={{
-                            background: 'rgba(0, 242, 255, 0.05)',
-                            padding: '12px',
-                            borderRadius: '14px',
-                            border: '1px solid rgba(0, 242, 255, 0.2)'
-                          }}>
-                            <small style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: '900', letterSpacing: '0.5px' }}>TOTAL LEADS</small>
-                            <div style={{ fontSize: '1.4rem', fontWeight: '950', color: 'var(--primary-cyan)', marginTop: '3px' }}>
-                              {totalLeadsAll}
-                            </div>
-                          </div>
-                          <div style={{
-                            background: 'rgba(0, 255, 163, 0.05)',
-                            padding: '12px',
-                            borderRadius: '14px',
-                            border: '1px solid rgba(0, 255, 163, 0.2)'
-                          }}>
-                            <small style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: '900', letterSpacing: '0.5px' }}>INGRESOS TOTALES</small>
-                            <div style={{ fontSize: '1rem', fontWeight: '950', color: 'var(--success-green)', marginTop: '3px' }}>
-                              {formatPeso(totalRevenueAll)}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* TABLA DE CANALES */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {channelStats.map((stat, index) => {
-                            const shareOfLeads = (stat.totalLeads / totalLeadsAll) * 100;
-                            const shareOfRevenue = totalRevenueAll > 0 ? (stat.revenue / totalRevenueAll) * 100 : 0;
-
-                            return (
-                              <div
-                                key={stat.channel}
-                                style={{
-                                  background: 'rgba(255,255,255,0.02)',
-                                  border: '1px solid rgba(255,255,255,0.06)',
-                                  borderRadius: '14px',
-                                  padding: '12px',
-                                  position: 'relative',
-                                  overflow: 'hidden'
-                                }}
-                              >
-                                {/* Barra de progreso de fondo */}
-                                <div style={{
-                                  position: 'absolute',
-                                  left: 0,
-                                  top: 0,
-                                  bottom: 0,
-                                  width: `${shareOfRevenue}%`,
-                                  background: index === 0
-                                    ? 'linear-gradient(90deg, rgba(0,242,255,0.1) 0%, rgba(0,242,255,0.02) 100%)'
-                                    : 'rgba(255,255,255,0.02)',
-                                  transition: 'width 0.5s ease'
-                                }}></div>
-
-                                <div style={{ position: 'relative', zIndex: 1 }}>
-                                  {/* Header del canal */}
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <span style={{ fontSize: '1.2rem' }}>{stat.icon}</span>
-                                      <div>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: '900', color: '#fff' }}>
-                                          {stat.channel}
-                                          {index === 0 && (
-                                            <span style={{
-                                              marginLeft: '6px',
-                                              fontSize: '0.45rem',
-                                              background: 'var(--brand-gradient)',
-                                              color: '#000',
-                                              padding: '2px 6px',
-                                              borderRadius: '4px',
-                                              fontWeight: '950'
-                                            }}>
-                                              TOP
-                                            </span>
-                                          )}
-                                        </div>
-                                        <small style={{ fontSize: '0.5rem', opacity: 0.4 }}>
-                                          {shareOfLeads.toFixed(1)}% de leads • {shareOfRevenue.toFixed(1)}% de ingresos
-                                        </small>
-                                      </div>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontSize: '0.9rem', fontWeight: '950', color: 'var(--success-green)' }}>
-                                        {formatPeso(stat.revenue)}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Métricas */}
-                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
-                                    <div style={{
-                                      background: 'rgba(0,0,0,0.3)',
-                                      padding: '8px',
-                                      borderRadius: '10px',
-                                      textAlign: 'center'
-                                    }}>
-                                      <div style={{ fontSize: '1rem', fontWeight: '950', color: '#fff' }}>
-                                        {stat.totalLeads}
-                                      </div>
-                                      <small style={{ fontSize: '0.5rem', opacity: 0.4, fontWeight: '800' }}>LEADS</small>
-                                    </div>
-                                    <div style={{
-                                      background: 'rgba(0,0,0,0.3)',
-                                      padding: '8px',
-                                      borderRadius: '10px',
-                                      textAlign: 'center'
-                                    }}>
-                                      <div style={{ fontSize: '1rem', fontWeight: '950', color: 'var(--primary-cyan)' }}>
-                                        {stat.convertedLeads}
-                                      </div>
-                                      <small style={{ fontSize: '0.5rem', opacity: 0.4, fontWeight: '800' }}>VENTAS</small>
-                                    </div>
-                                    <div style={{
-                                      background: 'rgba(0,0,0,0.3)',
-                                      padding: '8px',
-                                      borderRadius: '10px',
-                                      textAlign: 'center'
-                                    }}>
-                                      <div style={{
-                                        fontSize: '1rem',
-                                        fontWeight: '950',
-                                        color: stat.conversionRate >= 50 ? 'var(--success-green)' :
-                                          stat.conversionRate >= 30 ? '#facc15' : '#fff'
-                                      }}>
-                                        {stat.conversionRate.toFixed(0)}%
-                                      </div>
-                                      <small style={{ fontSize: '0.5rem', opacity: 0.4, fontWeight: '800' }}>CONVERSIÓN</small>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* INSIGHTS */}
-                        <div style={{
-                          marginTop: '15px',
-                          background: 'linear-gradient(135deg, rgba(188, 111, 241, 0.1) 0%, rgba(0, 242, 255, 0.05) 100%)',
-                          border: '1px solid rgba(188, 111, 241, 0.2)',
-                          padding: '12px',
-                          borderRadius: '14px'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '1rem' }}>💡</span>
-                            <strong style={{ fontSize: '0.65rem', color: 'var(--primary-purple)' }}>Insights</strong>
-                          </div>
-                          <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.65rem', lineHeight: '1.6', color: 'rgba(255,255,255,0.7)' }}>
-                            <li>
-                              <strong style={{ color: '#fff' }}>{channelStats[0]?.channel}</strong> es tu mejor canal con {formatPeso(channelStats[0]?.revenue)} en ingresos
-                            </li>
-                            {channelStats.find(s => s.conversionRate >= 50) && (
-                              <li>
-                                <strong style={{ color: '#fff' }}>{channelStats.find(s => s.conversionRate >= 50).channel}</strong> tiene la mejor tasa de conversión ({channelStats.find(s => s.conversionRate >= 50).conversionRate.toFixed(0)}%)
-                              </li>
-                            )}
-                            <li>
-                              Promedio de conversión general: <strong style={{ color: '#fff' }}>
-                                {(channelStats.reduce((sum, s) => sum + s.conversionRate, 0) / channelStats.length).toFixed(0)}%
-                              </strong>
-                            </li>
-                          </ul>
-                        </div>
-// CÓDIGO PARA AGREGAR EN LA LÍNEA 2105 (después del cierre de Insights, antes del cierre de la sección METRICAS)
-
-                        {/* INVERSIÓN PUBLICITARIA */}
-                        <div style={{ marginTop: '20px' }}>
-                          <h3 style={{ fontSize: '0.9rem', fontWeight: '950', color: '#fff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>💰</span> Inversión Publicitaria
-                          </h3>
-
-                          {(() => {
-                            // Inversiones publicitarias por canal
-                            const adSpend = [
-                              { channel: 'Facebook', amount: 200000, period: 'Mensual' },
-                              { channel: 'Instagram', amount: 350000, period: 'Mensual' },
-                              { channel: 'Google', amount: 150000, period: 'Mensual' },
-                              { channel: 'TikTok', amount: 100000, period: 'Mensual' }
-                            ];
-
-                            const totalSpend = adSpend.reduce((sum, ad) => sum + ad.amount, 0);
-
-                            // Calcular ROI por canal
-                            const channelROI = adSpend.map(ad => {
-                              const channelData = channelStats.find(c => c.channel === ad.channel);
-                              const revenue = channelData?.revenue || 0;
-                              const roi = ad.amount > 0 ? ((revenue - ad.amount) / ad.amount) * 100 : 0;
-
-                              return {
-                                ...ad,
-                                revenue,
-                                roi,
-                                leads: channelData?.totalLeads || 0,
-                                costPerLead: channelData?.totalLeads > 0 ? ad.amount / channelData.totalLeads : 0
-                              };
-                            }).sort((a, b) => b.roi - a.roi);
-
-                            return (
-                              <>
-                                {/* Resumen de inversión */}
-                                <div style={{
-                                  background: 'rgba(255,165,0,0.05)',
-                                  border: '1px solid rgba(255,165,0,0.2)',
-                                  borderRadius: '14px',
-                                  padding: '12px',
-                                  marginBottom: '12px'
-                                }}>
-                                  <small style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: '900', letterSpacing: '0.5px' }}>INVERSIÓN TOTAL MENSUAL</small>
-                                  <div style={{ fontSize: '1.2rem', fontWeight: '950', color: '#ffa500', marginTop: '3px' }}>
-                                    {formatPeso(totalSpend)}
-                                  </div>
-                                </div>
-
-                                {/* Tabla de inversiones */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                  {channelROI.map(ad => (
-                                    <div
-                                      key={ad.channel}
-                                      style={{
-                                        background: 'rgba(255,255,255,0.02)',
-                                        border: '1px solid rgba(255,255,255,0.06)',
-                                        borderRadius: '12px',
-                                        padding: '10px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '8px'
-                                      }}
-                                    >
-                                      {/* Header */}
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                          <div style={{ fontSize: '0.7rem', fontWeight: '900', color: '#fff' }}>
-                                            {ad.channel}
-                                          </div>
-                                          <small style={{ fontSize: '0.5rem', opacity: 0.4 }}>
-                                            Inversión: {formatPeso(ad.amount)}
-                                          </small>
-                                        </div>
-                                        <div style={{
-                                          fontSize: '0.75rem',
-                                          fontWeight: '950',
-                                          color: ad.roi >= 100 ? 'var(--success-green)' : ad.roi >= 0 ? '#facc15' : 'var(--danger-red)'
-                                        }}>
-                                          ROI: {ad.roi.toFixed(0)}%
-                                        </div>
-                                      </div>
-
-                                      {/* Métricas */}
-                                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
-                                        <div style={{
-                                          background: 'rgba(0,0,0,0.3)',
-                                          padding: '6px',
-                                          borderRadius: '8px',
-                                          textAlign: 'center'
-                                        }}>
-                                          <div style={{ fontSize: '0.75rem', fontWeight: '950', color: '#fff' }}>
-                                            {ad.leads}
-                                          </div>
-                                          <small style={{ fontSize: '0.45rem', opacity: 0.4, fontWeight: '800' }}>LEADS</small>
-                                        </div>
-                                        <div style={{
-                                          background: 'rgba(0,0,0,0.3)',
-                                          padding: '6px',
-                                          borderRadius: '8px',
-                                          textAlign: 'center'
-                                        }}>
-                                          <div style={{ fontSize: '0.65rem', fontWeight: '950', color: 'var(--success-green)' }}>
-                                            {formatPeso(ad.revenue)}
-                                          </div>
-                                          <small style={{ fontSize: '0.45rem', opacity: 0.4, fontWeight: '800' }}>INGRESOS</small>
-                                        </div>
-                                        <div style={{
-                                          background: 'rgba(0,0,0,0.3)',
-                                          padding: '6px',
-                                          borderRadius: '8px',
-                                          textAlign: 'center'
-                                        }}>
-                                          <div style={{ fontSize: '0.65rem', fontWeight: '950', color: '#fff' }}>
-                                            {formatPeso(ad.costPerLead)}
-                                          </div>
-                                          <small style={{ fontSize: '0.45rem', opacity: 0.4, fontWeight: '800' }}>COSTO/LEAD</small>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-
-                                {/* Insights de inversión */}
-                                <div style={{
-                                  marginTop: '12px',
-                                  background: 'rgba(255,165,0,0.05)',
-                                  border: '1px solid rgba(255,165,0,0.15)',
-                                  padding: '10px',
-                                  borderRadius: '12px'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                                    <span style={{ fontSize: '0.8rem' }}>📈</span>
-                                    <strong style={{ fontSize: '0.6rem', color: '#ffa500' }}>Análisis de Inversión</strong>
-                                  </div>
-                                  <ul style={{ margin: 0, paddingLeft: '14px', fontSize: '0.6rem', lineHeight: '1.5', color: 'rgba(255,255,255,0.7)' }}>
-                                    {channelROI[0] && (
-                                      <li>
-                                        <strong style={{ color: '#fff' }}>{channelROI[0].channel}</strong> tiene el mejor ROI ({channelROI[0].roi.toFixed(0)}%)
-                                      </li>
-                                    )}
-                                    {channelROI.find(c => c.costPerLead > 0) && (
-                                      <li>
-                                        Costo promedio por lead: <strong style={{ color: '#fff' }}>
-                                          {formatPeso(channelROI.reduce((sum, c) => sum + c.costPerLead, 0) / channelROI.filter(c => c.costPerLead > 0).length)}
-                                        </strong>
-                                      </li>
-                                    )}
-                                    <li>
-                                      Retorno total: <strong style={{ color: '#fff' }}>
-                                        {formatPeso(totalRevenueAll - totalSpend)}
-                                      </strong> ({((totalRevenueAll - totalSpend) / totalSpend * 100).toFixed(0)}% ROI general)
-                                    </li>
-                                  </ul>
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            )
-          }
-
-          {/* MODAL DE SELECTOR DE MES (ADN NEXXA) */}
-          {
-            showMonthSelector && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(20px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '35px', padding: '30px', width: '100%', maxWidth: '380px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-                    <h3 style={{ margin: 0, fontWeight: '950' }}>Periodo</h3>
-                    <button onClick={() => setShowMonthSelector(false)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', padding: '8px 12px', borderRadius: '12px' }}>×</button>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                    {(months || []).map((m, i) => (
-                      <button
-                        key={m}
-                        onClick={() => { setSelectedMonth(i); setShowMonthSelector(false); }}
-                        style={{ padding: '12px 5px', borderRadius: '14px', border: '1.5px solid', borderColor: selectedMonth === i ? 'var(--primary-cyan)' : 'transparent', background: selectedMonth === i ? 'rgba(0,242,255,0.1)' : 'rgba(255,255,255,0.02)', color: '#fff', fontSize: '0.65rem', fontWeight: '950' }}
-                      >
-                        {String(m || '').substring(0, 3).toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                    {[2024, 2025, 2026].map(y => (
-                      <button key={y} onClick={() => setSelectedYear(y)} style={{ flex: 1, padding: '12px', borderRadius: '15px', border: 'none', background: selectedYear === y ? 'var(--brand-gradient)' : 'rgba(255,255,255,0.05)', color: selectedYear === y ? '#000' : '#fff', fontWeight: '950' }}>{y}</button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )
-          }
-
-          {/* EL PANEL FLOTANTE HA SIDO ELIMINADO PARA DESPEJAR LA NAVEGACIÓN */}
-        </div >
-      );
-    } catch (error) {
-      console.error("Crash en renderAccounting:", error);
-      return (
-        <div style={{ padding: '60px', textAlign: 'center' }}>
-          <IconAlertTriangle size={40} color="#ff3860" />
-          <h3 style={{ marginTop: '20px' }}>Error en Contabilidad</h3>
-          <p style={{ opacity: 0.5, fontSize: '0.8rem' }}>{error.message}</p>
-          <button onClick={() => setView('dashboard')} style={{ marginTop: '20px', padding: '10px 20px', borderRadius: '14px', background: 'var(--primary-cyan)', border: 'none', color: '#000', fontWeight: '900' }}>VOLVER</button>
-        </div>
-      );
-    }
-  };
 
   // --- VIEW: INVENTORY (CONTROL) ---
   const renderInventory = () => {
@@ -3262,7 +1751,7 @@ function App() {
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '24px', padding: '15px 25px', marginBottom: '35px', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: '15px' }}>
           <IconHistory size={18} style={{ opacity: 0.3 }} />
           <input
-            placeholder="Buscar equipo o categoría..."
+            placeholder="Buscar equipo o categorÃ­a..."
             style={{ margin: 0, background: 'transparent', border: 'none', padding: '10px 0', fontSize: '1rem', color: '#fff', outline: 'none', width: '100%' }}
           />
         </div>
@@ -3279,7 +1768,7 @@ function App() {
                 </div>
                 <div style={{ paddingLeft: '20px', flex: 1 }}>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#fff' }}>{item?.name || 'Item sin nombre'}</h4>
-                  <small style={{ opacity: 0.3, fontWeight: '700', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.8px', marginTop: '4px', display: 'block' }}>{item?.category || 'Sin categoría'}</small>
+                  <small style={{ opacity: 0.3, fontWeight: '700', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.8px', marginTop: '4px', display: 'block' }}>{item?.category || 'Sin categorÃ­a'}</small>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '1.6rem', fontWeight: '900', color: (item?.available || 0) < 3 ? 'var(--danger-red)' : 'var(--primary-cyan)', lineHeight: 1 }}>{item?.available || 0}</div>
@@ -3294,7 +1783,7 @@ function App() {
   };
 
   const deleteInventoryItem = (id) => {
-    if (confirm('¿Eliminar?')) setInventory(inventory.filter(i => i.id !== id));
+    if (confirm('Â¿Eliminar?')) setInventory(inventory.filter(i => i.id !== id));
   };
   const [editingItem, setEditingItem] = useState(null);
   const handleEditInventory = (e) => {
@@ -3319,15 +1808,15 @@ function App() {
       const handlePasteFromWhatsApp = async () => {
         try {
           const text = await navigator.clipboard.readText();
-          if (!text) return alert('Portapapeles vacío');
+          if (!text) return alert('Portapapeles vacÃ­o');
 
           const newData = { ...newEvent };
 
           // Regex Parser V4 (Super Robust Header Support)
-          // Identifica el inicio de cualquier sección común
+          // Identifica el inicio de cualquier secciÃ³n comÃºn
           // Regex Parser V5 (Stricter Newline Logic & Synonyms)
-          // Identifica el inicio de cualquier sección común
-          const sectionStartRegex = /(?:👤|📅|⏰|📍|👥|📦|➕|🎉|💰|📝|🚚|Cliente|Ofrece|Fecha|Horario|Ubicación|Dirección|Lugar|Invitados|Paquete|Extras|Adicionales|Ocasión|Valor|Total|Costo|Indicaciones|Recibir|Material|Nombre|Titular|Servicios|Incluye)/i;
+          // Identifica el inicio de cualquier secciÃ³n comÃºn
+          const sectionStartRegex = /(?:ðŸ‘¤|ðŸ“…|â°|ðŸ“|ðŸ‘¥|ðŸ“¦|âž•|ðŸŽ‰|ðŸ’°|ðŸ“|ðŸšš|Cliente|Ofrece|Fecha|Horario|UbicaciÃ³n|DirecciÃ³n|Lugar|Invitados|Paquete|Extras|Adicionales|OcasiÃ³n|Valor|Total|Costo|Indicaciones|Recibir|Material|Nombre|Titular|Servicios|Incluye)/i;
 
           const getSection = (startPattern, text) => {
             // Updated V6: Allow content before the key on the same line (e.g. timestamps "[10:00] ", bullets "- ", etc)
@@ -3337,17 +1826,17 @@ function App() {
             return m ? m[1].trim() : null;
           };
 
-          const rawClient = getSection(/(?:👤|Cliente|Nombre|Titular|Quien reserva)/, text);
-          const rawDate = getSection(/(?:📅|Fecha|Día)/, text);
-          const rawTime = getSection(/(?:⏰|Horario|Hora)/, text);
-          const rawLoc = getSection(/(?:📍|Ubicación|Dirección|Lugar)/, text);
-          const rawGuests = getSection(/(?:👥|Invitados|Personas)/, text);
-          const rawPack = getSection(/(?:📦|Paquete|Servicio)/, text);
-          const rawExtras = getSection(/(?:➕|Extras|Adicionales|Incluye|Servicios)/, text);
-          const rawOccasion = getSection(/(?:🎉|Ocasión|Motivo)/, text);
-          const rawExtraRate = getSection(/(?:💰|Valor Hora Extra|Total|Valor|Costo)/, text);
-          const rawIndications = getSection(/(?:📝|Indicaciones|Notas|Observaciones)/, text);
-          const rawMaterials = getSection(/(?:🚚|Recibir material)/, text);
+          const rawClient = getSection(/(?:ðŸ‘¤|Cliente|Nombre|Titular|Quien reserva)/, text);
+          const rawDate = getSection(/(?:ðŸ“…|Fecha|DÃ­a)/, text);
+          const rawTime = getSection(/(?:â°|Horario|Hora)/, text);
+          const rawLoc = getSection(/(?:ðŸ“|UbicaciÃ³n|DirecciÃ³n|Lugar)/, text);
+          const rawGuests = getSection(/(?:ðŸ‘¥|Invitados|Personas)/, text);
+          const rawPack = getSection(/(?:ðŸ“¦|Paquete|Servicio)/, text);
+          const rawExtras = getSection(/(?:âž•|Extras|Adicionales|Incluye|Servicios)/, text);
+          const rawOccasion = getSection(/(?:ðŸŽ‰|OcasiÃ³n|Motivo)/, text);
+          const rawExtraRate = getSection(/(?:ðŸ’°|Valor Hora Extra|Total|Valor|Costo)/, text);
+          const rawIndications = getSection(/(?:ðŸ“|Indicaciones|Notas|Observaciones)/, text);
+          const rawMaterials = getSection(/(?:ðŸšš|Recibir material)/, text);
 
           if (rawClient) newData.clientName = rawClient.split('\n')[0].trim();
           if (rawDate) newData.date = rawDate.split('\n')[0].trim();
@@ -3427,19 +1916,19 @@ function App() {
           }
           newData.selectedExtras = newExtras;
 
-          if (!newData.clientName) alert(`⚠️ Advertencia: No se detectó el nombre del Cliente.\n\nContenido detectado (Inicio): "${text.substring(0, 50)}..."\n\nRevise que el mensaje tenga el formato "Cliente: [Nombre]"`);
-          alert(`✅ Datos Importados:\nCliente: ${newData.clientName || 'No detectado'}\nPaquete: ${newData.packName || 'No detectado'}\nExtras Detectados: ${Object.keys(newExtras).length}\nTexto Extras: "${rawExtras || 'No encontrado'}"`);
+          if (!newData.clientName) alert(`âš ï¸ Advertencia: No se detectÃ³ el nombre del Cliente.\n\nContenido detectado (Inicio): "${text.substring(0, 50)}..."\n\nRevise que el mensaje tenga el formato "Cliente: [Nombre]"`);
+          alert(`âœ… Datos Importados:\nCliente: ${newData.clientName || 'No detectado'}\nPaquete: ${newData.packName || 'No detectado'}\nExtras Detectados: ${Object.keys(newExtras).length}\nTexto Extras: "${rawExtras || 'No encontrado'}"`);
 
           setNewEvent(newData);
           setTimeout(() => updateEvent('recalc', null), 100); // Trigger recalc
 
         } catch (err) {
           console.error(err);
-          alert('No se pudo leer el portapapeles. Asegúrate de dar permiso.');
+          alert('No se pudo leer el portapapeles. AsegÃºrate de dar permiso.');
         }
       };
 
-      // --- DATA DINÁMICA DE EXTRAS (Moved to App Scope as getDynamicExtras) ---
+      // --- DATA DINÃMICA DE EXTRAS (Moved to App Scope as getDynamicExtras) ---
       // Kept here as reference or we just use the scoped one. 
       // Since we moved it to App scope, we don't need to redefine it, but we need to ensure renderCreate uses it.
       // We already moved it up, so we can delete this block.
@@ -3613,7 +2102,7 @@ function App() {
               <button
                 onClick={() => {
                   try {
-                    if (!newEvent.clientPhone) return alert('Se requiere número de WhatsApp');
+                    if (!newEvent.clientPhone) return alert('Se requiere nÃºmero de WhatsApp');
 
                     const hours = newEvent.startTime && newEvent.endTime ? getHours(newEvent.startTime, newEvent.endTime).toFixed(1) : '0';
 
@@ -3633,39 +2122,39 @@ function App() {
                           extrasList.push(`- ${def?.name || 'Item'}: ${def?.details || ''}`);
                         } else {
                           // Fallback for manually added or legacy keys
-                          if (k === 'makeup' || k === 'extra_makeup') extrasList.push(`- Maquillaje Neón (x${newEvent.makeupCount || 1})`);
+                          if (k === 'makeup' || k === 'extra_makeup') extrasList.push(`- Maquillaje NeÃ³n (x${newEvent.makeupCount || 1})`);
                           else extrasList.push(`- ${k}`);
                         }
                       }
                     });
 
                     const msg =
-                      `🎧 *NEXXA SOUND - RESUMEN DE TU EVENTO* 🎧
+                      `ðŸŽ§ *NEXXA SOUND - RESUMEN DE TU EVENTO* ðŸŽ§
                       
-¡Hola *${newEvent.clientName.split(' ')[0]}*! 👋 Es un gusto saludarte. Aquí tienes el resumen actualizado de tu experiencia musical:
+Â¡Hola *${newEvent.clientName.split(' ')[0]}*! ðŸ‘‹ Es un gusto saludarte. AquÃ­ tienes el resumen actualizado de tu experiencia musical:
 
-━━━━━━━━━━━━━━━━━━
-👤 *CLIENTE:* ${newEvent.clientName}
-📅 *FECHA:* ${newEvent.date}
-⏰ *HORARIO:* ${newEvent.startTime} a ${newEvent.endTime} (${hours} horas)
-📍 *LUGAR:* ${newEvent.location}
-👥 *INVITADOS:* ${newEvent.guestCount} pax
-🎉 *MOTIVO:* ${newEvent.occasion || 'Evento Social'}
-━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ðŸ‘¤ *CLIENTE:* ${newEvent.clientName}
+ðŸ“… *FECHA:* ${newEvent.date}
+â° *HORARIO:* ${newEvent.startTime} a ${newEvent.endTime} (${hours} horas)
+ðŸ“ *LUGAR:* ${newEvent.location}
+ðŸ‘¥ *INVITADOS:* ${newEvent.guestCount} pax
+ðŸŽ‰ *MOTIVO:* ${newEvent.occasion || 'Evento Social'}
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
-📦 *PAQUETE:* 【 ${newEvent.packName?.toUpperCase()} 】
+ðŸ“¦ *PAQUETE:* ã€ ${newEvent.packName?.toUpperCase()} ã€‘
 
-💎 *SERVICIOS ADICIONALES:*
-${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados_'}
+ðŸ’Ž *SERVICIOS ADICIONALES:*
+${extrasList.length > 0 ? extrasList.join('\n') : 'âœ¨ _Sin extras seleccionados_'}
 
-💰 *VALOR TOTAL:* *${formatPeso(newEvent.totalValue)}*
-🎟️ *RESERVA (30% ABONO):* ${formatPeso(newEvent.deposit)}
+ðŸ’° *VALOR TOTAL:* *${formatPeso(newEvent.totalValue)}*
+ðŸŽŸï¸ *RESERVA (30% ABONO):* ${formatPeso(newEvent.deposit)}
 
-━━━━━━━━━━━━━━━━━━
-📝 *NOTAS:* ${newEvent.indications || 'Ninguna'}
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ðŸ“ *NOTAS:* ${newEvent.indications || 'Ninguna'}
 
-🚀 *¿Confirmamos la reserva ahora mismo?* 
-¡Quedo atento para asegurar tu fecha! 🎧🔥`;
+ðŸš€ *Â¿Confirmamos la reserva ahora mismo?* 
+Â¡Quedo atento para asegurar tu fecha! ðŸŽ§ðŸ”¥`;
 
                     let phone = newEvent.clientPhone.replace(/\D/g, '');
                     // Smart append 57 if missing (assuming colombian numbers are 10 digits approx)
@@ -3685,7 +2174,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
               <button
                 onClick={() => {
-                  if (confirm('¿Descartar cambios y limpiar formulario?')) {
+                  if (confirm('Â¿Descartar cambios y limpiar formulario?')) {
                     const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
                     setNewEvent(emptyState);
                     localStorage.removeItem('nexxa_draft_event');
@@ -3698,20 +2187,20 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             </div>
 
             <div style={{ textAlign: 'right', flex: 1 }}>
-              <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 'bold' }}>{isEventMode ? 'EDITANDO EVENTO' : 'NUEVA COTIZACIÓN'}</span>
+              <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 'bold' }}>{isEventMode ? 'EDITANDO EVENTO' : 'NUEVA COTIZACIÃ“N'}</span>
             </div>
           </div>
 
           <form onSubmit={handleCreateEvent} className="create-form">
 
-            {/* SECCIÓN 1: HORARIOS DEL PERSONAL (ACCORDION) */}
+            {/* SECCIÃ“N 1: HORARIOS DEL PERSONAL (ACCORDION) */}
             <div className="form-section">
               <div
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
                 <h3>1. Paquete y Horarios</h3>
-                <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s1 ? '▼' : '▶'}</span>
+                <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s1 ? 'â–¼' : 'â–¶'}</span>
               </div>
               {sectionState.s1 && (
                 <>
@@ -3724,14 +2213,14 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <option value="Personalizado">Personalizado</option>
                     </select>
                     <select style={{ flex: 1 }} value={newEvent.leadSource || ''} onChange={e => updateEvent('leadSource', e.target.value)}>
-                      <option value="">¿Cómo nos conoció?</option>
-                      <option value="Facebook">📘 Facebook</option>
-                      <option value="Instagram">📸 Instagram</option>
-                      <option value="Google">🔍 Google</option>
-                      <option value="Recomendación">👥 Recomendación</option>
-                      <option value="WhatsApp">💬 WhatsApp</option>
-                      <option value="TikTok">🎵 TikTok</option>
-                      <option value="Otro">🌐 Otro</option>
+                      <option value="">Â¿CÃ³mo nos conociÃ³?</option>
+                      <option value="Facebook">ðŸ“˜ Facebook</option>
+                      <option value="Instagram">ðŸ“¸ Instagram</option>
+                      <option value="Google">ðŸ” Google</option>
+                      <option value="RecomendaciÃ³n">ðŸ‘¥ RecomendaciÃ³n</option>
+                      <option value="WhatsApp">ðŸ’¬ WhatsApp</option>
+                      <option value="TikTok">ðŸŽµ TikTok</option>
+                      <option value="Otro">ðŸŒ Otro</option>
                     </select>
                   </div>
 
@@ -3742,8 +2231,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <input required type="date" value={newEvent.date} onChange={e => updateEvent('date', e.target.value)} style={{ width: '100%' }} />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Ocasión</label>
-                      <input placeholder="Ej: Cumpleaños" value={newEvent.occasion} onChange={e => updateEvent('occasion', e.target.value)} style={{ width: '100%' }} />
+                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>OcasiÃ³n</label>
+                      <input placeholder="Ej: CumpleaÃ±os" value={newEvent.occasion} onChange={e => updateEvent('occasion', e.target.value)} style={{ width: '100%' }} />
                     </div>
                   </div>
 
@@ -3775,22 +2264,22 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
                   {duration > 0 && (
                     <div style={{ marginBottom: '10px', padding: '4px 8px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: '#00d4ff' }}>
-                      ⏱ <strong>{duration.toFixed(1)}h</strong> (DJ/Sonido)
+                      â± <strong>{duration.toFixed(1)}h</strong> (DJ/Sonido)
                       {extrasKy > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extrasKy}h extra)</span>}
                     </div>
                   )}
 
-                  {/* SECCIÓN 2.1: ASIGNACIÓN OPERATIVA (Visibilidad Global) */}
+                  {/* SECCIÃ“N 2.1: ASIGNACIÃ“N OPERATIVA (Visibilidad Global) */}
                   <div style={{ marginTop: '15px' }}>
                     {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
-                      <h4 style={{ fontSize: '0.8rem', color: 'var(--primary-cyan)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>1.1 Asignación Operativa</h4>
+                      <h4 style={{ fontSize: '0.8rem', color: 'var(--primary-cyan)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>1.1 AsignaciÃ³n Operativa</h4>
                     )}
                     {/* SEPARATE SCHEDULING FOR PHOTOGRAPHY */}
                     {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
                       <div style={{ padding: '15px', background: 'rgba(255, 150, 0, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 150, 0, 0.2)', marginBottom: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#facc15' }}>
                           <IconCalendar size={14} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Fotografía (OBLIGATORIO)</span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario FotografÃ­a (OBLIGATORIO)</span>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                           <TimeInput label="Inicio Foto" value={newEvent.photoStartTime} onChange={(val) => updateEvent('photoStartTime', val)} />
@@ -3798,11 +2287,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         </div>
                         {newEvent.photoDuration > 0 && (
                           <div style={{ marginTop: '10px', padding: '5px 10px', background: 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: '#facc15' }}>
-                            📸 <strong>{newEvent.photoDuration}h</strong> Fotografía
+                            ðŸ“¸ <strong>{newEvent.photoDuration}h</strong> FotografÃ­a
                           </div>
                         )}
                         <p style={{ margin: '8px 0 0 0', fontSize: '0.65rem', opacity: 0.6, color: '#fff' }}>
-                          * El fotógrafo suele ir por una franja de horas distinta a la del DJ.
+                          * El fotÃ³grafo suele ir por una franja de horas distinta a la del DJ.
                         </p>
                       </div>
                     )}
@@ -3811,7 +2300,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <div style={{ padding: '15px', background: 'rgba(188, 111, 241, 0.05)', borderRadius: '15px', border: '1px solid rgba(188, 111, 241, 0.2)', marginBottom: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-purple)' }}>
                           <IconFlow size={14} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Decoración (OBLIGATORIO)</span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario DecoraciÃ³n (OBLIGATORIO)</span>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                           <TimeInput label="Inicio Decor" value={newEvent.decorStartTime} onChange={(val) => updateEvent('decorStartTime', val)} />
@@ -3824,20 +2313,20 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   {/* Row 3: Location */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
                     <input required placeholder="Barrio" value={newEvent.neighborhood || ''} onChange={e => updateEvent('neighborhood', e.target.value)} />
-                    <input required placeholder="Dirección Exacta" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} />
+                    <input required placeholder="DirecciÃ³n Exacta" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} />
                   </div>
                 </>
               )}
             </div>
 
-            {/* SECCIÓN 2: EXTRAS (ACCORDION) */}
+            {/* SECCIÃ“N 2: EXTRAS (ACCORDION) */}
             <div className="form-section">
               <div
                 onClick={() => toggleSection('s2')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s2 ? '15px' : '0' }}
               >
                 <h3>2. Extras</h3>
-                <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s2 ? '▼' : '▶'}</span>
+                <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s2 ? 'â–¼' : 'â–¶'}</span>
               </div>
 
               {sectionState.s2 && (
@@ -3885,14 +2374,14 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
 
 
-            {/* SECCIÓN 3: CLIENTE (ACCORDION - COLLAPSED DEFAULT) */}
+            {/* SECCIÃ“N 3: CLIENTE (ACCORDION - COLLAPSED DEFAULT) */}
             <div className="form-section">
               <div
                 onClick={() => toggleSection('s3')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '15px' : '0' }}
               >
                 <h3>3. Datos del Cliente</h3>
-                <span style={{ fontSize: '1.2rem', color: '#00d4ff' }}>{sectionState.s3 ? '▼' : '▶'}</span>
+                <span style={{ fontSize: '1.2rem', color: '#00d4ff' }}>{sectionState.s3 ? 'â–¼' : 'â–¶'}</span>
               </div>
 
               {sectionState.s3 && (
@@ -3906,21 +2395,21 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               )}
             </div>
 
-            {/* SECCIÓN 4: DETALLES DE MISION (SOLO MODO EVENTO) */}
+            {/* SECCIÃ“N 4: DETALLES DE MISION (SOLO MODO EVENTO) */}
             {
               isEventMode && (
                 <div className="form-section">
-                  <h3>4. Detalles de la Misión</h3>
+                  <h3>4. Detalles de la MisiÃ³n</h3>
                   <label style={{ fontSize: '0.75rem', color: '#666' }}>Indicaciones Especiales (Venue/Acceso)</label>
                   <textarea
-                    placeholder="Ej: Ingreso por sótano, llevar mantel blanco, etc."
+                    placeholder="Ej: Ingreso por sÃ³tano, llevar mantel blanco, etc."
                     value={newEvent.indications}
                     onChange={e => updateEvent('indications', e.target.value)}
                     style={{ width: '100%', minHeight: '60px', background: '#222', color: '#fff', border: '1px solid #333', borderRadius: '12px', padding: '10px', fontSize: '0.9rem', marginBottom: '10px' }}
                   />
-                  <label style={{ fontSize: '0.75rem', color: '#666' }}>Explicación del Material (Inventario/Uso)</label>
+                  <label style={{ fontSize: '0.75rem', color: '#666' }}>ExplicaciÃ³n del Material (Inventario/Uso)</label>
                   <textarea
-                    placeholder="Notas sobre el material asignado o uso específico..."
+                    placeholder="Notas sobre el material asignado o uso especÃ­fico..."
                     value={newEvent.materialExplanation}
                     onChange={e => updateEvent('materialExplanation', e.target.value)}
                     style={{ width: '100%', minHeight: '60px', background: '#222', color: '#fff', border: '1px solid #333', borderRadius: '12px', padding: '10px', fontSize: '0.9rem' }}
@@ -3929,13 +2418,13 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               )
             }
 
-            {/* SECCIÓN 5: COTIZACIÓN FINAL */}
+            {/* SECCIÃ“N 5: COTIZACIÃ“N FINAL */}
 
 
 
-            {/* SECCIÓN 5: COTIZACIÓN (TOTAL) */}
+            {/* SECCIÃ“N 5: COTIZACIÃ“N (TOTAL) */}
             <div className="form-section" style={{ borderColor: '#00d4ff', borderWidth: '1px', borderStyle: 'solid' }}>
-              <h3 style={{ color: '#00d4ff' }}>5. Cotización Final</h3>
+              <h3 style={{ color: '#00d4ff' }}>5. CotizaciÃ³n Final</h3>
 
               <div className="money-row">
                 <div style={{ flex: 1, fontSize: '0.8rem', color: '#ccc', background: '#222', padding: '10px', borderRadius: '8px', marginRight: '10px' }}>
@@ -4071,9 +2560,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
       console.error("Critical error in renderCreate:", error);
       return (
         <div style={{ padding: '40px', color: 'white', textAlign: 'center' }}>
-          <h2 style={{ color: 'var(--primary-cyan)', marginBottom: '16px' }}>⚠️ Error de Visualización</h2>
+          <h2 style={{ color: 'var(--primary-cyan)', marginBottom: '16px' }}>âš ï¸ Error de VisualizaciÃ³n</h2>
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <p style={{ opacity: 0.7, fontSize: '0.9rem' }}>Hubo un problema al procesar los datos de esta cotización/evento.</p>
+            <p style={{ opacity: 0.7, fontSize: '0.9rem' }}>Hubo un problema al procesar los datos de esta cotizaciÃ³n/evento.</p>
             <pre style={{
               background: 'rgba(12, 12, 12, 0.5)',
               padding: '15px',
@@ -4156,24 +2645,24 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
       checkAutoClose(updatedEvt);
     } catch (err) {
       console.error("Error updating item status:", err);
-      alert("Error al actualizar estado del ítem");
+      alert("Error al actualizar estado del Ã­tem");
     }
   };
 
   /* --- VIRTUAL INVENTORY LOGIC (MOVED UP FOR SCOPE ACCESS) --- */
   const getVirtualItems = (role, packName) => {
-    // Definición estricta de ítems por rol (según solicitud)
+    // DefiniciÃ³n estricta de Ã­tems por rol (segÃºn solicitud)
     const pName = (packName || '').toLowerCase();
     const dj = [
-      { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: pName.includes('celebration') ? 4 : 2 },
-      { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1 },
-      { name: 'LUCES LED X4 + SOPORTE TRÍPODE', qty: 1 },
-      { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1 },
+      { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÃPODES', qty: pName.includes('celebration') ? 4 : 2 },
+      { name: 'PC PORTÃTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1 },
+      { name: 'LUCES LED X4 + SOPORTE TRÃPODE', qty: 1 },
+      { name: 'MÃQUINA HUMO + CONTROL + LÃQUIDO', qty: 1 },
       { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1 },
       { name: 'MAQUILLAJE NEON (PINTURAS, PINCEL, MAQUILLADOR, 2H)', qty: 1 }
     ];
     const photo = [
-      { name: 'CÁMARA', qty: 1 },
+      { name: 'CÃMARA', qty: 1 },
       { name: 'MICRO SD', qty: 1 }
     ];
     const decor = [
@@ -4223,9 +2712,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     });
 
     if (unreturnedGroups.length > 0) {
-      if (!confirm(`⚠️ HAY MATERIALES PENDIENTES:\n${unreturnedGroups.map(([norm]) => `- ${norm}`).join('\n')}\n\n¿Deseas ignorar esto y CERRAR EL EVENTO de todos modos (Fuerza Bruta)?`)) return;
+      if (!confirm(`âš ï¸ HAY MATERIALES PENDIENTES:\n${unreturnedGroups.map(([norm]) => `- ${norm}`).join('\n')}\n\nÂ¿Deseas ignorar esto y CERRAR EL EVENTO de todos modos (Fuerza Bruta)?`)) return;
     } else {
-      if (!confirm('¿Confirmar cierre operativo y financiero del evento?')) return;
+      if (!confirm('Â¿Confirmar cierre operativo y financiero del evento?')) return;
     }
 
     try {
@@ -4237,7 +2726,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
         "logistics.flow.staffConfirmed": true,
         "logistics.flow.equipmentDelivered": true
       });
-      alert('✅ Evento CERRADO exitosamente.');
+      alert('âœ… Evento CERRADO exitosamente.');
       setView('events');
     } catch (err) {
       console.error(err);
@@ -4285,7 +2774,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           "logistics.flow.equipmentDelivered": true,
           "logistics.flow.clientPaid": true
         });
-        alert('🎊 ¡Todo listo! El evento se ha finalizado automáticamente.');
+        alert('ðŸŽŠ Â¡Todo listo! El evento se ha finalizado automÃ¡ticamente.');
         if (view === 'detail') setView('events');
       } catch (err) { console.error("Auto-close error:", err); }
     }
@@ -4326,7 +2815,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     let currentItems = [...(evt.logistics?.items || [])];
     const normalize = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-    // 1. FORZAR ACTUALIZACIÓN de lo que ya esté en la lista para este rol
+    // 1. FORZAR ACTUALIZACIÃ“N de lo que ya estÃ© en la lista para este rol
     let itemChanged = false;
     const normalizedRole = role.toUpperCase();
     currentItems = currentItems.map(i => {
@@ -4338,7 +2827,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
       return i;
     });
 
-    // 2. Asegurar que los items virtuales esperados también estén (y en el estado correcto)
+    // 2. Asegurar que los items virtuales esperados tambiÃ©n estÃ©n (y en el estado correcto)
     const virtualList = getVirtualItems(role, evt.logistics?.packName);
     if (virtualList.length > 0) {
       virtualList.forEach(vItem => {
@@ -4370,10 +2859,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
       const updatedEvt = { ...evt, logistics: { ...(evt.logistics || {}), items: currentItems } };
       await checkAutoClose(updatedEvt);
-      alert(`✅ Estado actualizado a '${newStatus}' para ${role}.`);
+      alert(`âœ… Estado actualizado a '${newStatus}' para ${role}.`);
     } catch (err) {
       console.error("Bulk update error:", err);
-      alert(`Error en actualización masiva: ${err.message || 'Error desconocido'}`);
+      alert(`Error en actualizaciÃ³n masiva: ${err.message || 'Error desconocido'}`);
     }
   };
 
@@ -4403,12 +2892,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
       const totalExtraHoursSum = Object.values(extraHoursMap).reduce((acc, v) => acc + (parseFloat(v) || 0), 0);
       const payrollValue = 35000 + (duration * 13000) + (totalExtraHoursSum * 15000);
 
-      // CÁLCULO DE EXTRAS CLIENTE (REFORZADO)
+      // CÃLCULO DE EXTRAS CLIENTE (REFORZADO)
       const customerExtrasTotal = (parseFloat(extraHoursMap.DJ || 0) * 85000) +
         (parseFloat(extraHoursMap.FOTO || 0) * 35000) +
         (parseFloat(extraHoursMap.DECOR || 0) * 40000);
 
-      // Cálculo de Utilidad Líquida Real
+      // CÃ¡lculo de Utilidad LÃ­quida Real
       const eventTransactions = globalTx.filter(t => t.eventId === evt.id);
       const eventExpenses = eventTransactions.filter(t => t.type === 'OUT').reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
       const baseRevenue = evt.financials?.totalValue || 0;
@@ -4454,7 +2943,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 const displayName = assignedPerson ? (assignedPerson.name || '').split(' ')[0] : (responsibleRole === 'DJ / OPERADOR' ? 'DJ' : responsibleRole);
                 return (
                   <span style={{ color: '#ff3860', fontSize: '0.65rem', fontWeight: '950', letterSpacing: '0.5px' }}>
-                    ⚠️ {displayName.toUpperCase()} COBRA {formatPeso(currentBalanceDue)}
+                    âš ï¸ {displayName.toUpperCase()} COBRA {formatPeso(currentBalanceDue)}
                   </span>
                 );
               })()}
@@ -4463,7 +2952,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '15px' }}>
               {[
                 { label: 'DJ / OP', role: 'DJ / OPERADOR', icon: <IconStaff size={12} /> },
-                { label: 'FOTO', role: 'FOTÓGRAFO', icon: <IconCamera size={12} /> },
+                { label: 'FOTO', role: 'FOTÃ“GRAFO', icon: <IconCamera size={12} /> },
                 { label: 'DECOR', role: 'DECORADOR', icon: <IconPlus size={12} /> }
               ].filter(st => {
                 if (st.role === 'DECORADOR') {
@@ -4569,7 +3058,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 fontSize: '0.55rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px'
               }}
             >
-              <IconFileText size={12} /> VER COTIZACIÓN ORIGINAL (CONTRATO)
+              <IconFileText size={12} /> VER COTIZACIÃ“N ORIGINAL (CONTRATO)
             </button>
           </section>
 
@@ -4577,7 +3066,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           <section style={{ padding: '0 15px 35px 15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
               <h4 style={{ fontSize: '0.75rem', fontWeight: '950', textTransform: 'uppercase', margin: 0, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>
-                {(evt.client?.name || 'Cliente').toUpperCase()} • <span style={{ color: 'var(--primary-purple)' }}>{evt.eventDetails?.occasion?.toUpperCase() || 'EVENTO'}</span>
+                {(evt.client?.name || 'Cliente').toUpperCase()} â€¢ <span style={{ color: 'var(--primary-purple)' }}>{evt.eventDetails?.occasion?.toUpperCase() || 'EVENTO'}</span>
               </h4>
               <span style={{ color: 'var(--primary-cyan)', fontSize: '0.65rem', fontWeight: '950', letterSpacing: '0.5px' }}>
                 WP-{evt.id?.split('-').slice(1).join('-') || '000000-00'}
@@ -4587,7 +3076,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: '24px', padding: '25px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, right: 0, width: '4px', height: '100%', background: 'var(--brand-gradient)' }}></div>
 
-              {/* LOCALIZACIÓN COMPACTA (MOVED) */}
+              {/* LOCALIZACIÃ“N COMPACTA (MOVED) */}
               <div style={{ marginBottom: '15px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
@@ -4606,7 +3095,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       background: 'rgba(0, 242, 255, 0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(0, 242, 255, 0.1)'
                     }}
                   >
-                    BRÚJULA NEXXA →
+                    BRÃšJULA NEXXA â†’
                   </a>
                 </div>
               </div>
@@ -4639,7 +3128,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   </span>
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '1px' }}>DURACIÓN</span>
+                  <span style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '1px' }}>DURACIÃ“N</span>
                   <span style={{ fontSize: '0.65rem', fontWeight: '950', color: '#fff' }}>{duration.toFixed(1)}H</span>
                 </div>
               </div>
@@ -4664,13 +3153,13 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {evt.eventDetails?.photoStartTime && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '10px' }}>
-                          <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#facc15' }}>📸 FOTOGRAFÍA</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#facc15' }}>ðŸ“¸ FOTOGRAFÃA</span>
                           <span style={{ fontSize: '0.75rem', fontWeight: '900' }}>{formatT(evt.eventDetails.photoStartTime)} - {formatT(evt.eventDetails.photoEndTime)}</span>
                         </div>
                       )}
                       {evt.eventDetails?.decorStartTime && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '10px' }}>
-                          <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)' }}>✨ DECORACIÓN</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)' }}>âœ¨ DECORACIÃ“N</span>
                           <span style={{ fontSize: '0.75rem', fontWeight: '900' }}>{formatT(evt.eventDetails.decorStartTime)} - {formatT(evt.eventDetails.decorEndTime)}</span>
                         </div>
                       )}
@@ -4681,8 +3170,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
 
 
-              {/* GESTIÓN DE HORARIOS (EXTRAS) */}
-              {/* GESTIÓN DE HORARIOS COMPACTA (EXTRAS) */}
+              {/* GESTIÃ“N DE HORARIOS (EXTRAS) */}
+              {/* GESTIÃ“N DE HORARIOS COMPACTA (EXTRAS) */}
               <div style={{ marginTop: '15px', background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
 
 
@@ -4749,7 +3238,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         startField: 'eventDetails.photoStartTime', endField: 'eventDetails.photoEndTime',
                         sVal: evt.eventDetails?.photoStartTime || evt.eventDetails?.startTime,
                         eVal: evt.eventDetails?.photoEndTime || evt.eventDetails?.endTime,
-                        visible: (isMemories || isCelebration) || (!isEssential && (evt.eventDetails?.photoStartTime || hasRole('FOTÓGRAFO')))
+                        visible: (isMemories || isCelebration) || (!isEssential && (evt.eventDetails?.photoStartTime || hasRole('FOTÃ“GRAFO')))
                       },
                       {
                         id: 'DECOR', label: 'DECOR', color: '#bc6ff1',
@@ -4848,14 +3337,14 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         min="0"
                         step="0.5"
                         placeholder="0"
-                        // Mostramos vacío si es 0 para facilitar escritura
+                        // Mostramos vacÃ­o si es 0 para facilitar escritura
                         value={evt.financials?.extraHours?.[role.id] === 0 ? "" : (evt.financials?.extraHours?.[role.id] ?? "")}
                         onFocus={(e) => e.target.select()}
                         onChange={async (e) => {
                           const valStr = e.target.value;
                           const valNum = valStr === "" ? 0 : parseFloat(valStr);
 
-                          // ACTUALIZACIÓN DIRECTA EN EL ESTADO LOCAL DE EVENTOS
+                          // ACTUALIZACIÃ“N DIRECTA EN EL ESTADO LOCAL DE EVENTOS
                           // Esto fuerza a React a re-calcular todos los totales al instante
                           const updatedEvents = events.map(ev => {
                             if (ev.id === evt.id) {
@@ -4898,7 +3387,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     if (active.length === 0) return <span style={{ fontSize: '0.65rem', color: '#555', fontWeight: '700' }}>Ninguno</span>;
                     return (
                       <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#ccc', letterSpacing: '0.3px' }}>
-                        {active.map(k => dynamicExtras.find(d => d.id === k)?.name || k).join(' • ').toUpperCase()}
+                        {active.map(k => dynamicExtras.find(d => d.id === k)?.name || k).join(' â€¢ ').toUpperCase()}
                       </span>
                     );
                   })()}
@@ -4931,12 +3420,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   </div>
                 </div>
 
-                {/* UTILIDAD LÍQUIDA REAL (Solo Admin) */}
+                {/* UTILIDAD LÃQUIDA REAL (Solo Admin) */}
                 {userRole === 'admin' && (
                   <div style={{ marginTop: '15px', padding: '15px', borderRadius: '16px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <span style={{ fontSize: '0.6rem', fontWeight: '900', color: 'var(--success-green)', letterSpacing: '1px' }}>UTILIDAD LÍQUIDA REAL</span>
-                      <small style={{ display: 'block', fontSize: '0.5rem', opacity: 0.5, color: 'var(--success-green)' }}>Total Venta - Gastos/Nómina</small>
+                      <span style={{ fontSize: '0.6rem', fontWeight: '900', color: 'var(--success-green)', letterSpacing: '1px' }}>UTILIDAD LÃQUIDA REAL</span>
+                      <small style={{ display: 'block', fontSize: '0.5rem', opacity: 0.5, color: 'var(--success-green)' }}>Total Venta - Gastos/NÃ³mina</small>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '1.2rem', fontWeight: '950', color: 'var(--success-green)' }}>{formatPeso(liquidProfit)}</div>
@@ -5006,7 +3495,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 </thead>
                 <tbody>
                   {virtualList.length === 0 ? (
-                    <tr><td colSpan="3" style={{ padding: '20px', textAlign: 'center', opacity: 0.3, fontSize: '0.8rem' }}>Seleccione una pestaña</td></tr>
+                    <tr><td colSpan="3" style={{ padding: '20px', textAlign: 'center', opacity: 0.3, fontSize: '0.8rem' }}>Seleccione una pestaÃ±a</td></tr>
                   ) : virtualList.map((vItem, idx) => {
                     const normRel = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
                     const vNameNorm = normRel(vItem?.name);
@@ -5064,7 +3553,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             {evt.logistics?.flow?.clientPaid ? (
               <div style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '15px', padding: '15px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: '900', color: '#22c55e', letterSpacing: '1px' }}>✅ SALDO RECAUDADO</span>
+                  <span style={{ fontSize: '0.65rem', fontWeight: '900', color: '#22c55e', letterSpacing: '1px' }}>âœ… SALDO RECAUDADO</span>
                   <button
                     onClick={() => toggleFlowStep(evt.id, 'clientPaid')}
                     style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.2)', fontSize: '0.55rem', fontWeight: '800', cursor: 'pointer', textDecoration: 'underline' }}
@@ -5094,7 +3583,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
-                              if (confirm('¿Eliminar este registro de pago de la tesorería?')) {
+                              if (confirm('Â¿Eliminar este registro de pago de la tesorerÃ­a?')) {
                                 await deleteDoc(doc(db, "globalTx", t.id));
                               }
                             }}
@@ -5107,7 +3596,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     })}
                   {eventTransactions.filter(t => t.desc?.includes('Saldo Final') && t.type === 'IN').length === 0 && (
                     <div style={{ width: '100%', marginTop: '5px' }}>
-                      <span style={{ fontSize: '0.65rem', opacity: 0.6, display: 'block' }}>Cálculo de Recaudo Real:</span>
+                      <span style={{ fontSize: '0.65rem', opacity: 0.6, display: 'block' }}>CÃ¡lculo de Recaudo Real:</span>
                       <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.7)' }}>
                         {formatPeso(baseRevenue)} (Base) - {formatPeso(paidAmount)} (30%) + {formatPeso(customerExtrasTotal)} (Extras) = <span style={{ color: 'var(--success-green)' }}>{formatPeso(currentBalanceDue)}</span>
                       </span>
@@ -5153,11 +3642,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
 
 
-  // --- VIEW: DASHBOARD (VISIÓN) ---
-  // --- VIEW: DASHBOARD (VISIÓN 20s) ---
+  // --- VIEW: DASHBOARD (VISIÃ“N) ---
+  // --- VIEW: DASHBOARD (VISIÃ“N 20s) ---
   const renderDashboard = () => {
     try {
-      // Usamos el mes y año seleccionados globalmente para que sea consistente
+      // Usamos el mes y aÃ±o seleccionados globalmente para que sea consistente
       const currentMonth = selectedMonth;
       const currentYear = selectedYear;
 
@@ -5193,20 +3682,20 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
         return e.status === 'CONFIRMED' && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       }).length;
 
-      // 4. Próximos Eventos (Top 3) - Mirando hacia adelante desde hoy
+      // 4. PrÃ³ximos Eventos (Top 3) - Mirando hacia adelante desde hoy
       const upcomingEvents = events
         .filter(e => e.status === 'CONFIRMED' && e.eventDetails?.date && parseLocalStrDate(e.eventDetails.date) >= new Date().setHours(0, 0, 0, 0))
         .sort((a, b) => parseLocalStrDate(a.eventDetails.date) - parseLocalStrDate(b.eventDetails.date))
         .slice(0, 3);
 
-      // 5. Alertas (Ej: Eventos próximos sin staff)
+      // 5. Alertas (Ej: Eventos prÃ³ximos sin staff)
       const alerts = upcomingEvents.filter(e => !e.staff || e.staff.length === 0);
 
       return (
         <div className="fade-in container" style={{ paddingBottom: '100px' }}>
           <header style={{ padding: '20px 0 15px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: '900', margin: 0 }}>Visión <span style={{ opacity: 0.3 }}>Global</span></h2>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: '900', margin: 0 }}>VisiÃ³n <span style={{ opacity: 0.3 }}>Global</span></h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '2px' }} onClick={() => setShowMonthSelector(true)}>
                 <p style={{ margin: 0, fontSize: '0.7rem', opacity: 0.6, fontWeight: '800', color: 'var(--primary-cyan)' }}>
                   {(months[selectedMonth] || 'Mes').toUpperCase()} {selectedYear}
@@ -5216,7 +3705,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             </div>
           </header>
 
-          {/* A. MÉTRICA PRINCIPAL (HÉROE - COMPACT - Solo Admin) */}
+          {/* A. MÃ‰TRICA PRINCIPAL (HÃ‰ROE - COMPACT - Solo Admin) */}
           {userRole === 'admin' && (
             <div style={{ background: 'linear-gradient(135deg, rgba(0, 242, 255, 0.05) 0%, rgba(188, 111, 241, 0.05) 100%)', borderRadius: '24px', padding: '20px', border: '1px solid rgba(0, 242, 255, 0.2)', marginBottom: '15px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: '-30%', right: '-20%', width: '120px', height: '120px', background: 'radial-gradient(circle, var(--primary-cyan) 0%, transparent 70%)', opacity: 0.15, filter: 'blur(30px)' }}></div>
@@ -5235,7 +3724,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             </div>
           )}
 
-          {/* B. MÉTRICAS SECUNDARIAS (COMPACT) */}
+          {/* B. MÃ‰TRICAS SECUNDARIAS (COMPACT) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px', marginBottom: '20px' }}>
             <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '18px', padding: '15px', border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }} onClick={() => setView('quotations')}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
@@ -5258,7 +3747,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             alerts.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ fontSize: '0.8rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#ffcc00' }}>
-                  <IconAlertTriangle size={14} /> ATENCIÓN
+                  <IconAlertTriangle size={14} /> ATENCIÃ“N
                 </h3>
                 {alerts.map(a => {
                   try {
@@ -5266,7 +3755,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     if (!a.id) return null;
                     const clientName = a?.client?.name || a?.clientName;
                     if (!clientName) {
-                      console.warn("⚠️ Alerta sin nombre:", a.id);
+                      console.warn("âš ï¸ Alerta sin nombre:", a.id);
                       return null;
                     }
                     return (
@@ -5276,7 +3765,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         </div>
                         <div style={{ flex: 1 }}>
                           <span style={{ fontWeight: '800', fontSize: '0.8rem', display: 'block', color: '#ffcc00' }}>Falta Staff</span>
-                          <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{clientName} • {a.eventDetails?.date ? new Date(a.eventDetails.date).getDate() : ''}/{a.eventDetails?.date ? new Date(a.eventDetails.date).getMonth() + 1 : ''}</span>
+                          <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{clientName} â€¢ {a.eventDetails?.date ? new Date(a.eventDetails.date).getDate() : ''}/{a.eventDetails?.date ? new Date(a.eventDetails.date).getMonth() + 1 : ''}</span>
                         </div>
                         <button onClick={() => { setSelectedEventId(a.id); setView('detail'); }} style={{ background: '#ffcc00', border: 'none', color: '#000', padding: '6px 10px', borderRadius: '8px', fontSize: '0.6rem', fontWeight: '900' }}>ASIGNAR</button>
                       </div>
@@ -5290,16 +3779,16 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             )
           }
 
-          {/* D. PRÓXIMOS EVENTOS (COMPACT) */}
+          {/* D. PRÃ“XIMOS EVENTOS (COMPACT) */}
           <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h3 style={{ fontSize: '0.8rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', margin: 0 }}>PRÓXIMOS</h3>
+              <h3 style={{ fontSize: '0.8rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', margin: 0 }}>PRÃ“XIMOS</h3>
               <button onClick={() => setView('events')} style={{ background: 'none', border: 'none', color: 'var(--primary-cyan)', fontSize: '0.6rem', fontWeight: '800', cursor: 'pointer' }}>VER TODO</button>
             </div>
 
             {upcomingEvents.length === 0 ? (
               <div style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '18px', border: '1px dashed rgba(255,255,255,0.1)', textAlign: 'center', opacity: 0.4 }}>
-                <small style={{ fontSize: '0.7rem' }}>Sin eventos próximos.</small>
+                <small style={{ fontSize: '0.7rem' }}>Sin eventos prÃ³ximos.</small>
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '10px' }}>
@@ -5309,7 +3798,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     if (!e.id) return null;
                     const clientName = e?.client?.name || e?.clientName;
                     if (!clientName) {
-                      console.warn("⚠️ Evento próximo sin nombre:", e.id);
+                      console.warn("âš ï¸ Evento prÃ³ximo sin nombre:", e.id);
                       return null;
                     }
                     return (
@@ -5355,10 +3844,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     }
   };
 
-  // --- VIEW: EVENTS (EJECUCIÓN) ---
+  // --- VIEW: EVENTS (EJECUCIÃ“N) ---
   const renderEventsList = () => {
     try {
-      // Solo eventos confirmados, orden cronológico
+      // Solo eventos confirmados, orden cronolÃ³gico
       const getEarliestTime = (evt) => {
         const times = [
           evt.eventDetails?.startTime,
@@ -5374,7 +3863,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
       const confirmedEvents = events
         .filter(e => {
           if (!e) return false;
-          // 1. Excluir si ya está CERRADO o CANCELADO
+          // 1. Excluir si ya estÃ¡ CERRADO o CANCELADO
           if (e.status === 'CLOSED' || e.status === 'CANCELLED') return false;
 
           // 2. Excluir SOLO si se cumplen AMBAS condiciones (Pagado Y Retornado)
@@ -5383,11 +3872,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           const items = e.logistics?.items || [];
 
           if (isPaid && isReturned) {
-            // Si tiene flag de retorno y está pagado, fuera.
+            // Si tiene flag de retorno y estÃ¡ pagado, fuera.
             return false;
           }
 
-          // 3. Verificación resiliente basada en items si no hay flags
+          // 3. VerificaciÃ³n resiliente basada en items si no hay flags
           if (isPaid) {
             if (!Array.isArray(items) || items.length === 0) return false; // Sin items y pagado -> Fuera
 
@@ -5438,7 +3927,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   {totalMonthEventsCount}
                 </div>
               </div>
-              <small style={{ color: 'var(--primary-cyan)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÓN OPERATIVA</small>
+              <small style={{ color: 'var(--primary-cyan)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÃ“N OPERATIVA</small>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
@@ -5602,7 +4091,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   const tomorrow = getTomorrowStr();
 
                   return filtered.map((evt, idx) => {
-                    // ULTRA-PROTECCIÓN: Validar CADA propiedad
+                    // ULTRA-PROTECCIÃ“N: Validar CADA propiedad
                     try {
                       if (!evt || typeof evt !== 'object') return null;
                       if (!evt.id) return null; // Sin ID, no renderizar
@@ -5610,7 +4099,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       // Validar que tenga nombre
                       const clientName = evt?.client?.name || evt?.clientName;
                       if (!clientName) {
-                        console.warn("⚠️ Evento sin nombre en renderizado:", evt.id);
+                        console.warn("âš ï¸ Evento sin nombre en renderizado:", evt.id);
                         return null; // No renderizar eventos sin nombre
                       }
 
@@ -5624,10 +4113,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       let dateLabel = eventDate;
                       let headerColor = 'rgba(255,255,255,0.4)';
                       if (eventDate === today) { dateLabel = 'HOY'; headerColor = 'var(--primary-cyan)'; }
-                      else if (eventDate === tomorrow) { dateLabel = 'MAÑANA'; headerColor = 'var(--primary-purple)'; }
+                      else if (eventDate === tomorrow) { dateLabel = 'MAÃ‘ANA'; headerColor = 'var(--primary-purple)'; }
                       else if (eventDate) {
                         const d = new Date(eventDate + 'T12:00:00');
-                        const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+                        const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIÃ‰RCOLES', 'JUEVES', 'VIERNES', 'SÃBADO'];
                         dateLabel = `${days[d.getDay()]} ${eventDate.split('-').reverse().slice(0, 2).join('/')}`;
                       }
 
@@ -5651,7 +4140,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                   <span style={{ fontSize: '0.35rem', fontWeight: '900', color: 'rgba(255,255,255,0.2)', marginLeft: '4px' }}>
                                     [P:{flow.clientPaid ? 'Y' : 'N'} R:{flow.equipmentReturned ? 'Y' : 'N'} I:{evt.logistics?.items?.length || 0}]
                                   </span>
-                                  {evt.status === 'SENT' && <span style={{ fontSize: '0.45rem', fontWeight: '900', background: 'rgba(188, 111, 241, 0.1)', color: 'var(--primary-purple)', padding: '2px 4px', borderRadius: '3px' }}>COTIZACIÓN</span>}
+                                  {evt.status === 'SENT' && <span style={{ fontSize: '0.45rem', fontWeight: '900', background: 'rgba(188, 111, 241, 0.1)', color: 'var(--primary-purple)', padding: '2px 4px', borderRadius: '3px' }}>COTIZACIÃ“N</span>}
                                 </div>
                                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clientName}</h3>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', opacity: 0.5, fontSize: '0.6rem', fontWeight: '700' }}>
@@ -5678,7 +4167,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (confirm(`¿Archivar evento de ${clientName} manualmente?`)) {
+                                    if (confirm(`Â¿Archivar evento de ${clientName} manualmente?`)) {
                                       updateDoc(doc(db, "events", evt.id), {
                                         status: 'CLOSED',
                                         "logistics.flow.equipmentReturned": true,
@@ -5734,7 +4223,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 </div>
                 <div style={{ padding: '40px', textAlign: 'center', opacity: 0.3, marginTop: '20px' }}>
                   <IconInventory size={40} />
-                  <p style={{ fontWeight: '700', fontSize: '0.9rem' }}>Inventario detallado próximamente.</p>
+                  <p style={{ fontWeight: '700', fontSize: '0.9rem' }}>Inventario detallado prÃ³ximamente.</p>
                 </div>
               </div>
             )
@@ -5779,7 +4268,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       .sort((a, b) => {
                         const dateA = a.eventDetails?.date || '';
                         const dateB = b.eventDetails?.date || '';
-                        return dateB.localeCompare(dateA); // Más recientes primero
+                        return dateB.localeCompare(dateA); // MÃ¡s recientes primero
                       });
 
                     if (closedEvents.length === 0) {
@@ -5792,7 +4281,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     }
 
                     return closedEvents.map(evt => {
-                      // ULTRA-PROTECCIÓN: Validar CADA evento cerrado
+                      // ULTRA-PROTECCIÃ“N: Validar CADA evento cerrado
                       try {
                         if (!evt || typeof evt !== 'object') return null;
                         if (!evt.id) return null;
@@ -5800,7 +4289,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         // Validar que tenga nombre
                         const clientName = evt?.client?.name || evt?.clientName;
                         if (!clientName) {
-                          console.warn("⚠️ Evento cerrado sin nombre:", evt.id);
+                          console.warn("âš ï¸ Evento cerrado sin nombre:", evt.id);
                           return null;
                         }
 
@@ -5828,7 +4317,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                 {clientName}
                               </h4>
                               <div style={{ fontSize: '0.65rem', opacity: 0.4, fontWeight: '700', marginTop: '2px' }}>
-                                📅 {evt.eventDetails?.date}
+                                ðŸ“… {evt.eventDetails?.date}
                               </div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
@@ -5909,7 +4398,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             <IconArrowLeft size={14} /> CENTRO DE CONTROL
           </button>
           <h2 style={{ fontSize: '2rem', fontWeight: '900', margin: 0 }}>Identidad <span style={{ opacity: 0.3 }}>Operativa</span></h2>
-          <p style={{ margin: '5px 0 0 0', fontSize: '0.85rem', opacity: 0.4, fontWeight: '600' }}>Así te ven tus clientes.</p>
+          <p style={{ margin: '5px 0 0 0', fontSize: '0.85rem', opacity: 0.4, fontWeight: '600' }}>AsÃ­ te ven tus clientes.</p>
         </header>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -5919,16 +4408,16 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               <TextInput label="Nombre Comercial" value={userProfile.businessName} onChange={(val) => setUserProfile({ ...userProfile, businessName: val })} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <TextInput label="NIT / Documento" value={userProfile.nit} onChange={(val) => setUserProfile({ ...userProfile, nit: val })} />
-                <TextInput label="Dirección Fiscal" value={userProfile.fiscalAddress} onChange={(val) => setUserProfile({ ...userProfile, fiscalAddress: val })} />
+                <TextInput label="DirecciÃ³n Fiscal" value={userProfile.fiscalAddress} onChange={(val) => setUserProfile({ ...userProfile, fiscalAddress: val })} />
               </div>
               <TextInput label="WhatsApp Principal" value={userProfile.whatsapp} onChange={(val) => setUserProfile({ ...userProfile, whatsapp: val })} />
-              <TextInput label="Correo Electrónico" value={userProfile.email} onChange={(val) => setUserProfile({ ...userProfile, email: val })} />
+              <TextInput label="Correo ElectrÃ³nico" value={userProfile.email} onChange={(val) => setUserProfile({ ...userProfile, email: val })} />
               <TextInput label="Ciudad / Zona" value={userProfile.city} onChange={(val) => setUserProfile({ ...userProfile, city: val })} />
             </div>
           </section>
 
           <section>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '15px', color: 'var(--primary-cyan)' }}>FIRMA AUTOMÁTICA</h3>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '15px', color: 'var(--primary-cyan)' }}>FIRMA AUTOMÃTICA</h3>
             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '15px', border: '1px solid rgba(255,255,255,0.05)' }}>
               <textarea
                 value={userProfile.signature}
@@ -5945,7 +4434,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     );
   };
 
-  // --- VIEW: CONFIGURACIÓN GLOBAL (AJUSTES) ---
+  // --- VIEW: CONFIGURACIÃ“N GLOBAL (AJUSTES) ---
   const renderConfig = () => {
     return (
       <div className="fade-in container" style={{ paddingBottom: '140px' }}>
@@ -5956,7 +4445,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             <div>
               <h2 style={{ fontSize: '2rem', fontWeight: '900', margin: 0 }}>Motor del <span style={{ opacity: 0.3 }}>Negocio</span></h2>
-              <p style={{ margin: '5px 0 0 0', fontSize: '0.85rem', opacity: 0.4, fontWeight: '600' }}>Reglas, precios y automatización.</p>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.85rem', opacity: 0.4, fontWeight: '600' }}>Reglas, precios y automatizaciÃ³n.</p>
             </div>
           </div>
         </header>
@@ -5975,11 +4464,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 <MoneyInput label="Hora Extra DJ" value={appConfig.djHour} onChange={(val) => setAppConfig({ ...appConfig, djHour: val })} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <MoneyInput label="Hora Fotografía" value={appConfig.photoHour} onChange={(val) => setAppConfig({ ...appConfig, photoHour: val })} />
-                <MoneyInput label="Artista Neón (U)" value={appConfig.neonArtist} onChange={(val) => setAppConfig({ ...appConfig, neonArtist: val })} />
+                <MoneyInput label="Hora FotografÃ­a" value={appConfig.photoHour} onChange={(val) => setAppConfig({ ...appConfig, photoHour: val })} />
+                <MoneyInput label="Artista NeÃ³n (U)" value={appConfig.neonArtist} onChange={(val) => setAppConfig({ ...appConfig, neonArtist: val })} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <TextInput label="Desc. Máximo (%)" value={appConfig.maxDiscount} onChange={(val) => setAppConfig({ ...appConfig, maxDiscount: val })} />
+                <TextInput label="Desc. MÃ¡ximo (%)" value={appConfig.maxDiscount} onChange={(val) => setAppConfig({ ...appConfig, maxDiscount: val })} />
                 <TextInput label="Min. Horas Evento" value={appConfig.minEventDuration} onChange={(val) => setAppConfig({ ...appConfig, minEventDuration: val })} />
               </div>
             </div>
@@ -5993,8 +4482,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <TextInput label="Buffer Inventario (h)" value={appConfig.bufferTime} onChange={(val) => setAppConfig({ ...appConfig, bufferTime: val })} />
-              <MoneyInput label="Penalidad Solapé" value={appConfig.overlapPenalty} onChange={(val) => setAppConfig({ ...appConfig, overlapPenalty: val })} />
-              <TextInput label="Abono Mínimo (%)" value={appConfig.minDeposit} onChange={(val) => setAppConfig({ ...appConfig, minDeposit: val })} />
+              <MoneyInput label="Penalidad SolapÃ©" value={appConfig.overlapPenalty} onChange={(val) => setAppConfig({ ...appConfig, overlapPenalty: val })} />
+              <TextInput label="Abono MÃ­nimo (%)" value={appConfig.minDeposit} onChange={(val) => setAppConfig({ ...appConfig, minDeposit: val })} />
               <div style={{ padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>COBRAR EXTRA SIEMPRE</span>
                 <input type="checkbox" checked={appConfig.overtimePolicy === 'ALWAYS_CHARGE'} onChange={() => { }} />
@@ -6006,13 +4495,13 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           <section>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
               <div style={{ width: '4px', height: '18px', background: 'var(--success-green)', borderRadius: '4px' }}></div>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', margin: 0 }}>4. MENSAJES AUTOMÁTICOS</h3>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', margin: 0 }}>4. MENSAJES AUTOMÃTICOS</h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {[
-                { k: 'msgQuote', l: 'Plantilla Cotización' },
-                { k: 'msgAdvisory', l: 'Plantilla Asesoría' },
-                { k: 'msgConfirm', l: 'Confirmación Abono' }
+                { k: 'msgQuote', l: 'Plantilla CotizaciÃ³n' },
+                { k: 'msgAdvisory', l: 'Plantilla AsesorÃ­a' },
+                { k: 'msgConfirm', l: 'ConfirmaciÃ³n Abono' }
               ].map(t => (
                 <div key={t.k} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '15px', border: '1px solid rgba(255,255,255,0.05)' }}>
                   <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, letterSpacing: '1px', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>{t.l}</label>
@@ -6032,7 +4521,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             className="primary-btn"
             style={{ marginTop: '10px', padding: '22px', fontSize: '1rem', width: '100%', textTransform: 'uppercase', letterSpacing: '2px' }}
           >
-            Guardar Configuración
+            Guardar ConfiguraciÃ³n
           </button>
           <section style={{ paddingBottom: '40px' }}>
             <button
@@ -6053,10 +4542,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 gap: '10px'
               }}
             >
-              <IconLogout size={18} /> CERRAR SESIÓN
+              <IconLogout size={18} /> CERRAR SESIÃ“N
             </button>
             <p style={{ textAlign: 'center', fontSize: '0.65rem', color: '#555', marginTop: '15px', fontWeight: '700' }}>
-              Sesión activa como: <span style={{ color: '#888' }}>{user.email}</span> ({userRole?.toUpperCase()})
+              SesiÃ³n activa como: <span style={{ color: '#888' }}>{user.email}</span> ({userRole?.toUpperCase()})
             </p>
           </section>
         </div>
@@ -6074,7 +4563,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           <header style={{ padding: '30px 0 10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>Cotizaciones <span style={{ opacity: 0.3 }}>Activas</span> <small style={{ fontSize: '0.6rem', opacity: 0.5 }}>v3.0 MICRO</small></h2>
-              <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÓN COMERCIAL</small>
+              <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÃ“N COMERCIAL</small>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
@@ -6138,7 +4627,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
           <div className="sales-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {quotations.filter(q => q && (q.client?.name || q.clientName)).map(quo => {
-              // ULTRA-PROTECCIÓN: Validar CADA cotización
+              // ULTRA-PROTECCIÃ“N: Validar CADA cotizaciÃ³n
               try {
                 if (!quo || typeof quo !== 'object') return null;
                 if (!quo.id) return null;
@@ -6146,7 +4635,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 // Validar que tenga nombre
                 const clientName = quo?.client?.name || quo?.clientName;
                 if (!clientName) {
-                  console.warn("⚠️ Cotización sin nombre en renderQuotations:", quo.id);
+                  console.warn("âš ï¸ CotizaciÃ³n sin nombre en renderQuotations:", quo.id);
                   return null;
                 }
 
@@ -6238,7 +4727,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <div style={{ minWidth: 0, flex: 1, paddingRight: '10px' }}>
                         <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', lineHeight: '1.2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{quo.client?.name || 'Cliente sin nombre'}</h4>
                         <p style={{ margin: '2px 0 0 0', fontSize: '0.65rem', opacity: 0.5, fontWeight: '500' }}>
-                          📅 {quo.eventDetails?.date} • {quo.logistics?.packName || 'Personalizado'}
+                          ðŸ“… {quo.eventDetails?.date} â€¢ {quo.logistics?.packName || 'Personalizado'}
                         </p>
                       </div>
                       <div>
@@ -6263,7 +4752,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                           borderRadius: '8px',
                           fontWeight: '700'
                         }}>
-                          ⏱ {Math.floor((new Date() - parseFirestoreDate(quo.createdAt)) / (1000 * 60 * 60 * 24))} DÍAS ABIERTO
+                          â± {Math.floor((new Date() - parseFirestoreDate(quo.createdAt)) / (1000 * 60 * 60 * 24))} DÃAS ABIERTO
                         </span>
                       )}
                     </div>
@@ -6295,10 +4784,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                             }}
                             title="Registrar Abono"
                           >
-                            <span style={{ fontSize: '6px' }}>💰</span>
+                            <span style={{ fontSize: '6px' }}>ðŸ’°</span>
                           </button>
                           <button
-                            onClick={(e) => { e.stopPropagation(); if (confirm('¿Marcar este lead como Venta Perdida?')) updateQuotationStatus(quo.id, 'LOST'); }}
+                            onClick={(e) => { e.stopPropagation(); if (confirm('Â¿Marcar este lead como Venta Perdida?')) updateQuotationStatus(quo.id, 'LOST'); }}
                             style={{
                               padding: '0',
                               width: '20px',
@@ -6400,25 +4889,25 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
     const templates = [
       {
-        title: 'El Súper-Abridor (RECOMENDADO)',
-        msg: `¡Hola ${clientFirstName}! 👋 Qué nota de *${occasion}* el ${eventDate} 🎧✨. Ya revisé tu configuración del paquete ${packName} en la App y la base está muy bien planteada.\n\nPodemos optimizar servicios para que se ajusten 100% a tu idea y presupuesto. ¡La meta es que sea impecable! ¿Qué tal te parece la propuesta o quieres que miremos algún cambio?`,
-        icon: '💎',
+        title: 'El SÃºper-Abridor (RECOMENDADO)',
+        msg: `Â¡Hola ${clientFirstName}! ðŸ‘‹ QuÃ© nota de *${occasion}* el ${eventDate} ðŸŽ§âœ¨. Ya revisÃ© tu configuraciÃ³n del paquete ${packName} en la App y la base estÃ¡ muy bien planteada.\n\nPodemos optimizar servicios para que se ajusten 100% a tu idea y presupuesto. Â¡La meta es que sea impecable! Â¿QuÃ© tal te parece la propuesta o quieres que miremos algÃºn cambio?`,
+        icon: 'ðŸ’Ž',
         recommend: true
       },
       {
         title: 'Prueba de Calidad (Portafolio)',
-        msg: `¡Hola ${clientFirstName}! 🎧 Estaba organizando el portafolio de eventos recientes y encontré unos videos geniales de un montaje con el paquete ${packName}. ¿Te gustaría que te los comparta para que visualices cómo se vería tu *${occasion}* con nuestro equipo? ¡Quedo atento!`,
-        icon: '📸'
+        msg: `Â¡Hola ${clientFirstName}! ðŸŽ§ Estaba organizando el portafolio de eventos recientes y encontrÃ© unos videos geniales de un montaje con el paquete ${packName}. Â¿Te gustarÃ­a que te los comparta para que visualices cÃ³mo se verÃ­a tu *${occasion}* con nuestro equipo? Â¡Quedo atento!`,
+        icon: 'ðŸ“¸'
       },
       {
-        title: 'Gestión de Agenda (Urgencia)',
-        msg: `¡Hola de nuevo ${clientFirstName}! 🎧 Paso a comentarte que nos escribieron consultando precisamente por la fecha del ${eventDate}. Como ya tenemos tu propuesta avanzada, quería confirmarlo contigo primero por prioridad. ¿Te gustaría que reservemos el espacio para asegurar tu evento? 🔒`,
-        icon: '🗓️'
+        title: 'GestiÃ³n de Agenda (Urgencia)',
+        msg: `Â¡Hola de nuevo ${clientFirstName}! ðŸŽ§ Paso a comentarte que nos escribieron consultando precisamente por la fecha del ${eventDate}. Como ya tenemos tu propuesta avanzada, querÃ­a confirmarlo contigo primero por prioridad. Â¿Te gustarÃ­a que reservemos el espacio para asegurar tu evento? ðŸ”’`,
+        icon: 'ðŸ—“ï¸'
       },
       {
-        title: 'Diseño Musical (The Vibe)',
-        msg: `${clientFirstName}, ¡qué nota de *${occasion}* estamos proyectando! 🎧✨ En Nexxa nos apasiona el diseño musical de cada fiesta. Si deseas, cuéntame qué géneros o canciones son infaltables para ti y planeamos un set que mantenga la energía al máximo. ¿Cómo te suena la idea?`,
-        icon: '🔥'
+        title: 'DiseÃ±o Musical (The Vibe)',
+        msg: `${clientFirstName}, Â¡quÃ© nota de *${occasion}* estamos proyectando! ðŸŽ§âœ¨ En Nexxa nos apasiona el diseÃ±o musical de cada fiesta. Si deseas, cuÃ©ntame quÃ© gÃ©neros o canciones son infaltables para ti y planeamos un set que mantenga la energÃ­a al mÃ¡ximo. Â¿CÃ³mo te suena la idea?`,
+        icon: 'ðŸ”¥'
       }
     ];
 
@@ -6437,9 +4926,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', flexShrink: 0 }}>
             <h3 style={{ margin: 0, fontWeight: '950', fontSize: '1.2rem' }}>Estrategia de Cierre</h3>
-            <button onClick={() => setWhatsappModalQuo(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+            <button onClick={() => setWhatsappModalQuo(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>Ã—</button>
           </div>
-          <p style={{ opacity: 0.5, fontSize: '0.8rem', marginBottom: '20px', flexShrink: 0 }}>Selecciona el paso según el estado de la negociación:</p>
+          <p style={{ opacity: 0.5, fontSize: '0.8rem', marginBottom: '20px', flexShrink: 0 }}>Selecciona el paso segÃºn el estado de la negociaciÃ³n:</p>
 
           <div style={{
             display: 'flex',
@@ -6470,7 +4959,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     onClick={() => {
-                      if (!phone) return alert('No hay teléfono.');
+                      if (!phone) return alert('No hay telÃ©fono.');
                       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(t.msg)}`, '_blank');
                     }}
                     style={{ flex: 1, padding: '10px', background: t.recommend ? 'var(--primary-cyan)' : 'white', color: '#000', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.7rem', cursor: 'pointer' }}
@@ -6480,7 +4969,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(t.msg);
-                      alert('¡Copiado! 📋');
+                      alert('Â¡Copiado! ðŸ“‹');
                     }}
                     style={{ padding: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.7rem', cursor: 'pointer' }}
                   >
@@ -6560,7 +5049,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             />
           </div>
           <h2 style={{ fontSize: '1.8rem', fontWeight: '950', margin: 0, letterSpacing: '-1px' }}>Nexxa <span style={{ color: 'var(--primary-cyan)' }}>Staff</span></h2>
-          <p style={{ opacity: 0.4, fontSize: '0.8rem', marginTop: '8px', fontWeight: '700' }}>Inicia sesión para continuar</p>
+          <p style={{ opacity: 0.4, fontSize: '0.8rem', marginTop: '8px', fontWeight: '700' }}>Inicia sesiÃ³n para continuar</p>
         </div>
 
         {loginError && (
@@ -6586,7 +5075,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             <label style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.4, marginLeft: '5px' }}>CLAVE DE ACCESO</label>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
               value={loginPass}
               onChange={e => setLoginPass(e.target.value)}
               required
@@ -6617,7 +5106,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
   console.log("DEBUG NEXXA - userData:", userData);
 
   if (!user) return renderLogin();
-  if (!events || !quotations) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>Cargando información...</div>;
+  if (!events || !quotations) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>Cargando informaciÃ³n...</div>;
 
   // TRY-CATCH WRAPPER for main render
   try {
@@ -6644,7 +5133,16 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           {(view === 'events' || view === 'detail') && (view === 'detail' ? renderDetail() : renderEventsList())}
           {view === 'create' && renderCreate()}
           {view === 'inventory' && renderInventory()}
-          {view === 'accounting' && renderAccounting()}
+          {view === 'accounting' && (
+            <AccountingView
+              db={db}
+              globalTx={globalTx}
+              events={events}
+              quotations={quotations}
+              setView={setView}
+              setShowAddExpenseModal={setShowAddExpenseModal}
+            />
+          )}
           {view === 'config' && renderConfig()}
           {view === 'profile' && renderProfile()}
           {view === 'quotations' && (() => {
@@ -6728,7 +5226,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   <IconArrowLeft size={14} /> VOLVER A EVENTOS
                 </button>
                 <h2 style={{ fontSize: '2.2rem', fontWeight: '900', margin: 0 }}>Centro de <span style={{ opacity: 0.3 }}>Control</span></h2>
-                <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '2px', fontSize: '0.65rem' }}>GESTIÓN DE PERFIL Y APP</small>
+                <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '2px', fontSize: '0.65rem' }}>GESTIÃ“N DE PERFIL Y APP</small>
               </header>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -6774,7 +5272,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 {userRole === 'admin' && (
                   <div
                     className="sales-list-item"
-                    onClick={() => alert('Gestión de nómina próximamente')}
+                    onClick={() => alert('GestiÃ³n de nÃ³mina prÃ³ximamente')}
                     style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
@@ -6783,14 +5281,14 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       </div>
                       <div>
                         <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Roles / Staff</span>
-                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Nómina y jerarquías</small>
+                        <small style={{ opacity: 0.4, fontWeight: '700' }}>NÃ³mina y jerarquÃ­as</small>
                       </div>
                     </div>
                     <IconArrowRight size={18} style={{ opacity: 0.3 }} />
                   </div>
                 )}
 
-                {/* CERRAR SESIÓN */}
+                {/* CERRAR SESIÃ“N */}
                 <button
                   className="sales-list-item"
                   style={{
@@ -6807,10 +5305,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     width: '100%',
                     textAlign: 'left'
                   }}
-                  onClick={() => alert('Cerrando sesión...')}
+                  onClick={() => alert('Cerrando sesiÃ³n...')}
                 >
                   <IconLogout size={20} />
-                  <span style={{ fontWeight: '950', letterSpacing: '1px', fontSize: '0.9rem' }}>CERRAR SESIÓN</span>
+                  <span style={{ fontWeight: '950', letterSpacing: '1px', fontSize: '0.9rem' }}>CERRAR SESIÃ“N</span>
                 </button>
               </div>
             </div>
@@ -6843,7 +5341,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               </div>
               {showFinanceModal === 'OUT' && finType === 'GENERAL' && (
                 <p style={{ margin: '10px 0 0 0', fontSize: '0.65rem', color: '#888', textAlign: 'center' }}>
-                  💡 Tip: Si este gasto es de un evento, usa "POR EVENTO" para ver ganancias reales.
+                  ðŸ’¡ Tip: Si este gasto es de un evento, usa "POR EVENTO" para ver ganancias reales.
                 </p>
               )}
 
@@ -6886,12 +5384,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 await setDoc(doc(db, "globalTx", txId), txObj);
 
                 // SYNC AGENDA OPERATIVA: No es necesario actualizar el documento plantilla.
-                // La lógica de renderizado detectará automáticamente la transacción en globalTx y marcará PAGADO en la vista.
+                // La lÃ³gica de renderizado detectarÃ¡ automÃ¡ticamente la transacciÃ³n en globalTx y marcarÃ¡ PAGADO en la vista.
 
                 setShowFinanceModal(null);
                 setFinAmount('');
                 setFinDesc('');
-                alert('✅ Transacción registrada correctamente');
+                alert('âœ… TransacciÃ³n registrada correctamente');
 
               }} style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {finType === 'EVENT' && (
@@ -6909,10 +5407,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <option key={ev.id} value={ev.id}>{ev.client?.name || ev.clientName} (ID: {ev.id})</option>
                     ))}
 
-                    {/* CALCULADORA DE NÓMINA DINÁMICA */}
+                    {/* CALCULADORA DE NÃ“MINA DINÃMICA */}
                     {finEventId && (
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)', marginTop: '5px' }}>
-                        <label style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)', display: 'block', marginBottom: '8px' }}>CALCULAR NÓMINA AUTOMÁTICA</label>
+                        <label style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)', display: 'block', marginBottom: '8px' }}>CALCULAR NÃ“MINA AUTOMÃTICA</label>
                         <div style={{ display: 'flex', gap: '5px' }}>
                           <select
                             id="roleCalcSelector"
@@ -6920,9 +5418,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                             style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#000', color: '#fff', border: '1px solid #333', fontSize: '0.7rem' }}
                           >
                             <option value="DJ">DJ / OP</option>
-                            <option value="FOTO">FOTÓGRAFO</option>
+                            <option value="FOTO">FOTÃ“GRAFO</option>
                             <option value="DECOR">DECORADOR</option>
-                            <option value="LOGISTICA">LOGÍSTICA</option>
+                            <option value="LOGISTICA">LOGÃSTICA</option>
                           </select>
                           <button
                             type="button"
@@ -6956,8 +5454,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                               else if (role === 'DECOR') pay = 40000; // Tarifa plana base
 
                               setFinAmount(pay);
-                              setFinDesc(`Pago Nómina ${role} - ${evt.client?.name || evt.clientName || 'Evento'}`);
-                              setFinCategory('NÓMINA');
+                              setFinDesc(`Pago NÃ³mina ${role} - ${evt.client?.name || evt.clientName || 'Evento'}`);
+                              setFinCategory('NÃ“MINA');
                             }}
                             style={{ padding: '8px 12px', background: 'var(--primary-purple)', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.65rem', fontWeight: '900', cursor: 'pointer' }}
                           >
@@ -6974,12 +5472,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     onChange={e => setFinCategory(e.target.value)}
                     style={{ flex: 1, padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.75rem', fontWeight: '800' }}
                   >
-                    {['LOGISTICA', 'EQUIPOS', 'MARKETING', 'NÓMINA', 'MANTENIMIENTO', 'FIJOS', 'VENTA', 'OTROS'].map(cat => (
+                    {['LOGISTICA', 'EQUIPOS', 'MARKETING', 'NÃ“MINA', 'MANTENIMIENTO', 'FIJOS', 'VENTA', 'OTROS'].map(cat => (
                       <option key={cat} value={cat} style={{ background: '#000' }}>{cat}</option>
                     ))}
                   </select>
                   <input
-                    placeholder="Descripción..."
+                    placeholder="DescripciÃ³n..."
                     value={finDesc}
                     onChange={e => setFinDesc(e.target.value)}
                     required
@@ -7051,12 +5549,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   paymentModal.evt?.clientName ||
                   (paymentModal?.evt?.name || paymentModal?.evt?.clientName || 'Evento sin nombre')
                 }</strong><br />
-                Total: {formatPeso(paymentModal.total)} • Pendiente: <strong style={{ color: paymentModal.total === 0 ? 'var(--danger-red)' : 'var(--primary-cyan)' }}>{formatPeso(paymentModal.pending)}</strong>
+                Total: {formatPeso(paymentModal.total)} â€¢ Pendiente: <strong style={{ color: paymentModal.total === 0 ? 'var(--danger-red)' : 'var(--primary-cyan)' }}>{formatPeso(paymentModal.pending)}</strong>
               </p>
 
               {paymentModal.total === 0 && (
                 <div style={{ background: 'rgba(255,100,100,0.05)', padding: '15px', borderRadius: '20px', border: '1px solid rgba(255,100,100,0.2)', marginBottom: '20px' }}>
-                  <span style={{ fontSize: '0.6rem', color: '#ff3860', fontWeight: '900', display: 'block', marginBottom: '10px', textAlign: 'center' }}>⚠️ NO SE DETECTÓ SALDO AUTOMÁTICO</span>
+                  <span style={{ fontSize: '0.6rem', color: '#ff3860', fontWeight: '900', display: 'block', marginBottom: '10px', textAlign: 'center' }}>âš ï¸ NO SE DETECTÃ“ SALDO AUTOMÃTICO</span>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: '900' }}>VALOR TOTAL</label>
@@ -7143,7 +5641,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: '900', opacity: 0.4, letterSpacing: '1px' }}>MÉTODO DE PAGO</label>
+                <label style={{ fontSize: '0.7rem', fontWeight: '900', opacity: 0.4, letterSpacing: '1px' }}>MÃ‰TODO DE PAGO</label>
                 {['Nequi', 'Daviplata', 'Efectivo'].map(method => (
                   <button
                     key={method}
@@ -7163,7 +5661,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     }}
                   >
                     <span>{method}</span>
-                    <span style={{ opacity: 0.2 }}>→</span>
+                    <span style={{ opacity: 0.2 }}>â†’</span>
                   </button>
                 ))}
                 <button onClick={() => setApproveModal(null)} style={{ marginTop: '15px', padding: '15px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', fontWeight: '800' }}>CANCELAR</button>
@@ -7176,7 +5674,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
         {staffPayModal && (
           <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="fade-in" style={{ width: '90%', maxWidth: '400px', background: '#111', padding: '35px', borderRadius: '40px', border: '1px solid rgba(188, 111, 241, 0.3)' }}>
-              <h3 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: '950', color: 'var(--primary-purple)' }}>Liquidar Nómina</h3>
+              <h3 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: '950', color: 'var(--primary-purple)' }}>Liquidar NÃ³mina</h3>
               <p style={{ margin: '0 0 25px 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Selecciona el canal de dinero para pagar a <strong>{staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}</strong>.</p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -7194,15 +5692,15 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       const managerPay = (dur * 10000) + 25000 + ((eks.LOGISTICA || 0) * 15000);
                       const totalPay = djPay + photoPay + decorPay + managerPay;
 
-                      // 1. Crear Transacción Goblal (OUT)
+                      // 1. Crear TransacciÃ³n Goblal (OUT)
                       const txId = `TX-STAFF-${Date.now()}`;
                       await setDoc(doc(collection(db, "globalTx"), txId), {
                         id: txId,
-                        desc: `Nómina Evento: ${staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}`,
+                        desc: `NÃ³mina Evento: ${staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}`,
                         amount: totalPay,
                         method: method,
                         type: 'OUT',
-                        category: 'NÓMINA',
+                        category: 'NÃ“MINA',
                         date: getTodayStr(),
                         createdAt: new Date().toISOString(),
                         eventId: staffPayModal.id
@@ -7224,7 +5722,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       textAlign: 'left'
                     }}
                   >
-                    💳 Pagar por {method}
+                    ðŸ’³ Pagar por {method}
                   </button>
                 ))}
                 <button onClick={() => setStaffPayModal(null)} style={{ marginTop: '10px', padding: '15px', color: 'rgba(255,255,255,0.4)', background: 'transparent', border: 'none', fontWeight: '800' }}>CANCELAR</button>
@@ -7238,13 +5736,13 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="fade-in" style={{ width: '90%', maxWidth: '350px', background: '#111', padding: '25px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)' }}>
               <h3 style={{ margin: '0 0 20px 0', fontSize: '1.2rem', fontWeight: '950', color: '#fff', textAlign: 'center' }}>Agendar Gasto Mes</h3>
-              <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#888', marginBottom: '20px' }}>Este gasto se repetirá automáticamente todos los meses.</p>
+              <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#888', marginBottom: '20px' }}>Este gasto se repetirÃ¡ automÃ¡ticamente todos los meses.</p>
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 if (!newExpenseData.day || !newExpenseData.concept || !newExpenseData.amount) return alert('Completa todos los campos');
 
                 const dayNum = parseInt(newExpenseData.day);
-                if (dayNum < 1 || dayNum > 31) return alert('Día inválido');
+                if (dayNum < 1 || dayNum > 31) return alert('DÃ­a invÃ¡lido');
 
                 try {
                   await addDoc(collection(db, "operative_agenda"), {
@@ -7257,7 +5755,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
                   setNewExpenseData({ day: '', concept: '', amount: '' });
                   setShowAddExpenseModal(false);
-                  alert('✅ Gasto mensual programado!');
+                  alert('âœ… Gasto mensual programado!');
                 } catch (err) {
                   console.error(err);
                   alert('Error al guardar: ' + err.message);
@@ -7265,11 +5763,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: '#666', fontWeight: '700' }}>Día del Pago (Mensual)</label>
+                    <label style={{ fontSize: '0.7rem', color: '#666', fontWeight: '700' }}>DÃ­a del Pago (Mensual)</label>
                     <input
                       type="number"
                       min="1" max="31"
-                      placeholder="Ej: 5 (para el día 5 de cada mes)"
+                      placeholder="Ej: 5 (para el dÃ­a 5 de cada mes)"
                       required
                       value={newExpenseData.day}
                       onChange={e => setNewExpenseData({ ...newExpenseData, day: e.target.value })}
@@ -7301,10 +5799,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     console.error("DEBUG NEXXA - Error Stack:", error.stack);
     console.error("DEBUG NEXXA - Current State:", { user: userData, events: events?.length, quotations: quotations?.length });
 
-    // AUTO-RELOAD: Si es el error de 'name', recargar automáticamente UNA VEZ
+    // AUTO-RELOAD: Si es el error de 'name', recargar automÃ¡ticamente UNA VEZ
     const hasReloaded = sessionStorage.getItem('nexxa_error_reload');
     if (error.message && error.message.includes('name') && !hasReloaded) {
-      console.warn("🔄 ERROR DE 'NAME' DETECTADO - RECARGANDO AUTOMÁTICAMENTE...");
+      console.warn("ðŸ”„ ERROR DE 'NAME' DETECTADO - RECARGANDO AUTOMÃTICAMENTE...");
       sessionStorage.setItem('nexxa_error_reload', 'true');
       setTimeout(() => window.location.reload(), 1000);
       return (
@@ -7317,14 +5815,14 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           color: '#fff'
         }}>
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ color: '#00d4ff' }}>🔄 Recargando...</h2>
+            <h2 style={{ color: '#00d4ff' }}>ðŸ”„ Recargando...</h2>
             <p style={{ opacity: 0.6 }}>Limpiando estado corrupto</p>
           </div>
         </div>
       );
     }
 
-    // Si ya recargó una vez, mostrar error
+    // Si ya recargÃ³ una vez, mostrar error
     return (
       <div style={{
         height: '100vh',
@@ -7344,9 +5842,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           maxWidth: '500px',
           textAlign: 'center'
         }}>
-          <h2 style={{ color: '#ff3860', marginBottom: '15px' }}>⚠️ Error Crítico</h2>
+          <h2 style={{ color: '#ff3860', marginBottom: '15px' }}>âš ï¸ Error CrÃ­tico</h2>
           <p style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '10px' }}>
-            La aplicación encontró un error inesperado.
+            La aplicaciÃ³n encontrÃ³ un error inesperado.
           </p>
           <pre style={{
             background: 'rgba(0,0,0,0.3)',
@@ -7372,7 +5870,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               cursor: 'pointer'
             }}
           >
-            RECARGAR APLICACIÓN
+            RECARGAR APLICACIÃ“N
           </button>
         </div>
       </div>
