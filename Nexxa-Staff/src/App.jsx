@@ -6547,12 +6547,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
             <img
-              src="/logo-staff-robot.png"
+              src="/logo_staff_new.jpg"
               alt="Nexxa Staff"
               style={{
                 width: '140px',
                 height: '140px',
-                objectFit: 'contain',
+                objectFit: 'cover',
                 borderRadius: '50%',
                 boxShadow: '0 0 50px rgba(0, 242, 255, 0.2)',
                 border: '2px solid rgba(0, 242, 255, 0.3)'
