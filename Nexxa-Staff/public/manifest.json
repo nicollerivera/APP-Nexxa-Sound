@@ -1,0 +1,27 @@
+{
+    "name": "Nexxa Sound",
+    "short_name": "Nexxa",
+    "description": "DJ, Sonido e Iluminación Profesional",
+    "start_url": "/?source=pwa",
+    "display": "standalone",
+    "background_color": "#0a0a0c",
+    "theme_color": "#9d4edd",
+    "icons": [
+        {
+            "src": "/nexxa-app-icon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/nexxa-app-icon.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/nexxa-app-icon.png",
+            "sizes": "1024x1024",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ]
+}

@@ -1,0 +1,60 @@
+/* Value Props Container */
+.value-props-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Center horizontally */
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 25px;
+}
+
+.value-props-header {
+    font-size: 1.1rem;
+    color: var(--primary-cyan);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+    /* Remove gap between header and box */
+    background: transparent;
+    /* Same bg as list to look connected */
+    width: 100%;
+    text-align: center;
+    padding: 15px 15px 5px 15px;
+    /* Padding top/sides */
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border: none;
+    border-bottom: none;
+    /* Merge with list */
+}
+
+.value-props {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    text-align: left;
+    background: transparent;
+    padding: 10px 25px 20px 25px;
+    /* Padding bottom/sides */
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border: none;
+    border-top: none;
+    /* Merge with header */
+    box-shadow: none;
+    width: 100%;
+}
+
+.value-props li {
+    font-size: 1rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    justify-content: flex-start;
+    /* Ensure items align left even if container centers */
+}
