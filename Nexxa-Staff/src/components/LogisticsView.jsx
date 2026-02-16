@@ -1,35 +1,96 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { getHours, months, addMinutes } from '../utils/helpers';
 import {
     IconBox, IconCamera, IconFlow, IconHome,
-    IconCalendar, IconClock
+    IconCalendar, IconClock, IconArrowLeft, IconArrowRight
 } from './Icons';
 
 const LogisticsView = ({ events }) => {
     // START: CALENDAR LOGIC
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [daysList, setDaysList] = useState([]);
+    const [viewDate, setViewDate] = useState(new Date()); // Controls the month being viewed
+    const [selectedDate, setSelectedDate] = useState(new Date()); // Controls the specific day selected
 
-    useEffect(() => {
-        // Generate a 14-day window (3 days back, 10 days forward)
-        const list = [];
-        for (let i = -3; i <= 10; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() + i);
-            list.push(d);
+    // Helper to check if a day has any events
+    const busyDays = useMemo(() => {
+        const busy = new Set();
+        events.forEach(e => {
+            if (e.eventDetails?.date && e.status !== 'CANCELLED') {
+                busy.add(e.eventDetails.date);
+            }
+        });
+        return busy;
+    }, [events]);
+
+    const getDaysInMonth = (year, month) => {
+        return new Date(year, month + 1, 0).getDate();
+    };
+
+    const getFirstDayOfMonth = (year, month) => {
+        // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+        // We want Monday = 0, Sunday = 6
+        const day = new Date(year, month, 1).getDay();
+        return day === 0 ? 6 : day - 1;
+    };
+
+    const CalendarGrid = () => {
+        const year = viewDate.getFullYear();
+        const month = viewDate.getMonth();
+        const daysInMonth = getDaysInMonth(year, month);
+        const startDay = getFirstDayOfMonth(year, month);
+
+        const days = [];
+        // Empty slots for previous month
+        for (let i = 0; i < startDay; i++) {
+            days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
         }
-        setDaysList(list);
-    }, []);
 
-    const isSameDay = (d1, d2) => {
-        return d1.getDate() === d2.getDate() &&
-            d1.getMonth() === d2.getMonth() &&
-            d1.getFullYear() === d2.getFullYear();
+        // Days of current month
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const isSelected = selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
+            const isToday = new Date().getDate() === d && new Date().getMonth() === month && new Date().getFullYear() === year;
+            const hasEvent = busyDays.has(dateStr);
+
+            days.push(
+                <div
+                    key={d}
+                    className={`calendar-day ${isSelected ? 'selected' : ''}`}
+                    onClick={() => setSelectedDate(new Date(year, month, d))}
+                    style={{
+                        height: '45px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        borderRadius: '50%',
+                        background: isSelected ? 'var(--primary-purple)' : 'transparent',
+                        color: isSelected ? 'white' : (isToday ? 'var(--primary-cyan)' : 'white'),
+                        fontWeight: isSelected || isToday ? 'bold' : 'normal',
+                        position: 'relative',
+                        transition: '0.2s'
+                    }}
+                >
+                    <span style={{ fontSize: '0.9rem' }}>{d}</span>
+                    {hasEvent && !isSelected && (
+                        <div style={{
+                            width: '4px', height: '4px', background: 'var(--primary-cyan)',
+                            borderRadius: '50%', marginTop: '2px'
+                        }}></div>
+                    )}
+                </div>
+            );
+        }
+
+        return days;
     };
 
-    const formatDateStr = (dateObj) => {
-        return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    const changeMonth = (delta) => {
+        const newDate = new Date(viewDate);
+        newDate.setMonth(newDate.getMonth() + delta);
+        setViewDate(newDate);
     };
+
     // END: CALENDAR LOGIC
 
     // Parse 'HH:mm' to minutes for sorting
@@ -42,7 +103,7 @@ const LogisticsView = ({ events }) => {
     // Derive Tasks from Events
     const dailyTasks = useMemo(() => {
         const tasks = [];
-        const targetDateStr = formatDateStr(selectedDate);
+        const targetDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
         // Filter events for selected date & valid status
         const daysEvents = events.filter(e => {
@@ -133,11 +194,11 @@ const LogisticsView = ({ events }) => {
             }
         });
 
-        // Sort by Time (Late night logic: 00:00-05:00 counts as next chronological slot)
+        // Sort by Time
         return tasks.sort((a, b) => {
             const minA = getMinutes(a.time);
             const minB = getMinutes(b.time);
-            const adjA = minA < 300 ? minA + 1440 : minA; // Threshold 5 AM
+            const adjA = minA < 300 ? minA + 1440 : minA;
             const adjB = minB < 300 ? minB + 1440 : minB;
             return adjA - adjB;
         });
@@ -146,7 +207,7 @@ const LogisticsView = ({ events }) => {
 
     // Format time for display (12h)
     const formatTimeDisplay = (timeStr) => {
-        if (!timeStr) return '--:--';
+        if (!timeStr) return { time: '--:--', period: '' };
         const [h, m] = timeStr.split(':').map(Number);
         const ampm = h >= 12 ? 'PM' : 'AM';
         const h12 = h % 12 || 12;
@@ -156,94 +217,54 @@ const LogisticsView = ({ events }) => {
     return (
         <div className="fade-in" style={{ paddingBottom: '100px', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
 
-            {/* HEADER - GLASSY STYLE */}
-            <div style={{ padding: '20px 20px 0 20px' }}>
-                <h2 style={{
-                    color: 'white', margin: 0, fontSize: '1.8rem', fontWeight: '900', letterSpacing: '-0.5px'
-                }}>
-                    Agenda <span style={{ color: 'var(--primary-cyan)' }}>Logística</span>
-                </h2>
-                <p style={{ margin: '5px 0 0 0', opacity: 0.5, fontSize: '0.9rem', fontWeight: '500' }}>
-                    {months[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-                </p>
+            {/* 1. CALENDAR HEADER */}
+            <div style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h2 style={{ color: 'white', margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>
+                        {months[viewDate.getMonth()]} <span style={{ opacity: 0.5 }}>{viewDate.getFullYear()}</span>
+                    </h2>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={() => changeMonth(-1)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <IconArrowLeft size={16} />
+                        </button>
+                        <button onClick={() => changeMonth(1)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <IconArrowRight size={16} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* 2. CALENDAR GRID */}
+                <div style={{ background: 'rgba(20,20,25,0.5)', borderRadius: '24px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '10px', opacity: 0.5 }}>
+                        {['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'].map(d => (
+                            <div key={d} style={{ textAlign: 'center', fontSize: '0.7rem', fontWeight: 'bold', color: 'white' }}>{d}</div>
+                        ))}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', rowGap: '5px' }}>
+                        <CalendarGrid />
+                    </div>
+                </div>
             </div>
 
-            {/* HORIZONTAL CALENDAR STRIP */}
-            <div style={{
-                display: 'flex',
-                overflowX: 'auto',
-                gap: '12px',
-                padding: '25px 20px',
-                scrollbarWidth: 'none', // Firefox
-                msOverflowStyle: 'none',  // IE/Edge
-            }}>
-                <style>{`
-                    /* Hide Scrollbar Chrome/Safari */
-                    div::-webkit-scrollbar { display: none; }
-                `}</style>
+            {/* 3. TIMELINE FOR SELECTED DAY */}
+            <div style={{ padding: '10px 20px', marginTop: '10px' }}>
+                <h3 style={{ margin: '0 0 20px 0', fontSize: '1rem', fontWeight: '700', color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Agenda del {selectedDate.getDate()} de {months[selectedDate.getMonth()]}
+                </h3>
 
-                {daysList.map((d, index) => {
-                    const active = isSameDay(d, selectedDate);
-                    const dayName = d.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.', '');
-                    const dayNum = d.getDate();
-
-                    return (
-                        <div
-                            key={index}
-                            onClick={() => setSelectedDate(d)}
-                            style={{
-                                minWidth: '65px',
-                                height: '85px',
-                                background: active ? 'linear-gradient(145deg, var(--primary-cyan), #0099bb)' : 'rgba(255,255,255,0.03)',
-                                borderRadius: '40px', // Liquid pill shape
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                border: active ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
-                                transform: active ? 'scale(1.05) translateY(-2px)' : 'scale(1)',
-                                boxShadow: active ? '0 10px 25px rgba(0, 212, 255, 0.3)' : 'none',
-                                flexShrink: 0
-                            }}
-                        >
-                            <span style={{
-                                fontSize: '0.7rem', fontWeight: 'bold',
-                                color: active ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.4)',
-                                marginBottom: '5px'
-                            }}>
-                                {dayName}
-                            </span>
-                            <span style={{
-                                fontSize: '1.4rem', fontWeight: '900',
-                                color: active ? '#000' : 'white'
-                            }}>
-                                {dayNum}
-                            </span>
-                            {active && <div style={{ width: '4px', height: '4px', background: '#000', borderRadius: '50%', marginTop: '5px' }}></div>}
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* LIQUID TIMELINE */}
-            <div style={{ padding: '10px 20px' }}>
                 {dailyTasks.length === 0 ? (
                     <div style={{
-                        textAlign: 'center', padding: '60px 20px',
-                        background: 'rgba(255,255,255,0.02)', borderRadius: '30px',
+                        textAlign: 'center', padding: '40px 20px',
+                        background: 'rgba(255,255,255,0.02)', borderRadius: '20px',
                         border: '1px dashed rgba(255,255,255,0.1)'
                     }}>
-                        <div style={{ fontSize: '3rem', marginBottom: '10px', opacity: 0.2 }}>🏖️</div>
-                        <h3 style={{ margin: 0, color: 'white', opacity: 0.8 }}>Día Libre</h3>
-                        <p style={{ margin: '10px 0 0 0', fontSize: '0.85rem', color: '#666' }}>No hay movimientos logísticos para esta fecha.</p>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>Nada programado para hoy.</p>
                     </div>
                 ) : (
                     <div style={{ position: 'relative' }}>
-                        {/* Continuous Vertical Line */}
+                        {/* Vertical Line */}
                         <div style={{
-                            position: 'absolute', left: '74px', top: '25px', bottom: '50px',
+                            position: 'absolute', left: '74px', top: '15px', bottom: '40px',
                             width: '2px', background: 'rgba(255,255,255,0.1)', zIndex: 0
                         }}></div>
 
@@ -252,80 +273,46 @@ const LogisticsView = ({ events }) => {
 
                             return (
                                 <div key={task.id} style={{
-                                    display: 'flex', gap: '20px', marginBottom: '35px',
+                                    display: 'flex', gap: '20px', marginBottom: '25px',
                                     position: 'relative', zIndex: 1
                                 }}>
-                                    {/* TIME COLUMN */}
-                                    <div style={{
-                                        width: '60px', textAlign: 'right', paddingTop: '5px'
-                                    }}>
-                                        <div style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white', letterSpacing: '-0.5px' }}>{time}</div>
-                                        <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)' }}>{period}</div>
+                                    {/* TIME */}
+                                    <div style={{ width: '60px', textAlign: 'right', paddingTop: '2px' }}>
+                                        <div style={{ fontSize: '1rem', fontWeight: '900', color: 'white' }}>{time}</div>
+                                        <div style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)' }}>{period}</div>
                                     </div>
 
-                                    {/* ICON DOT */}
+                                    {/* DOT */}
                                     <div style={{ position: 'relative' }}>
                                         <div style={{
-                                            width: '30px', height: '30px', borderRadius: '50%',
-                                            background: '#111', // Match bg
+                                            width: '20px', height: '20px', borderRadius: '50%',
+                                            background: '#111',
                                             border: `2px solid ${task.color}`,
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            boxShadow: `0 0 15px ${task.glow}`,
+                                            boxShadow: `0 0 10px ${task.glow}`,
                                             zIndex: 2,
-                                            color: task.color
+                                            marginTop: '2px'
                                         }}>
-                                            {/* Small visual dot inside */}
-                                            <div style={{ width: '8px', height: '8px', background: task.color, borderRadius: '50%' }}></div>
+                                            <div style={{ width: '6px', height: '6px', background: task.color, borderRadius: '50%' }}></div>
                                         </div>
                                     </div>
 
-                                    {/* GLASS CARD */}
+                                    {/* CARD */}
                                     <div style={{
                                         flex: 1,
                                         background: 'rgba(30, 30, 35, 0.6)',
-                                        backdropFilter: 'blur(20px)',
+                                        backdropFilter: 'blur(10px)',
                                         border: `1px solid rgba(255,255,255,0.08)`,
-                                        borderRadius: '24px',
-                                        padding: '18px',
-                                        boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                                        position: 'relative',
-                                        overflow: 'hidden'
+                                        borderRadius: '16px',
+                                        padding: '15px',
+                                        borderLeft: `3px solid ${task.color}`
                                     }}>
-                                        {/* Color Accent Bar */}
-                                        <div style={{
-                                            position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px',
-                                            background: task.color, opacity: 0.8
-                                        }}></div>
-
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                            <span style={{
-                                                fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase',
-                                                letterSpacing: '1px', color: task.color,
-                                                background: `${task.color}15`, padding: '4px 10px', borderRadius: '8px'
-                                            }}>
-                                                {task.category}
-                                            </span>
-                                            <span style={{ opacity: 0.5 }}>{task.icon}</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', color: task.color }}>{task.category}</span>
                                         </div>
-
-                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 'bold', color: 'white' }}>
-                                            {task.title}
-                                        </h4>
-                                        <div style={{ fontSize: '0.9rem', color: '#ccc', marginBottom: '10px' }}>
-                                            {task.client}
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#888' }}>
-                                                <IconHome size={12} /> {task.location}
-                                            </div>
-                                            {task.subLocation && (
-                                                <div style={{ fontSize: '0.75rem', color: '#666', paddingLeft: '20px' }}>
-                                                    {task.subLocation}
-                                                </div>
-                                            )}
-                                        </div>
-
+                                        <h4 style={{ margin: '0 0 2px 0', fontSize: '1rem', fontWeight: 'bold', color: 'white' }}>{task.title}</h4>
+                                        <p style={{ margin: '0', fontSize: '0.85rem', color: '#ccc' }}>{task.client}</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: '#888' }}>📍 {task.location}</p>
                                     </div>
                                 </div>
                             );
