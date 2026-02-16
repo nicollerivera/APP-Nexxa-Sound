@@ -629,14 +629,14 @@ function App() {
     overtimePolicy: 'ALWAYS_CHARGE', // ALWAYS_CHARGE | NEGOTIABLE
 
     // 4. MENSAJES (TEMPLATES)
-    msgQuote: 'Â¡Hola {cliente}! ðŸŽ§ Adjunto tu cotizaciÃ³n personalizada para tu evento en {fecha}.',
+    msgQuote: '¡Hola {cliente}! 🎧 Adjunto tu cotización personalizada para tu evento en {fecha}.',
     msgAdvisory: '{cliente}, para tu evento de {invitados} pax en {zona}, te sugerimos lo siguiente...',
-    msgConfirm: 'Â¡Excelente! Hemos recibido tu abono de {monto}. Tu fecha {fecha} estÃ¡ 100% confirmada. ðŸ”’',
-    msgPost: 'Â¡Gracias por confiar en Nexxa! Esperamos que hayas disfrutado tu experiencia. â­',
+    msgConfirm: '¡Excelente! Hemos recibido tu abono de {monto}. Tu fecha {fecha} está 100% confirmada. 🔒',
+    msgPost: '¡Gracias por confiar en Nexxa! Esperamos que hayas disfrutado tu experiencia. ⭐',
 
     // 5. FINANZAS
     initialCash: 0,
-    expenseCategorias: ['Transporte', 'AlimentaciÃ³n', 'Nómina', 'Mantenimiento', 'Equipos', 'Marketing'],
+    expenseCategorias: ['Transporte', 'Alimentación', 'Nómina', 'Mantenimiento', 'Equipos', 'Marketing'],
     defaultPayment: 'Nequi',
 
     // 7. NOTIFICACIONES
@@ -695,7 +695,7 @@ function App() {
       status: 'PENDING' // PENDING | SOLVED
     };
     await setDoc(doc(collection(db, "damageReports"), `rep-${Date.now()}`), newReport);
-    alert('âš ï¸ DaÃ±o reportado correctamente');
+    alert('⚠️ Daño reportado correctamente');
   };
 
   // FORM STATE FOR NEW EVENT (WITH AUTO-SAVE DRAFT - LOCAL ONLY FOR NOW implies per-device draft)
@@ -757,20 +757,20 @@ function App() {
     // Mandatory Roles based on Package
     if (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') {
       if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
-        return alert(`âš ï¸ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÃA.`);
+        return alert(`⚠️ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÍA.`);
       }
       const photoDur = getHours(newEvent.photoStartTime, newEvent.photoEndTime);
       if (photoDur <= 0) {
-        return alert('âš ï¸ EL HORARIO DE FOTOGRAFÃA NO PUEDE SER DE 0 HORAS.');
+        return alert('⚠️ EL HORARIO DE FOTOGRAFÍA NO PUEDE SER DE 0 HORAS.');
       }
     }
     if (newEvent.packName === 'Celebration') {
       if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
-        return alert('âš ï¸ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
+        return alert('⚠️ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
       }
       const decorDur = getHours(newEvent.decorStartTime, newEvent.decorEndTime);
       if (decorDur <= 0) {
-        return alert('âš ï¸ EL HORARIO DE DECORACIÓN NO PUEDE SER DE 0 HORAS.');
+        return alert('⚠️ EL HORARIO DE DECORACIÓN NO PUEDE SER DE 0 HORAS.');
       }
     }
 
@@ -785,26 +785,26 @@ function App() {
     let defaultItems = [];
     if (newEvent.packName === 'Essential') {
       defaultItems = [
-        { name: 'Cabinas Activas 15" + TrÃ­podes', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'PC PortÃ¡til + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Luces LED + Soporte TrÃ­pode', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'MÃ¡quina Humo + Control + LÃ­quido', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Kit EnergÃ­a (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÃSTICA' }
+        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
+        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Luces LED + Soporte Trípode', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Máquina Humo + Control + Líquido', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
       ];
     } else if (newEvent.packName === 'Memories') {
       defaultItems = [
-        { name: 'Cabinas Activas 15" + TrÃ­podes', qty: 2, status: 'PENDING', area: 'DJ' },
+        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
         { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'CÃ¡mara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
-        { name: 'PC PortÃ¡til + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Kit EnergÃ­a (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÃSTICA' }
+        { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
+        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
       ];
     } else if (newEvent.packName === 'Celebration') {
       defaultItems = [
-        { name: 'Cabinas Activas 15" + TrÃ­podes', qty: 4, status: 'PENDING', area: 'DJ' },
+        { name: 'Cabinas Activas 15" + Trípodes', qty: 4, status: 'PENDING', area: 'DJ' },
         { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'CÃ¡mara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
-        { name: 'Kit EnergÃ­a (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÃSTICA' }
+        { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
+        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
       ];
     }
 
@@ -3941,25 +3941,25 @@ function App() {
 
     const templates = [
       {
-        title: 'El SÃºper-Abridor (RECOMENDADO)',
-        msg: `Â¡Hola ${clientFirstName}! ðŸ‘‹ QuÃ© nota de *${occasion}* el ${eventDate} ðŸŽ§âœ¨. Ya revisÃ© tu configuraciÃ³n del paquete ${packName} en la App y la base estÃ¡ muy bien planteada.\n\nPodemos optimizar servicios para que se ajusten 100% a tu idea y presupuesto. Â¡La meta es que sea impecable! Â¿QuÃ© tal te parece la propuesta o quieres que miremos algÃºn cambio?`,
-        icon: 'ðŸ’Ž',
+        title: 'El Súper-Abridor (RECOMENDADO)',
+        msg: `¡Hola ${clientFirstName}! 👋 Qué nota de *${occasion}* el ${eventDate} 🎧✨. Ya revisé tu configuración del paquete ${packName} en la App y la base está muy bien planteada.\n\nPodemos optimizar servicios para que se ajusten 100% a tu idea y presupuesto. ¡La meta es que sea impecable! ¿Qué tal te parece la propuesta o quieres que miremos algún cambio?`,
+        icon: '💎',
         recommend: true
       },
       {
         title: 'Prueba de Calidad (Portafolio)',
-        msg: `Â¡Hola ${clientFirstName}! ðŸŽ§ Estaba organizando el portafolio de eventos recientes y encontrÃ© unos videos geniales de un montaje con el paquete ${packName}. Â¿Te gustarÃ­a que te los comparta para que visualices cÃ³mo se verÃ­a tu *${occasion}* con nuestro equipo? Â¡Quedo atento!`,
-        icon: 'ðŸ“¸'
+        msg: `¡Hola ${clientFirstName}! 🎧 Estaba organizando el portafolio de eventos recientes y encontré unos videos geniales de un montaje con el paquete ${packName}. ¿Te gustaría que te los comparta para que visualices cómo se vería tu *${occasion}* con nuestro equipo? ¡Quedo atento!`,
+        icon: '📷'
       },
       {
-        title: 'GestiÃ³n de Agenda (Urgencia)',
-        msg: `Â¡Hola de nuevo ${clientFirstName}! ðŸŽ§ Paso a comentarte que nos escribieron consultando precisamente por la fecha del ${eventDate}. Como ya tenemos tu propuesta avanzada, querÃ­a confirmarlo contigo primero por prioridad. Â¿Te gustarÃ­a que reservemos el espacio para asegurar tu evento? ðŸ”’`,
-        icon: 'ðŸ—“ï¸'
+        title: 'Gestión de Agenda (Urgencia)',
+        msg: `¡Hola de nuevo ${clientFirstName}! 🎧 Paso a comentarte que nos escribieron consultando precisamente por la fecha del ${eventDate}. Como ya tenemos tu propuesta avanzada, quería confirmarlo contigo primero por prioridad. ¿Te gustaría que reservemos el espacio para asegurar tu evento? 🔒`,
+        icon: '🗓️'
       },
       {
-        title: 'DiseÃ±o Musical (The Vibe)',
-        msg: `${clientFirstName}, Â¡quÃ© nota de *${occasion}* estamos proyectando! ðŸŽ§âœ¨ En Nexxa nos apasiona el diseÃ±o musical de cada fiesta. Si deseas, cuÃ©ntame quÃ© gÃ©neros o canciones son infaltables para ti y planeamos un set que mantenga la energÃ­a al mÃ¡ximo. Â¿CÃ³mo te suena la idea?`,
-        icon: 'ðŸ”¥'
+        title: 'Diseño Musical (The Vibe)',
+        msg: `${clientFirstName}, ¡qué nota de *${occasion}* estamos proyectando! 🎧✨ En Nexxa nos apasiona el diseño musical de cada fiesta. Si deseas, cuéntame qué géneros o canciones son infaltables para ti y planeamos un set que mantenga la energía al máximo. ¿Cómo te suena la idea?`,
+        icon: '🔥'
       }
     ];
 
@@ -3978,9 +3978,9 @@ function App() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', flexShrink: 0 }}>
             <h3 style={{ margin: 0, fontWeight: '950', fontSize: '1.2rem' }}>Estrategia de Cierre</h3>
-            <button onClick={() => setWhatsappModalQuo(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>Ã—</button>
+            <button onClick={() => setWhatsappModalQuo(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
           </div>
-          <p style={{ opacity: 0.5, fontSize: '0.8rem', marginBottom: '20px', flexShrink: 0 }}>Selecciona el paso segÃºn el estado de la negociaciÃ³n:</p>
+          <p style={{ opacity: 0.5, fontSize: '0.8rem', marginBottom: '20px', flexShrink: 0 }}>Selecciona el paso según el estado de la negociación:</p>
 
           <div style={{
             display: 'flex',
@@ -4011,7 +4011,7 @@ function App() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     onClick={() => {
-                      if (!phone) return alert('No hay telÃ©fono.');
+                      if (!phone) return alert('No hay teléfono.');
                       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(t.msg)}`, '_blank');
                     }}
                     style={{ flex: 1, padding: '10px', background: t.recommend ? 'var(--primary-cyan)' : 'white', color: '#000', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.7rem', cursor: 'pointer' }}
@@ -4021,7 +4021,7 @@ function App() {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(t.msg);
-                      alert('Â¡Copiado! ðŸ“‹');
+                      alert('¡Copiado! 📋');
                     }}
                     style={{ padding: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.7rem', cursor: 'pointer' }}
                   >
