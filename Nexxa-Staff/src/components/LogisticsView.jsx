@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { getHours, months } from '../utils/helpers';
+import { getHours, months, addMinutes } from '../utils/helpers';
 import {
     IconCalendar, IconFlow, IconCamera, IconBox,
     IconHome, IconArrowRight, IconCheck
@@ -84,26 +84,21 @@ const LogisticsView = ({ events }) => {
 
             // 4. PICKUP (End of Event)
             // Usually we pickup everything at end time
+            // 4. PICKUP (End of Event + 2 Hours Transport)
             if (evt.eventDetails?.endTime || evt.endTime) {
-                const endTime = evt.eventDetails?.endTime || evt.endTime;
-
-                // Logic: If endTime is very early (e.g. 02:00), it technically belongs to "next day" calendar-wise,
-                // but usually logistics view treats it as "Night of [Date]". 
-                // We will keep it in this list sorted by "logical order" (events starting PM ending AM).
-                // Or better: Sort purely by time string. 02:00 comes before 16:00.
-                // To fix "Next Day AM" appearing at top:
-                // We can split the list: AM (00-11) tasks that belong to *this* day's events vs *previous* day events.
-                // For simplicity, let's assume standard sorting first.
+                const rawEndTime = evt.eventDetails?.endTime || evt.endTime;
+                // Calculate Pickup Time = EndTime + 2 Hours (120 min)
+                const pickupTime = addMinutes(rawEndTime, 120);
 
                 tasks.push({
                     id: `${evt.id}_end`,
-                    time: endTime,
+                    time: pickupTime,
                     type: 'RECOGIDA',
                     category: 'ALL',
-                    title: 'Recogida General',
+                    title: 'Recogida General (+2h)',
                     client,
                     location: `${hood} - ${loc}`,
-                    details: 'Finalizar Evento y Recoger',
+                    details: 'Finalizar Evento, Desmontar y Transportar',
                     icon: <IconHome />,
                     color: '#ff4d4d' // Red
                 });
