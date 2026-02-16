@@ -49,7 +49,7 @@ const LogisticsView = ({ events }) => {
             }
 
             // 2. PHOTO DELIVERY
-            const photoStart = evt.logistics?.rolesSchedule?.photographerStart || evt.photoStartTime;
+            const photoStart = evt.eventDetails?.photoStartTime || evt.logistics?.rolesSchedule?.photographerStart || evt.photoStartTime;
             if (photoStart) {
                 tasks.push({
                     id: `${evt.id}_photo_start`,
@@ -66,7 +66,7 @@ const LogisticsView = ({ events }) => {
             }
 
             // 3. DECOR DELIVERY
-            const decorStart = evt.logistics?.rolesSchedule?.decorStart || evt.decorStartTime;
+            const decorStart = evt.eventDetails?.decorStartTime || evt.logistics?.rolesSchedule?.decorStart || evt.decorStartTime;
             if (decorStart) {
                 tasks.push({
                     id: `${evt.id}_decor_start`,
