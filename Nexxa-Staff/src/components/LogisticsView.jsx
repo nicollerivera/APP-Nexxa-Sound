@@ -9,6 +9,7 @@ const LogisticsView = ({ events }) => {
     // START: CALENDAR LOGIC
     const [viewDate, setViewDate] = useState(new Date()); // Controls the month being viewed
     const [selectedDate, setSelectedDate] = useState(new Date()); // Controls the specific day selected
+    const [viewMode, setViewMode] = useState('grid'); // 'list' | 'grid'
 
     // Helper to check if a day has any events
     const busyDays = useMemo(() => {
@@ -55,7 +56,10 @@ const LogisticsView = ({ events }) => {
                 <div
                     key={d}
                     className={`calendar-day ${isSelected ? 'selected' : ''}`}
-                    onClick={() => setSelectedDate(new Date(year, month, d))}
+                    onClick={() => {
+                        setSelectedDate(new Date(year, month, d));
+                        setViewMode('list'); // Switch to list view when date is tapped
+                    }}
                     style={{
                         height: '45px',
                         display: 'flex',
@@ -130,7 +134,7 @@ const LogisticsView = ({ events }) => {
                     details: `Paquete ${pack}`,
                     icon: <IconBox size={18} />,
                     color: '#00d4ff', // Cyan
-                    glow: 'rgba(0, 212, 255, 0.4)'
+                    glow: 'rgba(0, 212, 255, 0.5)'
                 });
             }
 
@@ -149,7 +153,7 @@ const LogisticsView = ({ events }) => {
                     details: 'Servicio de Fotografía',
                     icon: <IconCamera size={18} />,
                     color: '#facc15', // Yellow
-                    glow: 'rgba(250, 204, 21, 0.4)'
+                    glow: 'rgba(250, 204, 21, 0.5)'
                 });
             }
 
@@ -168,7 +172,7 @@ const LogisticsView = ({ events }) => {
                     details: 'Montaje Decoración',
                     icon: <IconFlow size={18} />,
                     color: '#bc6ff1', // Purple
-                    glow: 'rgba(188, 111, 241, 0.4)'
+                    glow: 'rgba(188, 111, 241, 0.5)'
                 });
             }
 
@@ -189,7 +193,7 @@ const LogisticsView = ({ events }) => {
                     details: 'Transporte y Bodega',
                     icon: <IconHome size={18} />,
                     color: '#ff4d4d', // Red
-                    glow: 'rgba(255, 77, 77, 0.4)'
+                    glow: 'rgba(255, 77, 77, 0.5)'
                 });
             }
         });
@@ -209,9 +213,25 @@ const LogisticsView = ({ events }) => {
     const formatTimeDisplay = (timeStr) => {
         if (!timeStr) return { time: '--:--', period: '' };
         const [h, m] = timeStr.split(':').map(Number);
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const h12 = h % 12 || 12;
-        return { time: `${h12}:${String(m).padStart(2, '0')}`, period: ampm };
+
+        // Handle "late night" logic for display if needed, but usually 01:00 is just 01:00
+        const ampm = h >= 12 ? 'PM' : (h < 5 ? 'SOY' : 'AM'); // "SOY" is meaningless, let's use AM but maybe 'Late Night' indicator? 
+        // User image shows "12:00 SOY"? Maybe "SOY" means something specific or it's a typo in the mock?
+        // Ah, likely "Early Morning" -> "AM". User image shows "12:00 SOY", maybe "SOY" is "Soy" (I am)? No.
+        // Or maybe "SOY" = "Start of Yesterday"? No. 
+        // Wait, the user image shows 'SOY' under 12:00. 
+        // It might be 'A.M.' cut off or 'Sun' ? 
+        // 12:00 SOY seems weird. I'll stick to 'AM'/'PM'.
+
+        let h12 = h % 12;
+        if (h12 === 0) h12 = 12; // 0 -> 12
+
+        let period = h >= 12 ? 'PM' : 'AM';
+
+        // Special case from user image: 12:00 AM might be displayed differently?
+        // I'll stick to standard AM/PM.
+
+        return { time: `${h12}:${String(m).padStart(2, '0')}`, period };
     };
 
     return (
@@ -246,12 +266,21 @@ const LogisticsView = ({ events }) => {
                 </div>
             </div>
 
-            {/* 3. TIMELINE FOR SELECTED DAY */}
-            <div style={{ padding: '10px 20px', marginTop: '10px' }}>
-                <h3 style={{ margin: '0 0 20px 0', fontSize: '1rem', fontWeight: '700', color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Agenda del {selectedDate.getDate()} de {months[selectedDate.getMonth()]}
+            {/* 3. VIEW TOGGLE & CONTENT */}
+            <div style={{ padding: '0 20px 10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Agenda del {selectedDate.getDate()}
                 </h3>
 
+                {/* View Toggle (Hidden for now as user just wants list based on image)
+                <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '4px', display: 'flex' }}>
+                    <button onClick={() => setViewMode('list')} ... >Lista</button>
+                    <button onClick={() => setViewMode('grid')} ... >Grilla</button>
+                </div>
+                */}
+            </div>
+
+            <div style={{ padding: '0 20px' }}>
                 {dailyTasks.length === 0 ? (
                     <div style={{
                         textAlign: 'center', padding: '40px 20px',
@@ -261,11 +290,11 @@ const LogisticsView = ({ events }) => {
                         <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>Nada programado para hoy.</p>
                     </div>
                 ) : (
-                    <div style={{ position: 'relative' }}>
-                        {/* Vertical Line */}
+                    <div style={{ position: 'relative', marginTop: '10px' }}>
+                        {/* Vertical Guide Line */}
                         <div style={{
-                            position: 'absolute', left: '74px', top: '15px', bottom: '40px',
-                            width: '2px', background: 'rgba(255,255,255,0.1)', zIndex: 0
+                            position: 'absolute', left: '55px', top: '15px', bottom: '40px',
+                            width: '1px', background: 'rgba(255,255,255,0.1)', zIndex: 0
                         }}></div>
 
                         {dailyTasks.map((task, i) => {
@@ -273,46 +302,65 @@ const LogisticsView = ({ events }) => {
 
                             return (
                                 <div key={task.id} style={{
-                                    display: 'flex', gap: '20px', marginBottom: '25px',
+                                    display: 'flex', gap: '15px', marginBottom: '20px',
                                     position: 'relative', zIndex: 1
                                 }}>
-                                    {/* TIME */}
-                                    <div style={{ width: '60px', textAlign: 'right', paddingTop: '2px' }}>
-                                        <div style={{ fontSize: '1rem', fontWeight: '900', color: 'white' }}>{time}</div>
-                                        <div style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)' }}>{period}</div>
+                                    {/* TIME COLUMN */}
+                                    <div style={{ width: '45px', textAlign: 'right', paddingTop: '4px' }}>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: '900', color: 'white' }}>{time}</div>
+                                        <div style={{ fontSize: '0.6rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>{period}</div>
                                     </div>
 
-                                    {/* DOT */}
+                                    {/* NEON DOT */}
                                     <div style={{ position: 'relative' }}>
                                         <div style={{
-                                            width: '20px', height: '20px', borderRadius: '50%',
-                                            background: '#111',
+                                            width: '24px', height: '24px', borderRadius: '50%',
+                                            background: '#000',
                                             border: `2px solid ${task.color}`,
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            boxShadow: `0 0 10px ${task.glow}`,
-                                            zIndex: 2,
-                                            marginTop: '2px'
+                                            boxShadow: `0 0 12px ${task.glow}`,
+                                            zIndex: 2
                                         }}>
                                             <div style={{ width: '6px', height: '6px', background: task.color, borderRadius: '50%' }}></div>
                                         </div>
                                     </div>
 
-                                    {/* CARD */}
+                                    {/* CARD CONTENT - MATCHING USER IMAGE EXACTLY */}
                                     <div style={{
                                         flex: 1,
-                                        background: 'rgba(30, 30, 35, 0.6)',
-                                        backdropFilter: 'blur(10px)',
-                                        border: `1px solid rgba(255,255,255,0.08)`,
+                                        background: '#111', // Dark solid bg
+                                        border: `1px solid ${task.color}40`, // Colored border low opacity
                                         borderRadius: '16px',
-                                        padding: '15px',
-                                        borderLeft: `3px solid ${task.color}`
+                                        padding: '16px',
+                                        position: 'relative',
+                                        overflow: 'hidden',
+                                        boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
                                     }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                                            <span style={{ fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', color: task.color }}>{task.category}</span>
+                                        {/* Left Colored Accent Bar with Glow */}
+                                        <div style={{
+                                            position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px',
+                                            background: task.color,
+                                            boxShadow: `2px 0 10px ${task.color}60`
+                                        }}></div>
+
+                                        <div style={{ paddingLeft: '8px' }}>
+                                            <div style={{
+                                                fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase',
+                                                color: task.color, marginBottom: '4px', letterSpacing: '0.5px'
+                                            }}>
+                                                {task.category}
+                                            </div>
+                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'white' }}>
+                                                {task.title}
+                                            </h4>
+                                            <p style={{ margin: '0 0 6px 0', fontSize: '0.9rem', color: '#ccc', fontWeight: '500' }}>
+                                                {task.client}
+                                            </p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', opacity: 0.6 }}>
+                                                <div style={{ width: '6px', height: '6px', background: '#ff3860', borderRadius: '50%' }}></div>
+                                                <span style={{ fontSize: '0.8rem', color: '#aaa' }}>{task.location}</span>
+                                            </div>
                                         </div>
-                                        <h4 style={{ margin: '0 0 2px 0', fontSize: '1rem', fontWeight: 'bold', color: 'white' }}>{task.title}</h4>
-                                        <p style={{ margin: '0', fontSize: '0.85rem', color: '#ccc' }}>{task.client}</p>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: '#888' }}>📍 {task.location}</p>
                                     </div>
                                 </div>
                             );
@@ -321,6 +369,7 @@ const LogisticsView = ({ events }) => {
                 )}
             </div>
 
+            <div style={{ height: '40px' }}></div>
         </div>
     );
 };
