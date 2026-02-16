@@ -4101,7 +4101,7 @@ function App() {
             />
           </div>
           <h2 style={{ fontSize: '1.8rem', fontWeight: '950', margin: 0, letterSpacing: '-1px' }}>Nexxa <span style={{ color: 'var(--primary-cyan)' }}>Staff</span></h2>
-          <p style={{ opacity: 0.4, fontSize: '0.8rem', marginTop: '8px', fontWeight: '700' }}>Inicia sesiÃ³n para continuar</p>
+          <p style={{ opacity: 0.4, fontSize: '0.8rem', marginTop: '8px', fontWeight: '700' }}>Inicia sesión para continuar</p>
         </div>
 
         {loginError && (
@@ -4127,7 +4127,7 @@ function App() {
             <label style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.4, marginLeft: '5px' }}>CLAVE DE ACCESO</label>
             <input
               type="password"
-              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+              placeholder="********"
               value={loginPass}
               onChange={e => setLoginPass(e.target.value)}
               required
