@@ -656,8 +656,9 @@ function App() {
                         <button
                           className="select-btn"
                           style={{
-                            background: (pkg.id === selectedPackageId || pkg.highlight) ? 'var(--brand-gradient)' : 'transparent',
-                            border: (pkg.id === selectedPackageId || pkg.highlight) ? 'none' : '1px solid var(--primary-color)',
+                            background: 'transparent',
+                            border: '2px solid var(--primary-cyan)',
+                            color: 'white',
                             marginTop: 'auto' // Push to bottom
                           }}
                           onClick={(e) => {
@@ -671,7 +672,7 @@ function App() {
                             }, 200);
                           }}
                         >
-                          {selectedPackageId === pkg.id ? 'Seleccionado' : 'Seleccionar'}
+                          Seleccionar
                         </button>
                       </div>
                     </div>
