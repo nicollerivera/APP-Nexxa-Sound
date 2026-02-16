@@ -4,6 +4,7 @@ import QuotationsView from './components/QuotationsView';
 import AccountingView from './components/AccountingView';
 import CreateEventView from './components/CreateEventView';
 import InventoryView from './components/InventoryView';
+import LogisticsView from './components/LogisticsView';
 import { getDynamicExtras } from './utils/helpers';
 
 // --- IMPORTS MOVED ---
@@ -4056,6 +4057,11 @@ function App() {
         <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Eventos</span>
       </button>
 
+      <button className={`nav-item ${view === 'logistics' ? 'active' : ''}`} onClick={() => setView('logistics')}>
+        <IconFlow size={18} />
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Logística</span>
+      </button>
+
       {userRole === 'admin' && (
         <button className={`nav-item ${view === 'accounting' ? 'active' : ''}`} onClick={() => setView('accounting')}>
           <IconRecaudo size={18} />
@@ -4197,6 +4203,11 @@ function App() {
             <InventoryView
               inventory={inventory}
               setView={setView}
+            />
+          )}
+          {view === 'logistics' && (
+            <LogisticsView
+              events={events}
             />
           )}
           {view === 'accounting' && (
