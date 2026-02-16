@@ -525,14 +525,16 @@ function App() {
     }
   };
 
-  if (confirm('¿Cerrar sesión en el panel?')) {
-    setUser(null);
-    setUserRole(null);
-    localStorage.removeItem('nexxa_user');
-    localStorage.removeItem('nexxa_role');
-    // Forzar recarga para limpiar estado completo
-    window.location.reload();
-  }
+  const handleLogout = () => {
+    if (confirm('¿Cerrar sesión en el panel?')) {
+      setUser(null);
+      setUserRole(null);
+      localStorage.removeItem('nexxa_user');
+      localStorage.removeItem('nexxa_role');
+      // Forzar recarga para limpiar estado completo
+      window.location.reload();
+    }
+  };
 
   // 5. SYNC MARKETING DISTRIBUTION (ALLOCATIONS)
   useEffect(() => {
