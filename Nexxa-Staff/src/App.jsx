@@ -373,6 +373,7 @@ function App() {
   const [paymentModal, setPaymentModal] = useState(null); // { evt, type: 'DEPOSIT' | 'FINAL' }
   const [paymentSplit, setPaymentSplit] = useState({ Nequi: 0, Daviplata: 0, Efectivo: 0 });
   const [historySearch, setHistorySearch] = useState('');
+  const [adAllocations, setAdAllocations] = useState({});
 
   // --- AUTH STATE ---
   const [loginUser, setLoginUser] = useState('');
@@ -554,7 +555,7 @@ function App() {
     fiscalAddress: '',
     whatsapp: '3204863127',
     email: 'contacto@nexxasound.com',
-    city: 'BogotÃ¡ D.C.',
+    city: 'Bogotá D.C.',
     signature: 'Atte: El equipo de Nexxa Sound ðŸŽ§'
   });
 
@@ -764,11 +765,11 @@ function App() {
     }
     if (newEvent.packName === 'Celebration') {
       if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
-        return alert('âš ï¸ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÃ“N.');
+        return alert('âš ï¸ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
       }
       const decorDur = getHours(newEvent.decorStartTime, newEvent.decorEndTime);
       if (decorDur <= 0) {
-        return alert('âš ï¸ EL HORARIO DE DECORACIÃ“N NO PUEDE SER DE 0 HORAS.');
+        return alert('âš ï¸ EL HORARIO DE DECORACIÓN NO PUEDE SER DE 0 HORAS.');
       }
     }
 
@@ -1048,11 +1049,11 @@ function App() {
       }
       if (newEvent.packName === 'Celebration') {
         if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
-          return alert('âš ï¸ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÃ“N.');
+          return alert('âš ï¸ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
         }
         const decorDur = getHours(newEvent.decorStartTime, newEvent.decorEndTime);
         if (decorDur <= 0) {
-          return alert('âš ï¸ EL HORARIO DE DECORACIÃ“N NO PUEDE SER DE 0 HORAS.');
+          return alert('âš ï¸ EL HORARIO DE DECORACIÓN NO PUEDE SER DE 0 HORAS.');
         }
       }
 
@@ -2209,7 +2210,7 @@ function App() {
                       )}
                       {evt.eventDetails?.decorStartTime && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', borderRadius: '10px' }}>
-                          <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)' }}>âœ¨ DECORACIÃ“N</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)' }}>âœ¨ DECORACIÓN</span>
                           <span style={{ fontSize: '0.75rem', fontWeight: '900' }}>{formatT(evt.eventDetails.decorStartTime)} - {formatT(evt.eventDetails.decorEndTime)}</span>
                         </div>
                       )}
@@ -2220,8 +2221,8 @@ function App() {
 
 
 
-              {/* GESTIÃ“N DE HORARIOS (EXTRAS) */}
-              {/* GESTIÃ“N DE HORARIOS COMPACTA (EXTRAS) */}
+              {/* GESTIÓN DE HORARIOS (EXTRAS) */}
+              {/* GESTIÓN DE HORARIOS COMPACTA (EXTRAS) */}
               <div style={{ marginTop: '15px', background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
 
 
@@ -2977,7 +2978,7 @@ function App() {
                   {totalMonthEventsCount}
                 </div>
               </div>
-              <small style={{ color: 'var(--primary-cyan)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÃ“N OPERATIVA</small>
+              <small style={{ color: 'var(--primary-cyan)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÓN OPERATIVA</small>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
@@ -3163,10 +3164,10 @@ function App() {
                       let dateLabel = eventDate;
                       let headerColor = 'rgba(255,255,255,0.4)';
                       if (eventDate === today) { dateLabel = 'HOY'; headerColor = 'var(--primary-cyan)'; }
-                      else if (eventDate === tomorrow) { dateLabel = 'MAÃ‘ANA'; headerColor = 'var(--primary-purple)'; }
+                      else if (eventDate === tomorrow) { dateLabel = 'MAÑANA'; headerColor = 'var(--primary-purple)'; }
                       else if (eventDate) {
                         const d = new Date(eventDate + 'T12:00:00');
-                        const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIÃ‰RCOLES', 'JUEVES', 'VIERNES', 'SÃBADO'];
+                        const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÃBADO'];
                         dateLabel = `${days[d.getDay()]} ${eventDate.split('-').reverse().slice(0, 2).join('/')}`;
                       }
 
@@ -3613,7 +3614,7 @@ function App() {
           <header style={{ padding: '30px 0 10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>Cotizaciones <span style={{ opacity: 0.3 }}>Activas</span> <small style={{ fontSize: '0.6rem', opacity: 0.5 }}>v3.0 MICRO</small></h2>
-              <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÃ“N COMERCIAL</small>
+              <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '1px', fontSize: '0.6rem' }}>GESTIÓN COMERCIAL</small>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
@@ -4290,7 +4291,7 @@ function App() {
                   <IconArrowLeft size={14} /> VOLVER A EVENTOS
                 </button>
                 <h2 style={{ fontSize: '2.2rem', fontWeight: '900', margin: 0 }}>Centro de <span style={{ opacity: 0.3 }}>Control</span></h2>
-                <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '2px', fontSize: '0.65rem' }}>GESTIÃ“N DE PERFIL Y APP</small>
+                <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '2px', fontSize: '0.65rem' }}>GESTIÓN DE PERFIL Y APP</small>
               </header>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
