@@ -203,7 +203,7 @@ function App() {
   // 1. SYNC EVENTS
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "events"), (snapshot) => {
-      // PROTECCIÃ“N RADICAL: Validar que snapshot.docs sea un array
+      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
         console.error("âš ï¸ onSnapshot events: snapshot.docs no es un array");
         return;
@@ -247,7 +247,7 @@ function App() {
   // 1.5 SYNC QUOTATIONS
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
-      // PROTECCIÃ“N RADICAL: Validar que snapshot.docs sea un array
+      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
         console.error("âš ï¸ onSnapshot quotations: snapshot.docs no es un array");
         return;
@@ -258,7 +258,7 @@ function App() {
       // AUDITORÃA: Detectar cotizaciones sin client.name
       liveQuo.forEach(quo => {
         if (!quo.client || (!quo.client.name && !quo.clientName)) {
-          console.error("ðŸ”´ COTIZACIÃ“N SIN NOMBRE DETECTADA:", {
+          console.error("ðŸ”´ COTIZACIÓN SIN NOMBRE DETECTADA:", {
             id: quo.id,
             client: quo.client,
             clientName: quo.clientName
@@ -277,7 +277,7 @@ function App() {
         if (a.status === 'SENT' && b.status !== 'SENT') return -1;
         if (a.status !== 'SENT' && b.status === 'SENT') return 1;
 
-        // 2. ORDEN CRONOLÃ“GICO: MÃ¡s reciente primero
+        // 2. ORDEN CRONOLÓGICO: MÃ¡s reciente primero
         const dateA = parseFirestoreDate(a.createdAt);
         const dateB = parseFirestoreDate(b.createdAt);
         if (dateA && dateB && dateA.getTime && dateB.getTime && dateA.getTime() !== dateB.getTime()) return dateB - dateA;
@@ -292,7 +292,7 @@ function App() {
   // 2. SYNC INVENTORY
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "inventory"), (snapshot) => {
-      // PROTECCIÃ“N RADICAL: Validar que snapshot.docs sea un array
+      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
         console.error("âš ï¸ onSnapshot inventory: snapshot.docs no es un array");
         return;
@@ -425,7 +425,7 @@ function App() {
   });
   const [authLoading, setAuthLoading] = useState(false);
 
-  // ðŸ” FUNCIÃ“N DE AUDITORÃA TEMPORAL - Detectar registros corruptos
+  // ðŸ” FUNCIÓN DE AUDITORÃA TEMPORAL - Detectar registros corruptos
   useEffect(() => {
     const auditFirebaseData = async () => {
       console.log("ðŸ” INICIANDO AUDITORÃA DE FIREBASE...");
@@ -525,15 +525,14 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    if (confirm('Â¿Cerrar sesiÃ³n en el panel?')) {
-      setUser(null);
-      setUserRole(null);
-      localStorage.removeItem('nexxa_user');
-      localStorage.removeItem('nexxa_role');
-      setView('events');
-    }
-  };
+  if (confirm('¿Cerrar sesión en el panel?')) {
+    setUser(null);
+    setUserRole(null);
+    localStorage.removeItem('nexxa_user');
+    localStorage.removeItem('nexxa_role');
+    // Forzar recarga para limpiar estado completo
+    window.location.reload();
+  }
 
   // 5. SYNC MARKETING DISTRIBUTION (ALLOCATIONS)
   useEffect(() => {
@@ -635,7 +634,7 @@ function App() {
 
     // 5. FINANZAS
     initialCash: 0,
-    expenseCategorias: ['Transporte', 'AlimentaciÃ³n', 'NÃ³mina', 'Mantenimiento', 'Equipos', 'Marketing'],
+    expenseCategorias: ['Transporte', 'AlimentaciÃ³n', 'Nómina', 'Mantenimiento', 'Equipos', 'Marketing'],
     defaultPayment: 'Nequi',
 
     // 7. NOTIFICACIONES
@@ -1340,7 +1339,7 @@ function App() {
 
     total += extrasTotal;
 
-    // INTELIGENCIA: Si el evento no tiene dinero, lo buscamos en su COTIZACIÃ“N original
+    // INTELIGENCIA: Si el evento no tiene dinero, lo buscamos en su COTIZACIÓN original
     if (total === 0) {
       const normalize = (s) => String(s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
@@ -2109,7 +2108,7 @@ function App() {
                 fontSize: '0.55rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px'
               }}
             >
-              <IconFileText size={12} /> VER COTIZACIÃ“N ORIGINAL (CONTRATO)
+              <IconFileText size={12} /> VER COTIZACIÓN ORIGINAL (CONTRATO)
             </button>
           </section>
 
@@ -2476,7 +2475,7 @@ function App() {
                   <div style={{ marginTop: '15px', padding: '15px', borderRadius: '16px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <span style={{ fontSize: '0.6rem', fontWeight: '900', color: 'var(--success-green)', letterSpacing: '1px' }}>UTILIDAD LÃQUIDA REAL</span>
-                      <small style={{ display: 'block', fontSize: '0.5rem', opacity: 0.5, color: 'var(--success-green)' }}>Total Venta - Gastos/NÃ³mina</small>
+                      <small style={{ display: 'block', fontSize: '0.5rem', opacity: 0.5, color: 'var(--success-green)' }}>Total Venta - Gastos/Nómina</small>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '1.2rem', fontWeight: '950', color: 'var(--success-green)' }}>{formatPeso(liquidProfit)}</div>
@@ -3142,7 +3141,7 @@ function App() {
                   const tomorrow = getTomorrowStr();
 
                   return filtered.map((evt, idx) => {
-                    // ULTRA-PROTECCIÃ“N: Validar CADA propiedad
+                    // ULTRA-PROTECCIÓN: Validar CADA propiedad
                     try {
                       if (!evt || typeof evt !== 'object') return null;
                       if (!evt.id) return null; // Sin ID, no renderizar
@@ -3191,7 +3190,7 @@ function App() {
                                   <span style={{ fontSize: '0.35rem', fontWeight: '900', color: 'rgba(255,255,255,0.2)', marginLeft: '4px' }}>
                                     [P:{flow.clientPaid ? 'Y' : 'N'} R:{flow.equipmentReturned ? 'Y' : 'N'} I:{evt.logistics?.items?.length || 0}]
                                   </span>
-                                  {evt.status === 'SENT' && <span style={{ fontSize: '0.45rem', fontWeight: '900', background: 'rgba(188, 111, 241, 0.1)', color: 'var(--primary-purple)', padding: '2px 4px', borderRadius: '3px' }}>COTIZACIÃ“N</span>}
+                                  {evt.status === 'SENT' && <span style={{ fontSize: '0.45rem', fontWeight: '900', background: 'rgba(188, 111, 241, 0.1)', color: 'var(--primary-purple)', padding: '2px 4px', borderRadius: '3px' }}>COTIZACIÓN</span>}
                                 </div>
                                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clientName}</h3>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px', opacity: 0.5, fontSize: '0.6rem', fontWeight: '700' }}>
@@ -3274,7 +3273,7 @@ function App() {
                 </div>
                 <div style={{ padding: '40px', textAlign: 'center', opacity: 0.3, marginTop: '20px' }}>
                   <IconInventory size={40} />
-                  <p style={{ fontWeight: '700', fontSize: '0.9rem' }}>Inventario detallado prÃ³ximamente.</p>
+                  <p style={{ fontWeight: '700', fontSize: '0.9rem' }}>Inventario detallado Próximamente.</p>
                 </div>
               </div>
             )
@@ -3332,7 +3331,7 @@ function App() {
                     }
 
                     return closedEvents.map(evt => {
-                      // ULTRA-PROTECCIÃ“N: Validar CADA evento cerrado
+                      // ULTRA-PROTECCIÓN: Validar CADA evento cerrado
                       try {
                         if (!evt || typeof evt !== 'object') return null;
                         if (!evt.id) return null;
@@ -3462,7 +3461,7 @@ function App() {
                 <TextInput label="DirecciÃ³n Fiscal" value={userProfile.fiscalAddress} onChange={(val) => setUserProfile({ ...userProfile, fiscalAddress: val })} />
               </div>
               <TextInput label="WhatsApp Principal" value={userProfile.whatsapp} onChange={(val) => setUserProfile({ ...userProfile, whatsapp: val })} />
-              <TextInput label="Correo ElectrÃ³nico" value={userProfile.email} onChange={(val) => setUserProfile({ ...userProfile, email: val })} />
+              <TextInput label="Correo electrónico" value={userProfile.email} onChange={(val) => setUserProfile({ ...userProfile, email: val })} />
               <TextInput label="Ciudad / Zona" value={userProfile.city} onChange={(val) => setUserProfile({ ...userProfile, city: val })} />
             </div>
           </section>
@@ -3572,7 +3571,7 @@ function App() {
             className="primary-btn"
             style={{ marginTop: '10px', padding: '22px', fontSize: '1rem', width: '100%', textTransform: 'uppercase', letterSpacing: '2px' }}
           >
-            Guardar ConfiguraciÃ³n
+            Guardar Configuración
           </button>
           <section style={{ paddingBottom: '40px' }}>
             <button
@@ -3593,7 +3592,7 @@ function App() {
                 gap: '10px'
               }}
             >
-              <IconLogout size={18} /> CERRAR SESIÃ“N
+              <IconLogout size={18} /> CERRAR SESIÓN
             </button>
             <p style={{ textAlign: 'center', fontSize: '0.65rem', color: '#555', marginTop: '15px', fontWeight: '700' }}>
               SesiÃ³n activa como: <span style={{ color: '#888' }}>{user.email}</span> ({userRole?.toUpperCase()})
@@ -3678,7 +3677,7 @@ function App() {
 
           <div className="sales-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {quotations.filter(q => q && (q.client?.name || q.clientName)).map(quo => {
-              // ULTRA-PROTECCIÃ“N: Validar CADA cotizaciÃ³n
+              // ULTRA-PROTECCIÓN: Validar CADA cotizaciÃ³n
               try {
                 if (!quo || typeof quo !== 'object') return null;
                 if (!quo.id) return null;
@@ -4337,7 +4336,7 @@ function App() {
                 {userRole === 'admin' && (
                   <div
                     className="sales-list-item"
-                    onClick={() => alert('GestiÃ³n de nÃ³mina prÃ³ximamente')}
+                    onClick={() => alert('GestiÃ³n de nÃ³mina Próximamente')}
                     style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
@@ -4346,14 +4345,14 @@ function App() {
                       </div>
                       <div>
                         <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Roles / Staff</span>
-                        <small style={{ opacity: 0.4, fontWeight: '700' }}>NÃ³mina y jerarquÃ­as</small>
+                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Nómina y jerarquÃ­as</small>
                       </div>
                     </div>
                     <IconArrowRight size={18} style={{ opacity: 0.3 }} />
                   </div>
                 )}
 
-                {/* CERRAR SESIÃ“N */}
+                {/* CERRAR SESIÓN */}
                 <button
                   className="sales-list-item"
                   style={{
@@ -4373,7 +4372,7 @@ function App() {
                   onClick={() => alert('Cerrando sesiÃ³n...')}
                 >
                   <IconLogout size={20} />
-                  <span style={{ fontWeight: '950', letterSpacing: '1px', fontSize: '0.9rem' }}>CERRAR SESIÃ“N</span>
+                  <span style={{ fontWeight: '950', letterSpacing: '1px', fontSize: '0.9rem' }}>CERRAR SESIÓN</span>
                 </button>
               </div>
             </div>
@@ -4454,7 +4453,7 @@ function App() {
                 setShowFinanceModal(null);
                 setFinAmount('');
                 setFinDesc('');
-                alert('âœ… TransacciÃ³n registrada correctamente');
+                alert('âœ… Transacción registrada correctamente');
 
               }} style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {finType === 'EVENT' && (
@@ -4519,7 +4518,7 @@ function App() {
                               else if (role === 'DECOR') pay = 40000; // Tarifa plana base
 
                               setFinAmount(pay);
-                              setFinDesc(`Pago NÃ³mina ${role} - ${evt.client?.name || evt.clientName || 'Evento'}`);
+                              setFinDesc(`Pago Nómina ${role} - ${evt.client?.name || evt.clientName || 'Evento'}`);
                               setFinCategory('NÃ“MINA');
                             }}
                             style={{ padding: '8px 12px', background: 'var(--primary-purple)', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.65rem', fontWeight: '900', cursor: 'pointer' }}
@@ -4542,7 +4541,7 @@ function App() {
                     ))}
                   </select>
                   <input
-                    placeholder="DescripciÃ³n..."
+                    placeholder="Descripción..."
                     value={finDesc}
                     onChange={e => setFinDesc(e.target.value)}
                     required
@@ -4739,7 +4738,7 @@ function App() {
         {staffPayModal && (
           <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="fade-in" style={{ width: '90%', maxWidth: '400px', background: '#111', padding: '35px', borderRadius: '40px', border: '1px solid rgba(188, 111, 241, 0.3)' }}>
-              <h3 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: '950', color: 'var(--primary-purple)' }}>Liquidar NÃ³mina</h3>
+              <h3 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: '950', color: 'var(--primary-purple)' }}>Liquidar Nómina</h3>
               <p style={{ margin: '0 0 25px 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>Selecciona el canal de dinero para pagar a <strong>{staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}</strong>.</p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -4757,11 +4756,11 @@ function App() {
                       const managerPay = (dur * 10000) + 25000 + ((eks.LOGISTICA || 0) * 15000);
                       const totalPay = djPay + photoPay + decorPay + managerPay;
 
-                      // 1. Crear TransacciÃ³n Goblal (OUT)
+                      // 1. Crear Transacción Goblal (OUT)
                       const txId = `TX-STAFF-${Date.now()}`;
                       await setDoc(doc(collection(db, "globalTx"), txId), {
                         id: txId,
-                        desc: `NÃ³mina Evento: ${staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}`,
+                        desc: `Nómina Evento: ${staffPayModal.client?.name || staffPayModal.clientName || 'Empleado'}`,
                         amount: totalPay,
                         method: method,
                         type: 'OUT',
