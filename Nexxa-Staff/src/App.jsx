@@ -4396,8 +4396,8 @@ function App() {
                 {userRole === 'admin' && (
                   <div
                     className="sales-list-item"
-                    onClick={() => alert('GestiÃ³n de nÃ³mina Próximamente')}
-                    style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                    onClick={() => alert('Gestión de nómina: Esta función estará disponible en la próxima actualización.')}
+                    style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', opacity: 0.5 }}
                   >
                     <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
                       <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'rgba(188, 111, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-purple)' }}>
@@ -4405,7 +4405,7 @@ function App() {
                       </div>
                       <div>
                         <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Roles / Staff</span>
-                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Nómina y jerarquÃ­as</small>
+                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Nómina y jerarquías (Próximamente)</small>
                       </div>
                     </div>
                     <IconArrowRight size={18} style={{ opacity: 0.3 }} />
