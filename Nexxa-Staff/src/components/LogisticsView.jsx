@@ -181,7 +181,7 @@ const LogisticsView = ({ events }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2 style={{ color: 'white', margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>
                         {months[viewDate.getMonth()]} <span style={{ opacity: 0.5 }}>{viewDate.getFullYear()}</span>
-                        <span style={{ fontSize: '0.6rem', verticalAlign: 'middle', background: '#00d4ff', color: '#000', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px' }}>v4.0</span>
+                        <span style={{ fontSize: '0.6rem', verticalAlign: 'middle', background: '#00d4ff', color: '#000', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px' }}>v5.0</span>
                     </h2>
                     <div style={{ display: 'flex', gap: '10px' }}>
                         <button onClick={() => changeMonth(-1)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', borderRadius: '50%', width: '32px', height: '32px' }}><IconArrowLeft size={16} /></button>
@@ -198,7 +198,7 @@ const LogisticsView = ({ events }) => {
                 </div>
             </div>
 
-            <div style={{ padding: '0 20px 10px 20px' }}>
+            <div style={{ padding: '0 20px 0px 20px' }}>
                 <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px' }}>
                     Agenda del {selectedDate.getDate()}
                 </h3>
@@ -216,7 +216,7 @@ const LogisticsView = ({ events }) => {
                         if (range === 0) {
                             const label = getHourLabel(chunk.startHour);
                             return (
-                                <div key={`free-${index}`} style={{ display: 'flex', gap: '15px', minHeight: '50px' }}>
+                                <div key={`free-${index}`} style={{ display: 'flex', gap: '15px', minHeight: '40px' }}>
                                     <div style={{ width: '45px', textAlign: 'right', paddingTop: '16px' }}>
                                         <div style={{ fontSize: '0.7rem', color: '#333' }}>{label.h12} {label.period}</div>
                                     </div>
@@ -234,12 +234,12 @@ const LogisticsView = ({ events }) => {
                                         flex: 1,
                                         background: 'rgba(255,255,255,0.02)',
                                         borderRadius: '12px',
-                                        padding: '10px 15px',
+                                        padding: '8px 12px', /* Reduced padding */
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         border: '1px dashed rgba(255,255,255,0.08)',
-                                        color: '#666', fontSize: '0.8rem'
+                                        color: '#666', fontSize: '0.75rem' /* Reduced font size */
                                     }}>
-                                        <span>⏳ Disponible: {startLabel.h12} {startLabel.period} - {endLabel.h12} {endLabel.period}</span>
+                                        <span>⏳ Disp: {startLabel.h12} {startLabel.period} - {endLabel.h12} {endLabel.period}</span>
                                     </div>
                                 </div>
                             );
@@ -248,23 +248,23 @@ const LogisticsView = ({ events }) => {
                         // BUSY CHUNK
                         const label = getHourLabel(chunk.hour);
                         return (
-                            <div key={`busy-${chunk.hour}`} style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-                                <div style={{ width: '45px', textAlign: 'right', paddingTop: '10px' }}>
+                            <div key={`busy-${chunk.hour}`} style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+                                <div style={{ width: '45px', textAlign: 'right', paddingTop: '8px' }}>
                                     <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'white' }}>{label.h12} <span style={{ fontSize: '0.6rem' }}>{label.period}</span></div>
                                 </div>
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', zIndex: 1, paddingTop: '5px' }}>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative', zIndex: 1, paddingTop: '0px' }}>
                                     {chunk.tasks.map(task => (
-                                        <div key={task.id} style={{ position: 'relative', display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
-                                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#000', border: `2px solid ${task.color}`, boxShadow: `0 0 10px ${task.glow}`, marginTop: '4px' }}>
-                                                <div style={{ width: '4px', height: '4px', background: task.color, borderRadius: '50%', margin: '4px auto' }}></div>
+                                        <div key={task.id} style={{ position: 'relative', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#000', border: `2px solid ${task.color}`, boxShadow: `0 0 10px ${task.glow}`, marginTop: '6px' }}>
+                                                <div style={{ width: '3px', height: '3px', background: task.color, borderRadius: '50%', margin: '3px auto' }}></div>
                                             </div>
-                                            <div style={{ flex: 1, background: '#111', border: `1px solid ${task.color}40`, borderRadius: '16px', padding: '16px', position: 'relative', overflow: 'hidden' }}>
-                                                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', background: task.color, boxShadow: `2px 0 10px ${task.color}60` }}></div>
+                                            <div style={{ flex: 1, background: '#111', border: `1px solid ${task.color}40`, borderRadius: '12px', padding: '12px', position: 'relative', overflow: 'hidden' }}>
+                                                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: task.color, boxShadow: `2px 0 10px ${task.color}60` }}></div>
                                                 <div style={{ paddingLeft: '8px' }}>
-                                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', color: task.color, marginBottom: '4px' }}>{task.cat}</div>
-                                                    <h4 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'white' }}>{task.title}</h4>
-                                                    <p style={{ margin: '0 0 6px 0', fontSize: '0.9rem', color: '#ccc' }}>{task.client}</p>
-                                                    <div style={{ fontSize: '0.8rem', color: '#888' }}>📍 {task.loc}</div>
+                                                    <div style={{ fontSize: '0.6rem', fontWeight: '800', textTransform: 'uppercase', color: task.color, marginBottom: '2px' }}>{task.cat}</div>
+                                                    <h4 style={{ margin: '0 0 2px 0', fontSize: '1rem', fontWeight: 'bold', color: 'white' }}>{task.title}</h4>
+                                                    <p style={{ margin: '0 0 4px 0', fontSize: '0.8rem', color: '#ccc' }}>{task.client}</p>
+                                                    <div style={{ fontSize: '0.75rem', color: '#888' }}>📍 {task.loc}</div>
                                                 </div>
                                             </div>
                                         </div>
