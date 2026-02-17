@@ -3,11 +3,11 @@ import React from 'react';
 const TimeInput = ({ value, onChange, label }) => {
 
     const getDisplayTime = (val) => {
-        if (!val || !val.includes(':')) return { h: '00', m: '00', period: 'AM' };
+        if (!val || !val.includes(':')) return { h: '12', m: '00', period: 'AM' };
         let [hStr, mStr] = val.split(':');
         let h = parseInt(hStr || 0);
         let m = parseInt(mStr || 0);
-        if (isNaN(h) || isNaN(m)) return { h: '00', m: '00', period: 'AM' };
+        if (isNaN(h) || isNaN(m)) return { h: '12', m: '00', period: 'AM' };
         const period = h >= 12 ? 'PM' : 'AM';
         const h12 = h % 12 || 12;
 
@@ -23,14 +23,13 @@ const TimeInput = ({ value, onChange, label }) => {
 
     // Manejar cambio del input nativo
     const handleNativeChange = (e) => {
-        const newValue = e.target.value; // formato HH:MM en 24h
-        if (!newValue || newValue.length === 0 || !newValue.includes(':')) return;
+        const newValue = e.target.value;
+        if (!newValue || !newValue.includes(':')) return;
 
         let [hStr, mStr] = newValue.split(':');
         let hour = parseInt(hStr);
         let minute = parseInt(mStr);
 
-        // Validar que sean números válidos
         if (isNaN(hour) || isNaN(minute)) return;
 
         // Redondear a intervalos de 15 minutos
@@ -46,20 +45,21 @@ const TimeInput = ({ value, onChange, label }) => {
     };
 
     return (
-        <div className="time-input-mobile" style={{
+        <label style={{
             position: 'relative',
-            background: 'rgba(255, 255, 255, 0.03)',
-            borderRadius: '12px',
-            padding: '8px 10px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
+            background: 'rgba(255, 255, 255, 0.03)',
+            borderRadius: '12px',
+            padding: '8px 10px',
             cursor: 'pointer',
             overflow: 'hidden',
             border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.2)' : 'rgba(188, 111, 241, 0.2)'}`,
             transition: 'all 0.2s ease',
-            minHeight: '70px'
+            minHeight: '70px',
+            userSelect: 'none'
         }}>
             {/* LABEL */}
             <span style={{
@@ -68,8 +68,7 @@ const TimeInput = ({ value, onChange, label }) => {
                 textTransform: 'uppercase',
                 fontWeight: '700',
                 letterSpacing: '1px',
-                marginBottom: '4px',
-                pointerEvents: 'none'
+                marginBottom: '4px'
             }}>
                 {label}
             </span>
@@ -79,8 +78,7 @@ const TimeInput = ({ value, onChange, label }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '2px',
-                color: '#fff',
-                pointerEvents: 'none'
+                color: '#fff'
             }}>
                 <span style={{
                     fontSize: '1.4rem',
@@ -122,8 +120,7 @@ const TimeInput = ({ value, onChange, label }) => {
                 letterSpacing: '0.5px',
                 background: isAM ? 'rgba(0, 242, 255, 0.15)' : 'rgba(188, 111, 241, 0.15)',
                 border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.4)' : 'rgba(188, 111, 241, 0.4)'}`,
-                transition: 'all 0.2s ease',
-                pointerEvents: 'none'
+                transition: 'all 0.2s ease'
             }}>
                 {period}
             </div>
@@ -140,19 +137,10 @@ const TimeInput = ({ value, onChange, label }) => {
                     width: '100%',
                     height: '100%',
                     opacity: 0,
-                    cursor: 'pointer',
-                    zIndex: 100
+                    cursor: 'pointer'
                 }}
             />
-
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .time-input-mobile:active {
-                    transform: scale(0.97);
-                    background: rgba(255, 255, 255, 0.05);
-                }
-            `}} />
-        </div>
+        </label>
     );
 };
 
