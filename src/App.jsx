@@ -833,7 +833,7 @@ function App() {
                           + ${extra.price.toLocaleString()}
                         </span>
 
-                        {extra.id === 'makeup' && isActive && (
+                        {extra.id === 'makeup' && (
                           <div
                             className="makeup-counter fade-in-fast"
                             onClick={(e) => e.stopPropagation()} // Prevent row toggle when interacting with counter
