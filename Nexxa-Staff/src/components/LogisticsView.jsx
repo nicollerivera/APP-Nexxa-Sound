@@ -242,6 +242,7 @@ const LogisticsView = ({ events }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h2 style={{ color: 'white', margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>
                         {months[viewDate.getMonth()]} <span style={{ opacity: 0.5 }}>{viewDate.getFullYear()}</span>
+                        <span style={{ fontSize: '0.6rem', verticalAlign: 'middle', background: '#00d4ff', color: '#000', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px' }}>v2.0</span>
                     </h2>
                     <div style={{ display: 'flex', gap: '10px' }}>
                         <button onClick={() => changeMonth(-1)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
