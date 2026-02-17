@@ -10,9 +10,13 @@ const TimeInput = ({ value, onChange, label }) => {
         if (isNaN(h) || isNaN(m)) return { h: '00', m: '00', period: 'AM' };
         const period = h >= 12 ? 'PM' : 'AM';
         const h12 = h % 12 || 12;
+
+        // Redondear minutos al intervalo de 15 más cercano
+        const roundedM = Math.round(m / 15) * 15;
+
         return {
             h: String(h12).padStart(2, '0'),
-            m: String(m).padStart(2, '0'),
+            m: String(roundedM).padStart(2, '0'),
             period
         };
     };
@@ -20,19 +24,24 @@ const TimeInput = ({ value, onChange, label }) => {
     const { h, m, period } = getDisplayTime(value);
     const isAM = period === 'AM';
 
-    // Función para manejar cambios en el selector
-    const handleTimeChange = (newH, newM, newPeriod) => {
-        let hour24 = parseInt(newH);
-        const minute = parseInt(newM);
+    // Manejar cambio del input nativo
+    const handleNativeChange = (e) => {
+        const newValue = e.target.value; // formato HH:MM en 24h
+        if (!newValue) return;
 
-        // Convertir a formato 24h
-        if (newPeriod === 'PM' && hour24 !== 12) {
-            hour24 += 12;
-        } else if (newPeriod === 'AM' && hour24 === 12) {
-            hour24 = 0;
+        let [hStr, mStr] = newValue.split(':');
+        let hour = parseInt(hStr);
+        let minute = parseInt(mStr);
+
+        // Redondear a intervalos de 15 minutos
+        minute = Math.round(minute / 15) * 15;
+        if (minute === 60) {
+            minute = 0;
+            hour += 1;
         }
+        if (hour >= 24) hour = 0;
 
-        const timeString = `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        const timeString = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         onChange(timeString);
     };
 
@@ -47,7 +56,7 @@ const TimeInput = ({ value, onChange, label }) => {
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            overflow: 'visible',
+            overflow: 'hidden',
             border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.2)' : 'rgba(188, 111, 241, 0.2)'}`,
             transition: 'all 0.2s ease',
             minHeight: '70px'
@@ -59,7 +68,8 @@ const TimeInput = ({ value, onChange, label }) => {
                 textTransform: 'uppercase',
                 fontWeight: '700',
                 letterSpacing: '1px',
-                marginBottom: '4px'
+                marginBottom: '4px',
+                pointerEvents: 'none'
             }}>
                 {label}
             </span>
@@ -69,7 +79,8 @@ const TimeInput = ({ value, onChange, label }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '2px',
-                color: '#fff'
+                color: '#fff',
+                pointerEvents: 'none'
             }}>
                 <span style={{
                     fontSize: '1.4rem',
@@ -111,74 +122,28 @@ const TimeInput = ({ value, onChange, label }) => {
                 letterSpacing: '0.5px',
                 background: isAM ? 'rgba(0, 242, 255, 0.15)' : 'rgba(188, 111, 241, 0.15)',
                 border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.4)' : 'rgba(188, 111, 241, 0.4)'}`,
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                pointerEvents: 'none'
             }}>
                 {period}
             </div>
 
-            {/* SELECTORES INVISIBLES */}
-            <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                opacity: 0,
-                zIndex: 100
-            }}>
-                {/* Selector de Hora */}
-                <select
-                    value={h}
-                    onChange={(e) => handleTimeChange(e.target.value, m, period)}
-                    style={{
-                        flex: 1,
-                        opacity: 0,
-                        cursor: 'pointer',
-                        border: 'none',
-                        background: 'transparent'
-                    }}
-                >
-                    {[...Array(12)].map((_, i) => {
-                        const hour = i + 1;
-                        return <option key={hour} value={String(hour).padStart(2, '0')}>{String(hour).padStart(2, '0')}</option>;
-                    })}
-                </select>
-
-                {/* Selector de Minutos (15 min intervals) */}
-                <select
-                    value={m}
-                    onChange={(e) => handleTimeChange(h, e.target.value, period)}
-                    style={{
-                        flex: 1,
-                        opacity: 0,
-                        cursor: 'pointer',
-                        border: 'none',
-                        background: 'transparent'
-                    }}
-                >
-                    <option value="00">00</option>
-                    <option value="15">15</option>
-                    <option value="30">30</option>
-                    <option value="45">45</option>
-                </select>
-
-                {/* Selector de AM/PM */}
-                <select
-                    value={period}
-                    onChange={(e) => handleTimeChange(h, m, e.target.value)}
-                    style={{
-                        flex: 1,
-                        opacity: 0,
-                        cursor: 'pointer',
-                        border: 'none',
-                        background: 'transparent'
-                    }}
-                >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                </select>
-            </div>
+            {/* INPUT NATIVO INVISIBLE */}
+            <input
+                type="time"
+                value={value || ''}
+                onChange={handleNativeChange}
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer',
+                    zIndex: 100
+                }}
+            />
 
             <style dangerouslySetInnerHTML={{
                 __html: `
@@ -192,4 +157,3 @@ const TimeInput = ({ value, onChange, label }) => {
 };
 
 export default TimeInput;
-
