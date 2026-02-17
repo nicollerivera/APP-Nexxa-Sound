@@ -570,14 +570,14 @@ function App() {
   }, []);
 
   const handleLogout = () => {
-    if (confirm('¿Cerrar sesión en el panel?')) {
-      setUser(null);
-      setUserRole(null);
-      localStorage.removeItem('nexxa_user');
-      localStorage.removeItem('nexxa_role');
-      // Forzar recarga para limpiar estado completo
-      window.location.reload();
-    }
+    // Force immediate logout without confirmation dialog to avoid encoding issues and UX friction
+    setUser(null);
+    setUserRole(null);
+    localStorage.removeItem('nexxa_user');
+    localStorage.removeItem('nexxa_role');
+    localStorage.removeItem('nexxa_login_time');
+    // Force reload to clean state
+    window.location.href = '/';
   };
 
   // 5. SYNC MARKETING DISTRIBUTION (ALLOCATIONS)
@@ -4429,7 +4429,7 @@ function App() {
                     width: '100%',
                     textAlign: 'left'
                   }}
-                  onClick={() => alert('Cerrando sesiÃ³n...')}
+                  onClick={handleLogout}
                 >
                   <IconLogout size={20} />
                   <span style={{ fontWeight: '950', letterSpacing: '1px', fontSize: '0.9rem' }}>CERRAR SESIÓN</span>
