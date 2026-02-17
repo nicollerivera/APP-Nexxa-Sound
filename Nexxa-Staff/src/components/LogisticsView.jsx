@@ -5,21 +5,29 @@ import {
     IconCalendar, IconClock, IconArrowLeft, IconArrowRight
 } from './Icons';
 
-const LogisticsView = ({ events }) => {
+const LogisticsView = ({ events, quotations = [] }) => {
     // START: CALENDAR LOGIC
     const [viewDate, setViewDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
 
-    // Helper to check if a day has any events
-    const busyDays = useMemo(() => {
+    // Helper to check if a day has any events OR pending quotes
+    const { busyDays, pendingDays } = useMemo(() => {
         const busy = new Set();
+        const pending = new Set();
+
         events.forEach(e => {
             if (e.eventDetails?.date && e.status !== 'CANCELLED') {
                 busy.add(e.eventDetails.date);
             }
         });
-        return busy;
-    }, [events]);
+
+        quotations.forEach(q => {
+            if (q.eventDetails?.date && q.status === 'SENT') {
+                pending.add(q.eventDetails.date);
+            }
+        });
+        return { busyDays: busy, pendingDays: pending };
+    }, [events, quotations]);
 
     const getDaysInMonth = (year, month) => {
         return new Date(year, month + 1, 0).getDate();
@@ -43,7 +51,11 @@ const LogisticsView = ({ events }) => {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const isSelected = selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
             const isToday = new Date().getDate() === d && new Date().getMonth() === month && new Date().getFullYear() === year;
-            const hasEvent = busyDays.has(dateStr);
+
+            const isBusy = busyDays.has(dateStr);
+            const isPending = pendingDays.has(dateStr);
+            const hasActivity = isBusy || isPending;
+
             days.push(
                 <div key={d} className={`calendar-day ${isSelected ? 'selected' : ''}`}
                     onClick={() => setSelectedDate(new Date(year, month, d))}
@@ -55,7 +67,13 @@ const LogisticsView = ({ events }) => {
                     }}
                 >
                     <span style={{ fontSize: '0.9rem' }}>{d}</span>
-                    {hasEvent && !isSelected && <div style={{ width: '4px', height: '4px', background: 'var(--primary-cyan)', borderRadius: '50%', marginTop: '2px' }}></div>}
+                    {hasActivity && !isSelected && (
+                        <div style={{
+                            width: '4px', height: '4px',
+                            background: isBusy ? 'var(--primary-cyan)' : '#888',
+                            borderRadius: '50%', marginTop: '2px'
+                        }}></div>
+                    )}
                 </div>
             );
         }
@@ -80,6 +98,8 @@ const LogisticsView = ({ events }) => {
     const dailyTasks = useMemo(() => {
         const tasks = [];
         const targetDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+
+        // 1. CONFIRMED EVENTS
         const daysEvents = events.filter(e => (e.eventDetails?.date === targetDateStr) && e.status !== 'CANCELLED');
 
         daysEvents.forEach(evt => {
@@ -115,6 +135,26 @@ const LogisticsView = ({ events }) => {
                 });
             }
         });
+
+        // 2. PENDING QUOTATIONS (Provisional)
+        const daysQuotes = quotations.filter(q => (q.eventDetails?.date === targetDateStr) && q.status === 'SENT');
+
+        daysQuotes.forEach(quo => {
+            tasks.push({
+                id: `quo_${quo.id}`,
+                time: quo.eventDetails?.startTime,
+                cat: 'PENDIENTE', // Cotización
+                title: 'Posible Evento' + (quo.eventDetails?.occasion ? ': ' + quo.eventDetails.occasion : ''),
+                client: (quo.client?.name || 'Prospecto') + ' (Cotización)',
+                loc: quo.eventDetails?.neighborhood || 'Por definir',
+                sub: 'Esperando aprobación',
+                icon: <IconCalendar size={18} />,
+                color: '#888', // Gray for pending
+                glow: 'rgba(255, 255, 255, 0.1)',
+                isPending: true
+            });
+        });
+
         return tasks.sort((a, b) => {
             const minA = getMinutes(a.time);
             const minB = getMinutes(b.time);
@@ -122,7 +162,7 @@ const LogisticsView = ({ events }) => {
             const adjB = minB < 300 ? minB + 1440 : minB;
             return adjA - adjB;
         });
-    }, [events, selectedDate]);
+    }, [events, quotations, selectedDate]);
 
     // Helpers
     const formatTimeDisplay = (timeStr) => {

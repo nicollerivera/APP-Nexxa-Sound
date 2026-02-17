@@ -4208,6 +4208,7 @@ function App() {
           {view === 'logistics' && (
             <LogisticsView
               events={events}
+              quotations={quotations}
             />
           )}
           {view === 'accounting' && (
