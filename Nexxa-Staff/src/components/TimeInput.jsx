@@ -1,111 +1,105 @@
 import React from 'react';
 
 const TimeInput = ({ value, onChange, label }) => {
-    // Parsing value (HH:mm)
-    let h = '08';
-    let m = '00';
-    let period = 'PM';
 
-    if (value) {
-        let [hVal, mVal] = value.split(':').map(Number);
-        if (!isNaN(hVal)) {
-            if (hVal >= 12) {
-                period = 'PM';
-                if (hVal > 12) hVal -= 12;
-            } else {
-                period = 'AM';
-                if (hVal === 0) hVal = 12;
-            }
-            h = String(hVal).padStart(2, '0');
-            m = String(mVal).padStart(2, '0');
-        }
-    }
+    // Helper to format for display (12h format)
+    const getDisplayTime = (val) => {
+        if (!val) return { time: '--:--', period: '' };
+        let [h, m] = val.split(':').map(Number);
+        if (isNaN(h) || isNaN(m)) return { time: '--:--', period: '' };
 
-    const updateTime = (newH12, newM, newPeriod) => {
-        let hour = parseInt(newH12);
-        if (newPeriod === 'PM' && hour !== 12) hour += 12;
-        if (newPeriod === 'AM' && hour === 12) hour = 0;
-        const timeStr = `${String(hour).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
-        onChange(timeStr);
+        const period = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return {
+            time: `${h12}:${String(m).padStart(2, '0')}`,
+            period
+        };
     };
 
-    const selectStyle = {
-        background: 'transparent',
-        border: 'none',
-        color: '#fff',
-        fontSize: '1.3rem',
-        fontWeight: '800',
-        cursor: 'pointer',
-        appearance: 'none',
-        WebkitAppearance: 'none',
-        MozAppearance: 'none',
-        outline: 'none',
-        textAlign: 'center',
-        textAlignLast: 'center',
-        padding: '0',
-        width: '100%',
-        height: '100%',
-        fontFamily: 'inherit'
-    };
-
-    const boxStyle = {
-        background: 'rgba(0,0,0,0.3)',
-        borderRadius: '8px',
-        width: '42px',
-        height: '45px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: '1px solid rgba(255,255,255,0.1)'
-    };
-
-    const h12 = h;
+    const { time, period } = getDisplayTime(value);
 
     return (
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px 5px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '85px', width: '100%' }}>
-            <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>{label}</label>
+        <div style={{
+            position: 'relative',
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2))',
+            borderRadius: '24px',
+            padding: '20px 10px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+            minHeight: '110px',
+            overflow: 'hidden',
+            transition: 'transform 0.2s',
+            cursor: 'pointer'
+        }}>
+            {/* LABEL */}
+            <label style={{
+                fontSize: '0.7rem',
+                color: 'rgba(255,255,255,0.5)',
+                textTransform: 'uppercase',
+                fontWeight: '800',
+                letterSpacing: '1.5px',
+                marginBottom: '5px'
+            }}>
+                {label}
+            </label>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '100%', justifyContent: 'center' }}>
-                {/* HOUR */}
-                <div style={boxStyle}>
-                    <select
-                        value={h12}
-                        onChange={e => updateTime(e.target.value, m, period)}
-                        style={selectStyle}
-                    >
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(num => {
-                            const s = String(num).padStart(2, '0');
-                            return <option key={s} value={s} style={{ background: '#111', color: '#fff' }}>{s}</option>;
-                        })}
-                    </select>
-                </div>
+            {/* BIG TIME DISPLAY */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{
+                    fontSize: '3.2rem',
+                    fontWeight: '300', /* Thin font like iOS clock */
+                    color: '#fff',
+                    lineHeight: '1',
+                    letterSpacing: '-1px',
+                    fontVariantNumeric: 'tabular-nums'
+                }}>
+                    {time}
+                </span>
+                <span style={{
+                    fontSize: '1rem',
+                    fontWeight: '800',
+                    color: period === 'AM' ? '#00d4ff' : '#bc6ff1',
+                    textTransform: 'uppercase',
+                    background: period === 'AM' ? 'rgba(0, 212, 255, 0.1)' : 'rgba(188, 111, 241, 0.1)',
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    border: '1px solid',
+                    borderColor: period === 'AM' ? 'rgba(0, 212, 255, 0.2)' : 'rgba(188, 111, 241, 0.2)'
+                }}>
+                    {period || '--'}
+                </span>
+            </div>
 
-                <span style={{ fontSize: '1.2rem', fontWeight: '900', color: 'rgba(255,255,255,0.2)', paddingBottom: '2px' }}>:</span>
+            {/* NATIVE INPUT OVERLAY - This makes it "Easy to change" on mobile */}
+            <input
+                type="time"
+                value={value || ''}
+                onChange={(e) => onChange(e.target.value)}
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer',
+                    zIndex: 10
+                }}
+            />
 
-                {/* MINUTE */}
-                <div style={boxStyle}>
-                    <select
-                        value={m}
-                        onChange={e => updateTime(h12, e.target.value, period)}
-                        style={selectStyle}
-                    >
-                        {['00', '15', '30', '45'].map(v => (
-                            <option key={v} value={v} style={{ background: '#111', color: '#fff' }}>{v}</option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* PERIOD */}
-                <div style={{ ...boxStyle, width: '40px', marginLeft: '2px', borderColor: period === 'AM' ? 'rgba(0, 212, 255, 0.3)' : 'rgba(188, 111, 241, 0.3)', background: period === 'AM' ? 'rgba(0, 212, 255, 0.05)' : 'rgba(188, 111, 241, 0.05)' }}>
-                    <select
-                        value={period}
-                        onChange={e => updateTime(h12, m, e.target.value)}
-                        style={{ ...selectStyle, fontSize: '0.9rem', color: period === 'AM' ? '#00d4ff' : 'var(--primary-purple)', fontWeight: '900' }}
-                    >
-                        <option value="AM" style={{ background: '#111' }}>AM</option>
-                        <option value="PM" style={{ background: '#111' }}>PM</option>
-                    </select>
-                </div>
+            {/* INTERACTION HINT */}
+            <div style={{
+                fontSize: '0.6rem',
+                color: 'rgba(255,255,255,0.3)',
+                marginTop: '8px',
+                pointerEvents: 'none',
+                fontWeight: '600'
+            }}>
+                Toca para editar
             </div>
         </div>
     );
