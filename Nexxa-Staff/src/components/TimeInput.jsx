@@ -22,7 +22,7 @@ const TimeInput = ({ value, onChange, label }) => {
     return (
         <div className="time-input-premium" style={{
             position: 'relative',
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: 'purple', // TEST BACKGROUND
             borderRadius: '28px',
             padding: '25px 15px',
             display: 'flex',
