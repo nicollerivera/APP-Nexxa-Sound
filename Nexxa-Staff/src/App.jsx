@@ -4095,7 +4095,7 @@ function App() {
 
       <button className={`nav-item ${view === 'quotations' ? 'active' : ''}`} onClick={() => setView('quotations')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'quotations' ? 'var(--primary-cyan)' : '#666' }}>
         <IconPDF size={20} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Ventas ({quotations.length})</span>
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Ventas</span>
       </button>
 
       <button className={`nav-item ${view === 'events' || view === 'detail' ? 'active' : ''}`} onClick={() => setView('events')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: (view === 'events' || view === 'detail') ? 'var(--primary-cyan)' : '#666' }}>
