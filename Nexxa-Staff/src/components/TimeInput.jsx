@@ -21,107 +21,81 @@ const TimeInput = ({ value, onChange, label }) => {
     const isAM = period === 'AM';
 
     return (
-        <div className="time-input-premium" style={{
+        <div className="time-input-compact" style={{
             position: 'relative',
-            background: 'rgba(255, 255, 255, 0.02)',
-            borderRadius: '28px',
-            padding: '25px 15px',
+            background: 'rgba(255, 255, 255, 0.03)',
+            borderRadius: '16px',
+            padding: '12px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: '150px',
             cursor: 'pointer',
             overflow: 'hidden',
-            boxShadow: isAM ? '0 15px 45px rgba(0, 242, 255, 0.1)' : '0 15px 45px rgba(188, 111, 241, 0.1)',
-            transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)'
+            border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.15)' : 'rgba(188, 111, 241, 0.15)'}`,
+            transition: 'all 0.3s ease',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)'
         }}>
-            {/* DYNAMIC AM/PM BLOB BACKGROUND */}
-            <div style={{
-                position: 'absolute',
-                top: '-20%',
-                right: '-20%',
-                width: '100px',
-                height: '100px',
-                background: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
-                filter: 'blur(40px)',
-                opacity: 0.15,
-                zIndex: 0,
-                transition: 'all 0.6s ease'
-            }} />
-
-            {/* LABEL WITH SPACING */}
+            {/* LABEL */}
             <span style={{
-                position: 'relative',
-                zIndex: 2,
-                fontSize: '0.6rem',
+                fontSize: '0.55rem',
                 color: 'rgba(255,255,255,0.4)',
                 textTransform: 'uppercase',
-                fontWeight: '900',
-                letterSpacing: '2.5px',
-                marginBottom: '12px'
+                fontWeight: '800',
+                letterSpacing: '1.5px',
+                marginBottom: '6px'
             }}>
                 {label}
             </span>
 
-            {/* MAIN CLOCK DISPLAY */}
+            {/* CLOCK DISPLAY */}
             <div style={{
-                position: 'relative',
-                zIndex: 2,
                 display: 'flex',
-                alignItems: 'baseline',
-                gap: '6px',
+                alignItems: 'center',
+                gap: '4px',
                 color: '#fff'
             }}>
-                <div style={{ textAlign: 'center' }}>
-                    <span style={{
-                        fontSize: '4.2rem',
-                        fontWeight: '100',
-                        lineHeight: '1',
-                        fontFamily: 'system-ui',
-                        letterSpacing: '-2px'
-                    }}>
-                        {h}
-                    </span>
-                </div>
+                <span style={{
+                    fontSize: '1.8rem',
+                    fontWeight: '300',
+                    lineHeight: '1',
+                    fontFamily: 'system-ui',
+                    letterSpacing: '-1px'
+                }}>
+                    {h}
+                </span>
 
                 <span style={{
-                    fontSize: '2.5rem',
-                    fontWeight: '100',
+                    fontSize: '1.4rem',
+                    fontWeight: '200',
                     color: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
-                    opacity: 0.5,
-                    marginBottom: '8px'
+                    opacity: 0.6
                 }}>:</span>
 
-                <div style={{ textAlign: 'center' }}>
-                    <span style={{
-                        fontSize: '4.2rem',
-                        fontWeight: '100',
-                        lineHeight: '1',
-                        fontFamily: 'system-ui',
-                        letterSpacing: '-2px'
-                    }}>
-                        {m}
-                    </span>
-                </div>
+                <span style={{
+                    fontSize: '1.8rem',
+                    fontWeight: '300',
+                    lineHeight: '1',
+                    fontFamily: 'system-ui',
+                    letterSpacing: '-1px'
+                }}>
+                    {m}
+                </span>
             </div>
 
-            {/* PERIOD INDICATOR PILL */}
+            {/* PERIOD PILL */}
             <div style={{
-                position: 'relative',
-                zIndex: 2,
-                marginTop: '15px',
-                fontSize: '0.75rem',
+                marginTop: '6px',
+                fontSize: '0.5rem',
                 fontWeight: '900',
-                color: '#fff',
-                background: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
-                padding: '5px 16px',
-                borderRadius: '50px',
+                color: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
+                padding: '3px 10px',
+                borderRadius: '20px',
                 textTransform: 'uppercase',
-                letterSpacing: '1.5px',
-                boxShadow: isAM ? '0 5px 15px rgba(0, 242, 255, 0.4)' : '0 5px 15px rgba(188, 111, 241, 0.4)',
+                letterSpacing: '1px',
+                background: isAM ? 'rgba(0, 242, 255, 0.1)' : 'rgba(188, 111, 241, 0.1)',
+                border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.3)' : 'rgba(188, 111, 241, 0.3)'}`,
                 transition: 'all 0.3s ease'
             }}>
                 {period}
@@ -146,13 +120,13 @@ const TimeInput = ({ value, onChange, label }) => {
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                .time-input-premium:hover {
-                    background: rgba(255, 255, 255, 0.05);
-                    border-color: rgba(255, 255, 255, 0.2);
-                    transform: translateY(-4px);
+                .time-input-compact:hover {
+                    background: rgba(255, 255, 255, 0.06);
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
                 }
-                .time-input-premium:active {
-                    transform: scale(0.96) translateY(0);
+                .time-input-compact:active {
+                    transform: scale(0.98) translateY(0);
                 }
             `}} />
         </div>
