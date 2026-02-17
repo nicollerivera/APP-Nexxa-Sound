@@ -11,12 +11,9 @@ const TimeInput = ({ value, onChange, label }) => {
         const period = h >= 12 ? 'PM' : 'AM';
         const h12 = h % 12 || 12;
 
-        // Redondear minutos al intervalo de 15 más cercano
-        const roundedM = Math.round(m / 15) * 15;
-
         return {
             h: String(h12).padStart(2, '0'),
-            m: String(roundedM).padStart(2, '0'),
+            m: String(m).padStart(2, '0'),
             period
         };
     };
