@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import RolesView from './components/RolesView';
 
 import QuotationsView from './components/QuotationsView';
 import AccountingView from './components/AccountingView';
@@ -608,14 +609,27 @@ function App() {
   const [scheduledExpenses, setScheduledExpenses] = useState([]);
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [newExpenseData, setNewExpenseData] = useState({ day: '', concept: '', amount: '' });
+  const [staffRates, setStaffRates] = useState({}); // Dynamic Rates
 
-  // SYNC AGENDA OPERATIVA
+  // SYNC AGENDA OPERATIVA & STAFF RATES
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "operative_agenda"), (snapshot) => {
+    const unsubscribeExpenses = onSnapshot(collection(db, "operative_agenda"), (snapshot) => {
       const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setScheduledExpenses(items);
     });
-    return () => unsubscribe();
+
+    const unsubscribeRates = onSnapshot(collection(db, "job_titles"), (snapshot) => {
+      const rates = {};
+      snapshot.docs.forEach(doc => {
+        rates[doc.data().label] = doc.data(); // Key by label (DJ, FOTO, etc.)
+      });
+      setStaffRates(rates);
+    });
+
+    return () => {
+      unsubscribeExpenses();
+      unsubscribeRates();
+    };
   }, []);
 
   // --- MONITOR DE CIERRE AUTOMÃTICO (Turbo Context) ---
@@ -4267,6 +4281,9 @@ function App() {
               setShowAddExpenseModal={setShowAddExpenseModal}
             />
           )}
+          {view === 'roles' && (
+            <RolesView setView={setView} />
+          )}
           {view === 'config' && renderConfig()}
           {view === 'profile' && renderProfile()}
           {view === 'quotations' && (() => {
@@ -4393,11 +4410,12 @@ function App() {
                 )}
 
                 {/* ROLES / STAFF - Solo Admin */}
+                {/* ROLES / STAFF - Solo Admin */}
                 {userRole === 'admin' && (
                   <div
                     className="sales-list-item"
-                    onClick={() => alert('Gestión de nómina: Esta función estará disponible en la próxima actualización.')}
-                    style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', opacity: 0.5 }}
+                    onClick={() => setView('roles')}
+                    style={{ padding: '25px', borderRadius: '28px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
                       <div style={{ width: '50px', height: '50px', borderRadius: '16px', background: 'rgba(188, 111, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-purple)' }}>
@@ -4405,7 +4423,7 @@ function App() {
                       </div>
                       <div>
                         <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Roles / Staff</span>
-                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Nómina y jerarquías (Próximamente)</small>
+                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Nómina y jerarquías</small>
                       </div>
                     </div>
                     <IconArrowRight size={18} style={{ opacity: 0.3 }} />
@@ -4809,11 +4827,26 @@ function App() {
                       const dur = getHours(staffPayModal.eventDetails.startTime, staffPayModal.eventDetails.endTime);
                       const eks = staffPayModal.financials?.extraHours || {};
 
-                      const djPay = 35000 + (dur * 13000) + ((eks.DJ || 0) * 15000);
+                      const getRate = (role) => staffRates[role] || {};
+
+                      // DJ
+                      const rDJ = getRate('DJ');
+                      const djPay = (rDJ.base ?? 35000) + (dur * (rDJ.hourly ?? 13000)) + ((eks.DJ || 0) * (rDJ.extra ?? 15000));
+
+                      // FOTO
+                      const rFoto = getRate('FOTO');
                       const pDur = staffPayModal.eventDetails.photoStartTime ? getHours(staffPayModal.eventDetails.photoStartTime, staffPayModal.eventDetails.photoEndTime) : 0;
-                      const photoPay = (pDur * 13000) + ((eks.FOTO || 0) * 15000);
-                      const decorPay = ((staffPayModal.eventDetails.decorStartTime || staffPayModal.logistics.packName === 'Celebration') ? 40000 : 0) + ((eks.DECOR || 0) * 15000);
-                      const managerPay = (dur * 10000) + 25000 + ((eks.LOGISTICA || 0) * 15000);
+                      const photoPay = (rFoto.base ?? 0) + (pDur * (rFoto.hourly ?? 13000)) + ((eks.FOTO || 0) * (rFoto.extra ?? 15000));
+
+                      // DECOR
+                      const rDecor = getRate('DECOR');
+                      const decorBase = (staffPayModal.eventDetails.decorStartTime || staffPayModal.logistics.packName === 'Celebration') ? (rDecor.base ?? 40000) : 0;
+                      const decorPay = decorBase + ((eks.DECOR || 0) * (rDecor.extra ?? 15000));
+
+                      // LOGISTICA (MANAGER)
+                      const rLog = getRate('LOGISTICA');
+                      const managerPay = (rLog.base ?? 25000) + (dur * (rLog.hourly ?? 10000)) + ((eks.LOGISTICA || 0) * (rLog.extra ?? 15000));
+
                       const totalPay = djPay + photoPay + decorPay + managerPay;
 
                       // 1. Crear Transacción Goblal (OUT)
