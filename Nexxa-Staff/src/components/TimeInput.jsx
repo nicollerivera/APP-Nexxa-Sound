@@ -106,6 +106,7 @@ const TimeInput = ({ value, onChange, label }) => {
             {/* NATIVE TIME PICKER OVERLAY - ASEGURANDO QUE SEA CLICKEABLE */}
             <input
                 type="time"
+                step="900"
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
