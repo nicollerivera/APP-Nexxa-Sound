@@ -347,7 +347,7 @@ function App() {
 
 
 
-  const [view, setView] = useState('events'); // Default to events instead of dashboard
+  const [view, setView] = useState('logistics'); // Default to events instead of dashboard
   const [eventSubTab, setEventSubTab] = useState('list'); // list | inventory | staff
   const [detailTab, setDetailTab] = useState('general');
   const [selectedEventId, setSelectedEventId] = useState(null);
@@ -382,21 +382,34 @@ function App() {
   const [loginError, setLoginError] = useState('');
   const [user, setUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('nexxa_user');
+      const savedKey = 'nexxa_user';
+      const savedTimeKey = 'nexxa_login_time';
+      const saved = localStorage.getItem(savedKey);
+      const savedTime = localStorage.getItem(savedTimeKey);
+
       // PREVENT CRASH: If saved is "undefined" string or similar
       if (!saved || saved === 'undefined' || saved === 'null') return null;
+
+      // SECURITY: Force re-login after 12 hours (43200000 ms)
+      if (!savedTime || (Date.now() - Number(savedTime) > 43200000)) {
+        console.warn("Session expired. Clearing user.");
+        localStorage.removeItem(savedKey);
+        localStorage.removeItem(savedTimeKey);
+        localStorage.removeItem('nexxa_role');
+        return null;
+      }
 
       const parsedUser = JSON.parse(saved);
 
       // RESET DE MEMORIA RADICAL: Limpiar TODO si hay datos corruptos
       // Check for 'name' specifically as it seems to be the crash point
       if (!parsedUser || typeof parsedUser !== 'object') {
-        localStorage.removeItem('nexxa_user');
+        localStorage.removeItem(savedKey);
         return null;
       }
 
       if (!parsedUser.name) {
-        console.error("ðŸ”´ USUARIO SIN NOMBRE - LIMPIANDO TODO LOCALSTORAGE:", parsedUser);
+        console.error("🔴 USUARIO SIN NOMBRE - LIMPIANDO TODO LOCALSTORAGE:", parsedUser);
         localStorage.clear(); // LIMPIAR TODO
         return null;
       }
@@ -515,12 +528,14 @@ function App() {
       setUserRole('admin');
       localStorage.setItem('nexxa_user', JSON.stringify(u));
       localStorage.setItem('nexxa_role', 'admin');
+      localStorage.setItem('nexxa_login_time', Date.now());
     } else if (pin === 'nexxa2026' && name.length > 2) {
       const u = { name: loginUser.trim(), id: `sales_${Date.now()}` };
       setUser(u);
       setUserRole('sales');
       localStorage.setItem('nexxa_user', JSON.stringify(u));
       localStorage.setItem('nexxa_role', 'sales');
+      localStorage.setItem('nexxa_login_time', Date.now());
     } else {
       setLoginError('Nombre o clave incorrectos. Intenta de nuevo.');
     }
@@ -4039,39 +4054,42 @@ function App() {
 
   const renderBottomNav = () => (
     <nav className="bottom-nav" style={{
-      background: 'rgba(10, 10, 10, 0.98)',
+      background: 'rgba(5, 5, 5, 0.98)',
       backdropFilter: 'blur(30px)',
       borderTop: '1px solid rgba(255,255,255,0.08)',
-      padding: '10px 15px 20px 15px',
-      height: '80px'
+      padding: '0 10px 20px 10px',
+      height: '80px',
+      display: 'flex',
+      justifyContent: 'space-around',
+      alignItems: 'center'
     }}>
 
 
-      <button className={`nav-item ${view === 'quotations' ? 'active' : ''}`} onClick={() => setView('quotations')}>
-        <IconPDF size={18} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Cotizaciones ({quotations.length})</span>
+      <button className={`nav-item ${view === 'quotations' ? 'active' : ''}`} onClick={() => setView('quotations')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'quotations' ? 'var(--primary-cyan)' : '#666' }}>
+        <IconPDF size={20} />
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Ventas ({quotations.length})</span>
       </button>
 
-      <button className={`nav-item ${view === 'events' || view === 'detail' ? 'active' : ''}`} onClick={() => setView('events')}>
-        <IconCalendar size={18} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Eventos</span>
+      <button className={`nav-item ${view === 'events' || view === 'detail' ? 'active' : ''}`} onClick={() => setView('events')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: (view === 'events' || view === 'detail') ? 'var(--primary-cyan)' : '#666' }}>
+        <IconCalendar size={20} />
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Eventos</span>
       </button>
 
-      <button className={`nav-item ${view === 'logistics' ? 'active' : ''}`} onClick={() => setView('logistics')}>
-        <IconFlow size={18} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Logística</span>
+      <button className={`nav-item ${view === 'logistics' ? 'active' : ''}`} onClick={() => setView('logistics')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'logistics' ? 'var(--primary-cyan)' : '#666' }}>
+        <IconFlow size={20} />
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Logística</span>
       </button>
 
       {userRole === 'admin' && (
-        <button className={`nav-item ${view === 'accounting' ? 'active' : ''}`} onClick={() => setView('accounting')}>
-          <IconRecaudo size={18} />
-          <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Balance</span>
+        <button className={`nav-item ${view === 'accounting' ? 'active' : ''}`} onClick={() => setView('accounting')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'accounting' ? 'var(--primary-cyan)' : '#666' }}>
+          <IconRecaudo size={20} />
+          <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Caja</span>
         </button>
       )}
 
-      <button className={`nav-item ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
-        <IconUser size={18} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Perfil</span>
+      <button className={`nav-item ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'profile' ? 'var(--primary-cyan)' : '#666' }}>
+        <IconUser size={20} />
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Yo</span>
       </button>
 
     </nav>
