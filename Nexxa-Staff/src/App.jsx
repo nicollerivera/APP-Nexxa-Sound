@@ -2263,14 +2263,15 @@ function App() {
               <div style={{ marginTop: '15px', background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
 
 
-                <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1fr 1fr', gap: '4px', alignItems: 'center', opacity: 0.6, marginBottom: '4px' }}>
-                  <span style={{ fontSize: '0.55rem', fontWeight: '800' }}>ROL</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '0.8fr 1fr 1fr', gap: '4px', alignItems: 'center', opacity: 0.8, marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.55rem', fontWeight: '900', color: 'var(--primary-cyan)', letterSpacing: '1px' }}>ROL (v2.1)</span>
                   <span style={{ fontSize: '0.55rem', fontWeight: '800', textAlign: 'center' }}>INICIO</span>
                   <span style={{ fontSize: '0.55rem', fontWeight: '800', textAlign: 'center' }}>SALIDA</span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {(() => {
+                    console.log("DEBUG: Renderizando Selector de Hora Compacto v2.1");
                     const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
                     const minutes = ['00', '15', '30', '45'];
                     const ampms = ['AM', 'PM'];
