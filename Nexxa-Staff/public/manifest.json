@@ -1,6 +1,6 @@
 {
-    "name": "Nexxa Sound",
-    "short_name": "Nexxa",
+    "name": "Nexxa Staff",
+    "short_name": "Staff",
     "description": "DJ, Sonido e Iluminación Profesional",
     "start_url": "/?source=pwa",
     "display": "standalone",
