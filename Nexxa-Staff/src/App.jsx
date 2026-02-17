@@ -2271,20 +2271,18 @@ function App() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {(() => {
-                    const pName = (evt.logistics?.packName || evt.eventDetails?.package || '').toLowerCase();
-                    const isEssential = pName.includes('essential');
-                    const isMemories = pName.includes('memories');
-                    const isCelebration = pName.includes('celebration');
-                    const hasRole = (role) => (evt.staff || []).some(s => s.role === role);
-
                     const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
                     const minutes = ['00', '15', '30', '45'];
                     const ampms = ['AM', 'PM'];
 
+                    // ROBUST PARSING: Always fallback to 12:00 PM if null/undefined
                     const parseTime = (t) => {
-                      if (!t) return { h: '12', m: '00', ap: 'AM' }; // Default
+                      if (!t || typeof t !== 'string' || !t.includes(':')) return { h: '12', m: '00', ap: 'PM' };
                       let [hh, mm] = t.split(':').map(Number);
-                      const ap = hh < 12 ? 'AM' : 'PM';
+                      if (isNaN(hh)) hh = 12;
+                      if (isNaN(mm)) mm = 0;
+
+                      const ap = hh >= 12 ? 'PM' : 'AM';
                       hh = hh % 12 || 12;
                       return { h: String(hh), m: String(mm).padStart(2, '0'), ap };
                     };
@@ -2299,9 +2297,10 @@ function App() {
 
                       const timeString = `${String(h24).padStart(2, '0')}:${newParts.m}`;
 
+                      // 1. SYNC UPDATES MAP
                       const updates = { [field]: timeString };
 
-                      // SYNC LOGIC
+                      // 2. LOGIC: If sub-roles match main time, update them too
                       if (field === 'eventDetails.startTime') {
                         if (evt.eventDetails?.photoStartTime === evt.eventDetails?.startTime) updates['eventDetails.photoStartTime'] = timeString;
                         if (evt.eventDetails?.decorStartTime === evt.eventDetails?.startTime) updates['eventDetails.decorStartTime'] = timeString;
@@ -2311,7 +2310,7 @@ function App() {
                         if (evt.eventDetails?.decorEndTime === evt.eventDetails?.endTime) updates['eventDetails.decorEndTime'] = timeString;
                       }
 
-                      // Instant feedback in local state
+                      // 3. OPTIMISTIC UI UPDATE
                       const updatedEvents = events.map(ev => {
                         if (ev.id === evt.id) {
                           const newEv = { ...ev, eventDetails: { ...ev.eventDetails } };
@@ -2328,6 +2327,57 @@ function App() {
 
                       updateDoc(doc(db, "events", evt.id), updates);
                     };
+
+                    const renderCompactTime = (val, field) => {
+                      const t = parseTime(val);
+                      return (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: '3px',
+                          background: 'rgba(255,255,255,0.08)', borderRadius: '8px', padding: '4px 8px'
+                        }}>
+                          {/* HOUR */}
+                          <select
+                            value={t.h}
+                            onChange={(e) => updateTime(val, 'h', e.target.value, field)}
+                            style={{
+                              background: 'transparent', color: '#fff', border: 'none',
+                              fontSize: '0.85rem', fontWeight: '900', padding: 0, cursor: 'pointer', outline: 'none'
+                            }}
+                          >
+                            {hours.map(h => <option key={h} value={h} style={{ color: '#000' }}>{h}</option>)}
+                          </select>
+                          <span style={{ opacity: 0.5, fontSize: '0.8rem', fontWeight: '900' }}>:</span>
+                          {/* MIN */}
+                          <select
+                            value={t.m}
+                            onChange={(e) => updateTime(val, 'm', e.target.value, field)}
+                            style={{
+                              background: 'transparent', color: '#fff', border: 'none',
+                              fontSize: '0.85rem', fontWeight: '900', padding: 0, cursor: 'pointer', outline: 'none'
+                            }}
+                          >
+                            {minutes.map(m => <option key={m} value={m} style={{ color: '#000' }}>{m}</option>)}
+                          </select>
+                          {/* AM/PM */}
+                          <select
+                            value={t.ap}
+                            onChange={(e) => updateTime(val, 'ap', e.target.value, field)}
+                            style={{
+                              background: 'transparent', color: t.ap === 'AM' ? '#facc15' : 'var(--primary-cyan)', border: 'none',
+                              fontSize: '0.7rem', fontWeight: '900', padding: 0, marginLeft: '4px', cursor: 'pointer', outline: 'none'
+                            }}
+                          >
+                            {ampms.map(ap => <option key={ap} value={ap} style={{ color: '#000' }}>{ap}</option>)}
+                          </select>
+                        </div>
+                      );
+                    };
+
+                    const pName = (evt.logistics?.packName || evt.eventDetails?.package || '').toLowerCase();
+                    const isEssential = pName.includes('essential');
+                    const isMemories = pName.includes('memories');
+                    const isCelebration = pName.includes('celebration');
+                    const hasRole = (role) => (evt.staff || []).some(s => s.role === role);
 
                     const roles = [
                       {
@@ -2352,68 +2402,14 @@ function App() {
                       }
                     ];
 
-                    const renderTimeSelects = (val, field) => {
-                      const t = parseTime(val);
-                      const isEnd = field.toLowerCase().includes('end');
-                      return (
-                        <div style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px',
-                          background: 'rgba(255,255,255,0.04)', borderRadius: '6px', padding: '0 8px', height: '34px',
-                          border: '1px solid rgba(255,255,255,0.08)'
-                        }}>
-                          {/* Hours */}
-                          <select
-                            value={t.h}
-                            onChange={(e) => updateTime(val, 'h', e.target.value, field)}
-                            style={{
-                              background: 'transparent', border: 'none', color: '#fff',
-                              fontSize: '13px', fontWeight: '700', padding: 0,
-                              outline: 'none', appearance: 'none', textAlign: 'center', width: '20px', cursor: 'pointer', lineHeight: 1
-                            }}
-                          >
-                            {hours.map(h => <option key={h} value={h} style={{ color: '#000', fontSize: '13px' }}>{h}</option>)}
-                          </select>
-
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#555', lineHeight: 1, marginTop: '-1px' }}>:</span>
-
-                          {/* Minutes */}
-                          <select
-                            value={t.m}
-                            onChange={(e) => updateTime(val, 'm', e.target.value, field)}
-                            style={{
-                              background: 'transparent', border: 'none', color: '#fff',
-                              fontSize: '13px', fontWeight: '700', padding: 0,
-                              outline: 'none', appearance: 'none', textAlign: 'center', width: '20px', cursor: 'pointer', lineHeight: 1
-                            }}
-                          >
-                            {minutes.map(m => <option key={m} value={m} style={{ color: '#000', fontSize: '13px' }}>{m}</option>)}
-                          </select>
-
-                          {/* AM/PM Text */}
-                          <div style={{ marginLeft: '4px', height: '100%', display: 'flex', alignItems: 'center' }}>
-                            <select
-                              value={t.ap}
-                              onChange={(e) => updateTime(val, 'ap', e.target.value, field)}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: isEnd ? 'var(--primary-cyan)' : '#facc15',
-                                fontSize: '11px', fontWeight: '800', padding: 0,
-                                outline: 'none', appearance: 'none', textAlign: 'right', cursor: 'pointer', minWidth: '22px', lineHeight: 1
-                              }}
-                            >
-                              {ampms.map(ap => <option key={ap} value={ap} style={{ color: '#000', fontSize: '13px' }}>{ap}</option>)}
-                            </select>
-                          </div>
-                        </div>
-                      );
-                    };
-
                     return roles.filter(r => r.visible).map(r => (
-                      <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '0.5fr 1fr 1fr', gap: '4px', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '4px 6px', borderRadius: '8px', borderLeft: `2px solid ${r.color}` }}>
-                        <span style={{ fontSize: '0.55rem', fontWeight: '900', color: r.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.label}</span>
-                        {renderTimeSelects(r.sVal, r.startField)}
-                        {renderTimeSelects(r.eVal, r.endField)}
+                      <div key={r.id} style={{
+                        display: 'grid', gridTemplateColumns: '40px 1fr 1fr', gap: '6px', alignItems: 'center',
+                        marginBottom: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.05)'
+                      }}>
+                        <span style={{ fontSize: '0.6rem', fontWeight: '900', color: r.color }}>{r.label}</span>
+                        {renderCompactTime(r.sVal, r.startField)}
+                        {renderCompactTime(r.eVal, r.endField)}
                       </div>
                     ));
                   })()}
