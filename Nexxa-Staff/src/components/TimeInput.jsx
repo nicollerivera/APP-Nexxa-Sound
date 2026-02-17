@@ -29,7 +29,6 @@ const TimeInput = ({ value, onChange, label }) => {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
             minHeight: '150px',
             cursor: 'pointer',
             overflow: 'hidden',

@@ -321,7 +321,6 @@ function App() {
   const [paymentModal, setPaymentModal] = useState(null); // { evt, type: 'DEPOSIT' | 'FINAL' }
   const [paymentSplit, setPaymentSplit] = useState({ Nequi: 0, Daviplata: 0, Efectivo: 0 });
   const [historySearch, setHistorySearch] = useState('');
-  const [adAllocations, setAdAllocations] = useState({});
 
   // --- AUTH STATE ---
   const [loginUser, setLoginUser] = useState('');
