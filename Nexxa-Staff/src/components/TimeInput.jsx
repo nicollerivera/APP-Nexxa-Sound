@@ -24,11 +24,14 @@ const TimeInput = ({ value, onChange, label }) => {
     // Manejar cambio del input nativo
     const handleNativeChange = (e) => {
         const newValue = e.target.value; // formato HH:MM en 24h
-        if (!newValue) return;
+        if (!newValue || newValue.length === 0 || !newValue.includes(':')) return;
 
         let [hStr, mStr] = newValue.split(':');
         let hour = parseInt(hStr);
         let minute = parseInt(mStr);
+
+        // Validar que sean números válidos
+        if (isNaN(hour) || isNaN(minute)) return;
 
         // Redondear a intervalos de 15 minutos
         minute = Math.round(minute / 15) * 15;
