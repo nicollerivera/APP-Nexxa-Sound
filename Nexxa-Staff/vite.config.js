@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
+    minify: false, // DEBUG: Disable minification to see real variable names
+    sourcemap: true, // DEBUG: Enable sourcemaps for better stack traces
     rollupOptions: {
       output: {
         entryFileNames: `assets/[name].[hash].${Date.now()}.js`,

@@ -570,24 +570,26 @@ body::after {
 
 .form-section {
   background: var(--glass-bg);
-  padding: 10px 10px 20px 10px;
-  /* Added 20px bottom padding for safety */
-  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 25px;
+  border-radius: 28px;
   border: 1px solid var(--glass-border);
-  margin-bottom: 8px;
-  height: auto !important;
-  /* Force auto height */
-  overflow: visible !important;
-  /* Prevent clipping */
-  display: flex;
-  flex-direction: column;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.form-section:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .form-section h3 {
-  margin: 0 0 8px 0;
-  /* Reduced from 15px */
-  font-size: 0.8rem;
-  /* Reduced from 0.9rem */
+  margin: 0 0 15px 0;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
   color: var(--primary-cyan);
 }
 
@@ -596,44 +598,38 @@ label {
   word-wrap: break-word;
   height: auto;
   display: block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 8px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid #333;
-  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 15px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   box-sizing: border-box;
   appearance: none;
   -webkit-appearance: none;
-  min-height: 42px;
-  /* Ensure visibility */
-  line-height: normal;
-}
-
-/* Time input specific fix */
-input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  cursor: pointer;
-  width: 14px;
-  height: 14px;
-}
-
-.centered-time-input::-webkit-calendar-picker-indicator {
-  display: none !important;
-  -webkit-appearance: none;
+  transition: all 0.3s ease;
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   outline: none;
   border-color: var(--primary-cyan);
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
 }
 
 .delete-btn {

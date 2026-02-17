@@ -10,6 +10,44 @@ import { getDynamicExtras } from './utils/helpers';
 
 // --- IMPORTS MOVED ---
 import { formatPeso, months, getHours, parseFirestoreDate, parseLocalStrDate, getTodayStr, getTomorrowStr, subtractMinutes, formatInputNumber, parseInputNumber } from './utils/helpers';
+
+// --- HELPER COMPONENTS (HOISTED) ---
+function MoneyInput({ label, value, onChange }) {
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '15px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, letterSpacing: '1px', textTransform: 'uppercase' }}>{label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '1rem', color: 'var(--success-green)', fontWeight: '900' }}>$</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={new Intl.NumberFormat('es-CO').format(value)}
+          onChange={(e) => {
+            const rawValue = e.target.value.replace(/\./g, '');
+            if (!isNaN(rawValue)) onChange(Number(rawValue));
+          }}
+          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1.2rem', fontWeight: '900', width: '100%', outline: 'none', fontFamily: 'monospace' }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TextInput({ label, value, onChange, placeholder }) {
+  return (
+    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '15px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, letterSpacing: '1px', textTransform: 'uppercase' }}>{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem', fontWeight: '700', width: '100%', outline: 'none' }}
+      />
+    </div>
+  );
+}
+
 import {
   IconArrowLeft, IconEdit, IconPhone, IconLocation, IconNeighborhood,
   IconPDF, IconServices, IconFlow, IconRecaudo, IconCopy,
@@ -36,9 +74,174 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebas
 
 
 
+
+
 function App() {
 
-  // --- MAGIC LINK RECEIVER (Auto-fill from URL) ---
+  // --- 1. ESTADO: MOTOR DEL NEGOCIO (AJUSTES) ---
+  const [appConfig, setAppConfig] = useState({
+    // 1. PRECIOS Y REGLAS
+    djBase: 35000,
+    djHour: 13000,
+    logisticsBase: 25000,
+    logisticsHour: 10000,
+    photoHour: 13000,
+    neonArtist: 120000,
+    minEventDuration: 4, // horas
+    maxDiscount: 10, // %
+
+    // 2. INVENTARIO
+    bufferTime: 2, // horas entre eventos
+    overlapPenalty: 50000,
+
+    // 3. EVENTOS
+    minDeposit: 50, // %
+    overtimePolicy: 'ALWAYS_CHARGE', // ALWAYS_CHARGE | NEGOTIABLE
+
+    // 4. MENSAJES (TEMPLATES)
+    msgQuote: '¡Hola {cliente}! 🎧 Adjunto tu cotización personalizada para tu evento en {fecha}.',
+    msgAdvisory: '{cliente}, para tu evento de {invitados} pax en {zona}, te sugerimos lo siguiente...',
+    msgConfirm: '¡Excelente! Hemos recibido tu abono de {monto}. Tu fecha {fecha} está 100% confirmada. 🔒',
+    msgPost: '¡Gracias por confiar en Nexxa! Esperamos que hayas disfrutado tu experiencia. ⭐',
+
+    // 5. FINANZAS
+    initialCash: 0,
+    expenseCategorias: ['Transporte', 'Alimentación', 'Nómina', 'Mantenimiento', 'Equipos', 'Marketing'],
+    defaultPayment: 'Nequi',
+
+    // 7. NOTIFICACIONES
+    notifyEvent: true,
+    notifyConflict: true,
+    notifyPayment: true
+  });
+
+  // --- 2. FORM STATE FOR NEW EVENT (WITH DRAFT) ---
+  const [newEvent, setNewEvent] = useState(() => {
+    const draft = localStorage.getItem('nexxa_draft_event');
+    if (draft) {
+      try { return JSON.parse(draft); } catch (e) { console.error("Error parsing draft", e); }
+    }
+    return {
+      clientName: '', clientPhone: '', clientPhone2: '',
+      date: '', startTime: '', endTime: '',
+      location: '', neighborhood: '',
+      packName: 'Essential', totalValue: '', deposit: '',
+      leadSource: '', guestCount: '', occasion: '',
+      extraHourPrice: 85000, indications: 'Ninguna',
+      warehouseTime: '', materialExplanation: '',
+      photoStartTime: '', photoEndTime: '',
+      decorStartTime: '', decorEndTime: '',
+      paymentMethod: 'Nequi'
+    };
+  });
+
+  // --- 3. UI & NAVIGATION STATE ---
+  const [view, setView] = useState('logistics');
+  const [eventSubTab, setEventSubTab] = useState('list');
+  const [detailTab, setDetailTab] = useState('general');
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [lastFatalError, setLastFatalError] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showMonthSelector, setShowMonthSelector] = useState(false);
+  const [accountingTab, setAccountingTab] = useState('TESORERIA');
+  const [tradingTimeframe, setTradingTimeframe] = useState('W');
+  const [filterExecution, setFilterExecution] = useState('ALL');
+  const [sectionState, setSectionState] = useState({ s1: true, s2: false, s3: false });
+  const toggleSection = (key) => setSectionState(prev => ({ ...prev, [key]: !prev[key] }));
+  const [historySearch, setHistorySearch] = useState('');
+
+  // --- 4. DATA SYNCHRONIZATION STATE ---
+  const [events, setEvents] = useState([]);
+  const [quotations, setQuotations] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [damageReports, setDamageReports] = useState([]);
+  const [globalTx, setGlobalTx] = useState([]);
+  const [staffRates, setStaffRates] = useState([]);
+  const [scheduledExpenses, setScheduledExpenses] = useState([]);
+  const [adAllocations, setAdAllocations] = useState({});
+
+  // --- 5. MODALS & HELPERS ---
+  const [showFinanceModal, setShowFinanceModal] = useState(null);
+  const [finType, setFinType] = useState('GENERAL');
+  const [finEventId, setFinEventId] = useState('');
+  const [finDesc, setFinDesc] = useState('');
+  const [finAmount, setFinAmount] = useState('');
+  const [finMethod, setFinMethod] = useState('');
+  const [finCategory, setFinCategory] = useState('LOGISTICA');
+  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
+  const [newExpenseData, setNewExpenseData] = useState({ day: '', concept: '', amount: '' });
+  const [staffPayModal, setStaffPayModal] = useState(null);
+  const [whatsappModalQuo, setWhatsappModalQuo] = useState(null);
+  const [tempBalanceVal, setTempBalanceVal] = useState('');
+  const [approveModal, setApproveModal] = useState(null);
+  const [paymentModal, setPaymentModal] = useState(null);
+  const [paymentSplit, setPaymentSplit] = useState({ Nequi: 0, Daviplata: 0, Efectivo: 0 });
+
+  // --- AUTH STATE ---
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [user, setUser] = useState(() => {
+    try {
+      const savedKey = 'nexxa_user';
+      const savedTimeKey = 'nexxa_login_time';
+      const saved = localStorage.getItem(savedKey);
+      const savedTime = localStorage.getItem(savedTimeKey);
+
+      // PREVENT CRASH: If saved is "undefined" string or similar
+      if (!saved || saved === 'undefined' || saved === 'null') return null;
+
+      // SECURITY: Force re-login after 1 hour (3600000 ms)
+      if (!savedTime || (Date.now() - Number(savedTime) > 3600000)) {
+        console.warn("Session expired. Clearing user.");
+        localStorage.removeItem(savedKey);
+        localStorage.removeItem(savedTimeKey);
+        localStorage.removeItem('nexxa_role');
+        return null; // Force logout
+      }
+
+      const parsedUser = JSON.parse(saved);
+
+      // RESET DE MEMORIA RADICAL: Limpiar TODO si hay datos corruptos
+      // Check for 'name' specifically as it seems to be the crash point
+      if (!parsedUser || typeof parsedUser !== 'object') {
+        localStorage.removeItem(savedKey);
+        return null;
+      }
+
+      if (!parsedUser.name) {
+        console.error("🔴 USUARIO SIN NOMBRE - LIMPIANDO TODO LOCALSTORAGE:", parsedUser);
+        localStorage.clear(); // LIMPIAR TODO
+        return null;
+      }
+
+      return parsedUser;
+    } catch (e) {
+      console.error("Error reading nexxa_user from localStorage:", e);
+      localStorage.clear(); // Limpiar en caso de error
+      return null;
+    }
+  });
+
+  // DEBUGGING CONSOLE (Moved after user definition)
+  console.log("DEBUG NEXXA - App Rendering:", {
+    user: user || { name: 'No User' },
+    userName: user?.name || 'No User',
+    eventsCount: events?.length || 0,
+    quotationsCount: quotations?.length || 0
+  });
+  const [userRole, setUserRole] = useState(() => {
+    try {
+      const savedRole = localStorage.getItem('nexxa_role');
+      return savedRole || null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // --- 7. MAGIC LINK RECEIVER ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('client')) {
@@ -52,13 +255,11 @@ function App() {
         const pPack = params.get('pack') || '';
         const pExtras = params.get('extras') || '';
 
-        // Map Pack ID to Name
         let finalPack = 'Personalizado';
         if (pPack.toLowerCase().includes('essential')) finalPack = 'Essential';
         if (pPack.toLowerCase().includes('memories')) finalPack = 'Memories';
         if (pPack.toLowerCase().includes('celebration')) finalPack = 'Celebration';
 
-        // Map Extras (comma separated ids)
         const extrasObj = {};
         if (pExtras) {
           pExtras.split(',').forEach(rawId => {
@@ -70,44 +271,17 @@ function App() {
           });
         }
 
-        const preFilledEvent = {
-          clientName: pClient,
-          clientPhone: pPhone,
-          date: pDate,
-          startTime: pStart,
-          endTime: pEnd,
-          location: pLoc,
-          packName: finalPack,
-          managerName: '',
-          deposit: '',
-          totalValue: '', // Recalculate implicitly or manual? Let's leave empty for auto-calc trigger
-          selectedExtras: extrasObj
-        };
-
-        setNewEvent(preFilledEvent);
+        setNewEvent({
+          clientName: pClient, clientPhone: pPhone, date: pDate,
+          startTime: pStart, endTime: pEnd, location: pLoc,
+          packName: finalPack, managerName: '', deposit: '',
+          totalValue: '', selectedExtras: extrasObj
+        });
         setView('create');
-
-        // Trigger auto-calc manually or let the user edit slightly to trigger it
-        // We'll leave it to the user to just review and click 'Confirm'
-
-        // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (e) {
-        console.error('Error parsing magic link:', e);
-      }
+      } catch (e) { console.error('Error parsing magic link:', e); }
     }
   }, []);
-
-  // --- FIREBASE SYNCHRONIZATION ---
-  const [events, setEvents] = useState([]);
-  const [quotations, setQuotations] = useState([]);
-  const [inventory, setInventory] = useState([]);
-  const [damageReports, setDamageReports] = useState([]);
-  const [globalTx, setGlobalTx] = useState([]);
-  const [staffRates, setStaffRates] = useState([]);
-  const [scheduledExpenses, setScheduledExpenses] = useState([]); // Consolidate scheduledExpenses here too
-  const [adAllocations, setAdAllocations] = useState({});
-  const [lastFatalError, setLastFatalError] = useState(null);
 
   // Error listener for Mobile Debugging
   useEffect(() => {
@@ -292,98 +466,8 @@ function App() {
     return () => unsubscribe();
   }, [selectedYear, selectedMonth]);
 
-  const [view, setView] = useState('logistics'); // Default to events instead of dashboard
-  const [eventSubTab, setEventSubTab] = useState('list'); // list | inventory | staff
-  const [detailTab, setDetailTab] = useState('general');
-  const [selectedEventId, setSelectedEventId] = useState(null);
 
-  const [showFinanceModal, setShowFinanceModal] = useState(null); // 'IN' | 'OUT' | 'XFER'
-  const [finType, setFinType] = useState('GENERAL'); // 'GENERAL' | 'EVENT'
-  const [finEventId, setFinEventId] = useState('');
-  const [finDesc, setFinDesc] = useState('');
-  const [finAmount, setFinAmount] = useState('');
-  const [finMethod, setFinMethod] = useState('');
-  const [finCategory, setFinCategory] = useState('LOGISTICA'); // LOGISTICA, EQUIPOS, MARKETING, NOMINA, MANTENIMIENTO, FIJOS, VENTA, OTROS
-  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
-  const [newExpenseData, setNewExpenseData] = useState({ day: '', concept: '', amount: '' });
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [showMonthSelector, setShowMonthSelector] = useState(false);
-  const [accountingTab, setAccountingTab] = useState('TESORERIA'); // TESORERIA | RESUMEN | METRICAS
-  const [tradingTimeframe, setTradingTimeframe] = useState('W'); // H, D, W, M, Y
-  const [filterExecution, setFilterExecution] = useState('ALL'); // ALL, PENDING_STAFF, PENDING_WH, PENDING_CLOSURE
-  const [staffPayModal, setStaffPayModal] = useState(null);
-  const [whatsappModalQuo, setWhatsappModalQuo] = useState(null); // { quo, type }
-  const [sectionState, setSectionState] = useState({ s1: true, s2: false, s3: false });
-  const toggleSection = (key) => setSectionState(prev => ({ ...prev, [key]: !prev[key] }));
-  const [tempBalanceVal, setTempBalanceVal] = useState('');
-  const [approveModal, setApproveModal] = useState(null); // { quo }
-  const [paymentModal, setPaymentModal] = useState(null); // { evt, type: 'DEPOSIT' | 'FINAL' }
-  const [paymentSplit, setPaymentSplit] = useState({ Nequi: 0, Daviplata: 0, Efectivo: 0 });
-  const [historySearch, setHistorySearch] = useState('');
 
-  // --- AUTH STATE ---
-  const [loginUser, setLoginUser] = useState('');
-  const [loginPass, setLoginPass] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [user, setUser] = useState(() => {
-    try {
-      const savedKey = 'nexxa_user';
-      const savedTimeKey = 'nexxa_login_time';
-      const saved = localStorage.getItem(savedKey);
-      const savedTime = localStorage.getItem(savedTimeKey);
-
-      // PREVENT CRASH: If saved is "undefined" string or similar
-      if (!saved || saved === 'undefined' || saved === 'null') return null;
-
-      // SECURITY: Force re-login after 1 hour (3600000 ms)
-      if (!savedTime || (Date.now() - Number(savedTime) > 3600000)) {
-        console.warn("Session expired. Clearing user.");
-        localStorage.removeItem(savedKey);
-        localStorage.removeItem(savedTimeKey);
-        localStorage.removeItem('nexxa_role');
-        return null; // Force logout
-      }
-
-      const parsedUser = JSON.parse(saved);
-
-      // RESET DE MEMORIA RADICAL: Limpiar TODO si hay datos corruptos
-      // Check for 'name' specifically as it seems to be the crash point
-      if (!parsedUser || typeof parsedUser !== 'object') {
-        localStorage.removeItem(savedKey);
-        return null;
-      }
-
-      if (!parsedUser.name) {
-        console.error("🔴 USUARIO SIN NOMBRE - LIMPIANDO TODO LOCALSTORAGE:", parsedUser);
-        localStorage.clear(); // LIMPIAR TODO
-        return null;
-      }
-
-      return parsedUser;
-    } catch (e) {
-      console.error("Error reading nexxa_user from localStorage:", e);
-      localStorage.clear(); // Limpiar en caso de error
-      return null;
-    }
-  });
-
-  // DEBUGGING CONSOLE (Moved after user definition)
-  console.log("DEBUG NEXXA - App Rendering:", {
-    user: user || { name: 'No User' },
-    userName: user?.name || 'No User',
-    eventsCount: events?.length || 0,
-    quotationsCount: quotations?.length || 0
-  });
-  const [userRole, setUserRole] = useState(() => {
-    try {
-      const savedRole = localStorage.getItem('nexxa_role');
-      return savedRole || null;
-    } catch (e) {
-      return null;
-    }
-  });
-  const [authLoading, setAuthLoading] = useState(false);
 
   // Placeholder for session check (Moved below handleLogout)
 
@@ -574,42 +658,7 @@ function App() {
     // eslint-disable-next-line
   }, [events, selectedEventId, view]);
 
-  // --- ESTADO: MOTOR DEL NEGOCIO (AJUSTES) ---
-  const [appConfig, setAppConfig] = useState({
-    // 1. PRECIOS Y REGLAS
-    djBase: 35000,
-    djHour: 13000,
-    logisticsBase: 25000,
-    logisticsHour: 10000,
-    photoHour: 13000,
-    neonArtist: 120000,
-    minEventDuration: 4, // horas
-    maxDiscount: 10, // %
 
-    // 2. INVENTARIO
-    bufferTime: 2, // horas entre eventos
-    overlapPenalty: 50000,
-
-    // 3. EVENTOS
-    minDeposit: 50, // %
-    overtimePolicy: 'ALWAYS_CHARGE', // ALWAYS_CHARGE | NEGOTIABLE
-
-    // 4. MENSAJES (TEMPLATES)
-    msgQuote: '¡Hola {cliente}! 🎧 Adjunto tu cotización personalizada para tu evento en {fecha}.',
-    msgAdvisory: '{cliente}, para tu evento de {invitados} pax en {zona}, te sugerimos lo siguiente...',
-    msgConfirm: '¡Excelente! Hemos recibido tu abono de {monto}. Tu fecha {fecha} está 100% confirmada. 🔒',
-    msgPost: '¡Gracias por confiar en Nexxa! Esperamos que hayas disfrutado tu experiencia. ⭐',
-
-    // 5. FINANZAS
-    initialCash: 0,
-    expenseCategorias: ['Transporte', 'Alimentación', 'Nómina', 'Mantenimiento', 'Equipos', 'Marketing'],
-    defaultPayment: 'Nequi',
-
-    // 7. NOTIFICACIONES
-    notifyEvent: true,
-    notifyConflict: true,
-    notifyPayment: true
-  });
 
   const handleSaveTransaction = async (e) => {
     e.preventDefault();
@@ -664,35 +713,6 @@ function App() {
     alert('⚠️ Daño reportado correctamente');
   };
 
-  // FORM STATE FOR NEW EVENT (WITH AUTO-SAVE DRAFT - LOCAL ONLY FOR NOW implies per-device draft)
-  const [newEvent, setNewEvent] = useState(() => {
-    const draft = localStorage.getItem('nexxa_draft_event');
-    if (draft) {
-      try {
-        return JSON.parse(draft);
-      } catch (e) {
-        console.error("Error parsing draft", e);
-      }
-    }
-    return {
-      clientName: '', clientPhone: '', clientPhone2: '',
-      date: '', startTime: '', endTime: '',
-      location: '', neighborhood: '',
-      packName: 'Essential',
-      totalValue: '', deposit: '',
-      leadSource: '', guestCount: '',
-      occasion: '',
-      extraHourPrice: 85000,
-      indications: 'Ninguna',
-      warehouseTime: '',
-      materialExplanation: '',
-      photoStartTime: '',
-      photoEndTime: '',
-      decorStartTime: '',
-      decorEndTime: '',
-      paymentMethod: 'Nequi'
-    };
-  });
 
   // Auto-Save Draft Effect (Keep Local for privacy/speed until save)
   useEffect(() => {
@@ -1564,7 +1584,8 @@ function App() {
 
 
   // Helper function to determine collection responsibility
-  const getCollectionResponsibility = (evt) => {
+  // Helper function to determine collection responsibility (HOISTED)
+  function getCollectionResponsibility(evt) {
     const times = [
       { role: 'DJ / OPERADOR', time: evt.eventDetails?.startTime || '23:59' }, // Default late if not present
       { role: 'FOTÃ“GRAFO', time: evt.eventDetails?.photoStartTime || '23:59' },
@@ -1589,10 +1610,10 @@ function App() {
     } else {
       return { responsibleRole: earliestRoles[0].role, isTieBreak: false };
     }
-  };
+  }
 
-  // --- VIEW: CENTER HUB (ACCIONES RÃPIDAS) ---
-  const renderHomeHub = () => {
+  // --- VIEW: CENTER HUB (ACCIONES RÃ PIDAS) (HOISTED) ---
+  function renderHomeHub() {
     return (
       <div className="fade-in container" style={{ paddingBottom: '140px' }}>
         <header className="main-header" style={{ padding: '60px 0 30px 0' }}>
@@ -1653,7 +1674,7 @@ function App() {
         </div>
       </div>
     );
-  };
+  }
 
 
 
@@ -1711,8 +1732,8 @@ function App() {
     }
   };
 
-  /* --- VIRTUAL INVENTORY LOGIC (MOVED UP FOR SCOPE ACCESS) --- */
-  const getVirtualItems = (role, packName) => {
+  /* --- VIRTUAL INVENTORY LOGIC (MOVED UP FOR SCOPE ACCESS) (HOISTED) --- */
+  function getVirtualItems(role, packName) {
     // DefiniciÃ³n estricta de Ã­tems por rol (segÃºn solicitud)
     const pName = (packName || '').toLowerCase();
     const dj = [
@@ -1745,9 +1766,10 @@ function App() {
     }
 
     return [];
-  };
+  }
 
-  const closeEvent = async (evt) => {
+  // (HOISTED)
+  function closeEvent(evt) {
     const packName = evt.logistics?.packName;
     const allExpectedItems = [
       ...getVirtualItems('DJ', packName),
@@ -1774,14 +1796,14 @@ function App() {
     });
 
     if (unreturnedGroups.length > 0) {
-      if (!confirm(`âš ï¸ HAY MATERIALES PENDIENTES:\n${unreturnedGroups.map(([norm]) => `- ${norm}`).join('\n')}\n\nÂ¿Deseas ignorar esto y CERRAR EL EVENTO de todos modos (Fuerza Bruta)?`)) return;
+      if (!confirm(`âš ï¸  HAY MATERIALES PENDIENTES:\n${unreturnedGroups.map(([norm]) => `- ${norm}`).join('\n')}\n\nÂ¿Deseas ignorar esto y CERRAR EL EVENTO de todos modos (Fuerza Bruta)?`)) return;
     } else {
       if (!confirm('Â¿Confirmar cierre operativo y financiero del evento?')) return;
     }
 
     try {
       const sanitizedId = String(evt.id || '').trim();
-      await updateDoc(doc(db, "events", sanitizedId), {
+      updateDoc(doc(db, "events", sanitizedId), {
         status: 'CLOSED',
         "logistics.flow.equipmentReturned": true,
         "logistics.flow.clientPaid": true,
@@ -1794,7 +1816,7 @@ function App() {
       console.error(err);
       alert('Error al cerrar evento');
     }
-  };
+  }
 
   const checkAutoClose = async (evt) => {
     if (!evt || evt.status === 'CLOSED') return;
@@ -1844,7 +1866,7 @@ function App() {
 
 
 
-  const updateVirtualItemStatus = async (evt, itemName, role, newStatus) => {
+  async function updateVirtualItemStatus(evt, itemName, role, newStatus) {
     const currentItems = [...(evt.logistics?.items || [])];
     const normalize = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     const targetNorm = normalize(itemName);
@@ -1871,7 +1893,7 @@ function App() {
       const updatedEvt = { ...evt, logistics: { ...(evt.logistics || {}), items: currentItems } };
       await checkAutoClose(updatedEvt);
     } catch (err) { console.error(err); }
-  };
+  }
 
   const bulkUpdateMaterialStatus = async (evt, role, newStatus) => {
     let currentItems = [...(evt.logistics?.items || [])];
@@ -1928,7 +1950,7 @@ function App() {
     }
   };
 
-  const renderDetail = () => {
+  function renderDetail() {
     try {
       const evt = getSelectedEvent();
       if (!evt) return <div style={{ padding: '40px', textAlign: 'center', color: '#fff' }}>Evento no encontrado</div>;
@@ -2730,7 +2752,7 @@ function App() {
 
   // --- VIEW: DASHBOARD (VISIÃ“N) ---
   // --- VIEW: DASHBOARD (VISIÃ“N 20s) ---
-  const renderDashboard = () => {
+  function renderDashboard() {
     try {
       // Usamos el mes y aÃ±o seleccionados globalmente para que sea consistente
       const currentMonth = selectedMonth;
@@ -2931,7 +2953,7 @@ function App() {
   };
 
   // --- VIEW: EVENTS (EJECUCIÃ“N) ---
-  const renderEventsList = () => {
+  function renderEventsList() {
     try {
       // Solo eventos confirmados, orden cronolÃ³gico
       const getEarliestTime = (evt) => {
@@ -3019,7 +3041,7 @@ function App() {
               <button
                 onClick={() => {
                   if (eventSubTab === 'inventory') {
-                    setShowAddModal(true);
+                    setShowAddExpenseModal(true);
                   } else {
                     setNewEvent({ clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', paymentMethod: 'Nequi' });
                     setView('create');
@@ -3441,42 +3463,10 @@ function App() {
     }
   };
 
-  // --- HELPER: INPUT MONEDA ---
-  const MoneyInput = ({ label, value, onChange }) => (
-    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '15px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, letterSpacing: '1px', textTransform: 'uppercase' }}>{label}</label>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '1rem', color: 'var(--success-green)', fontWeight: '900' }}>$</span>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={new Intl.NumberFormat('es-CO').format(value)}
-          onChange={(e) => {
-            const rawValue = e.target.value.replace(/\./g, '');
-            if (!isNaN(rawValue)) onChange(Number(rawValue));
-          }}
-          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1.2rem', fontWeight: '900', width: '100%', outline: 'none', fontFamily: 'monospace' }}
-        />
-      </div>
-    </div>
-  );
 
-  // --- HELPER: TEXT INPUT ---
-  const TextInput = ({ label, value, onChange, placeholder }) => (
-    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '15px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, letterSpacing: '1px', textTransform: 'uppercase' }}>{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem', fontWeight: '700', width: '100%', outline: 'none' }}
-      />
-    </div>
-  );
 
   // --- VIEW: PERFIL (IDENTIDAD) ---
-  const renderProfile = () => {
+  function renderProfile() {
     return (
       <div className="fade-in container" style={{ paddingBottom: '140px' }}>
         <header className="main-header" style={{ padding: '30px 0 20px 0' }}>
@@ -3521,7 +3511,7 @@ function App() {
   };
 
   // --- VIEW: CONFIGURACIÃ“N GLOBAL (AJUSTES) ---
-  const renderConfig = () => {
+  function renderConfig() {
     return (
       <div className="fade-in container" style={{ paddingBottom: '140px' }}>
         <header className="main-header" style={{ padding: '30px 0 20px 0' }}>
@@ -3640,7 +3630,7 @@ function App() {
   };
 
   // --- VIEW: COTIZACIONES ---
-  const renderQuotations = () => {
+  function renderQuotations() {
     try {
       const sentQuotations = quotations.filter(q => q && q.status === 'SENT');
 
@@ -3963,7 +3953,7 @@ function App() {
     }
   };
 
-  const renderWhatsAppFollowUpModal = () => {
+  function renderWhatsAppFollowUpModal() {
     if (!whatsappModalQuo) return null;
     const quo = whatsappModalQuo;
     const clientName = quo.client?.name || 'Cliente';
@@ -4070,124 +4060,128 @@ function App() {
     );
   };
 
-  const renderBottomNav = () => (
-    <nav className="bottom-nav" style={{
-      background: 'rgba(5, 5, 5, 0.98)',
-      backdropFilter: 'blur(30px)',
-      borderTop: '1px solid rgba(255,255,255,0.08)',
-      padding: '0 10px 20px 10px',
-      height: '80px',
-      display: 'flex',
-      justifyContent: 'space-around',
-      alignItems: 'center'
-    }}>
-
-
-      <button className={`nav-item ${view === 'quotations' ? 'active' : ''}`} onClick={() => setView('quotations')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'quotations' ? 'var(--primary-cyan)' : '#666' }}>
-        <IconPDF size={20} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Ventas</span>
-      </button>
-
-      <button className={`nav-item ${view === 'events' || view === 'detail' ? 'active' : ''}`} onClick={() => setView('events')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: (view === 'events' || view === 'detail') ? 'var(--primary-cyan)' : '#666' }}>
-        <IconCalendar size={20} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Eventos</span>
-      </button>
-
-      <button className={`nav-item ${view === 'logistics' ? 'active' : ''}`} onClick={() => setView('logistics')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'logistics' ? 'var(--primary-cyan)' : '#666' }}>
-        <IconFlow size={20} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Logística</span>
-      </button>
-
-      {userRole === 'admin' && (
-        <button className={`nav-item ${view === 'accounting' ? 'active' : ''}`} onClick={() => setView('accounting')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'accounting' ? 'var(--primary-cyan)' : '#666' }}>
-          <IconRecaudo size={20} />
-          <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Caja</span>
-        </button>
-      )}
-
-      <button className={`nav-item ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'profile' ? 'var(--primary-cyan)' : '#666' }}>
-        <IconUser size={20} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Yo</span>
-      </button>
-
-    </nav>
-  );
-
-  const renderLogin = () => (
-    <div className="login-screen" style={{
-      height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#0a0a0a', position: 'relative', overflow: 'hidden'
-    }}>
-      <div className="aurora-bg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
-        <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: '70vw', height: '70vw', background: 'radial-gradient(circle, rgba(0, 242, 255, 0.08), transparent 70%)', filter: 'blur(100px)' }}></div>
-      </div>
-
-      <form onSubmit={handleLogin} className="fade-in" style={{
-        width: '90%', maxWidth: '380px', background: 'rgba(255,255,255,0.02)',
-        padding: '40px', borderRadius: '40px', border: '1px solid rgba(255,255,255,0.05)',
-        zIndex: 1, backdropFilter: 'blur(20px)'
+  function renderBottomNav() {
+    return (
+      <nav className="bottom-nav" style={{
+        background: 'rgba(5, 5, 5, 0.98)',
+        backdropFilter: 'blur(30px)',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        padding: '0 10px 20px 10px',
+        height: '80px',
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'center'
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-            <img
-              src="/logo_staff_new.jpg"
-              alt="Nexxa Staff"
-              style={{
-                width: '140px',
-                height: '140px',
-                objectFit: 'cover',
-                borderRadius: '50%',
-                boxShadow: '0 0 50px rgba(0, 242, 255, 0.2)',
-                border: '2px solid rgba(0, 242, 255, 0.3)'
-              }}
-            />
-          </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: '950', margin: 0, letterSpacing: '-1px' }}>Nexxa <span style={{ color: 'var(--primary-cyan)' }}>Staff</span></h2>
-          <p style={{ opacity: 0.4, fontSize: '0.8rem', marginTop: '8px', fontWeight: '700' }}>Inicia sesión para continuar</p>
-        </div>
 
-        {loginError && (
-          <div style={{ background: 'rgba(255,56,96,0.1)', color: '#ff3860', padding: '12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', marginBottom: '20px', border: '1px solid rgba(255,56,96,0.2)', textAlign: 'center' }}>
-            {loginError}
-          </div>
+
+        <button className={`nav-item ${view === 'quotations' ? 'active' : ''}`} onClick={() => setView('quotations')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'quotations' ? 'var(--primary-cyan)' : '#666' }}>
+          <IconPDF size={20} />
+          <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Ventas</span>
+        </button>
+
+        <button className={`nav-item ${view === 'events' || view === 'detail' ? 'active' : ''}`} onClick={() => setView('events')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: (view === 'events' || view === 'detail') ? 'var(--primary-cyan)' : '#666' }}>
+          <IconCalendar size={20} />
+          <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Eventos</span>
+        </button>
+
+        <button className={`nav-item ${view === 'logistics' ? 'active' : ''}`} onClick={() => setView('logistics')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'logistics' ? 'var(--primary-cyan)' : '#666' }}>
+          <IconFlow size={20} />
+          <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Logística</span>
+        </button>
+
+        {userRole === 'admin' && (
+          <button className={`nav-item ${view === 'accounting' ? 'active' : ''}`} onClick={() => setView('accounting')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'accounting' ? 'var(--primary-cyan)' : '#666' }}>
+            <IconRecaudo size={20} />
+            <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Caja</span>
+          </button>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.4, marginLeft: '5px' }}>TU NOMBRE</label>
-            <input
-              type="text"
-              placeholder="Ej: Camila"
-              value={loginUser}
-              onChange={e => setLoginUser(e.target.value)}
-              required
-              style={{ padding: '16px 20px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.9rem', fontWeight: '700', outline: 'none' }}
-            />
-          </div>
+        <button className={`nav-item ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'profile' ? 'var(--primary-cyan)' : '#666' }}>
+          <IconUser size={20} />
+          <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Yo</span>
+        </button>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.4, marginLeft: '5px' }}>CLAVE DE ACCESO</label>
-            <input
-              type="password"
-              placeholder="********"
-              value={loginPass}
-              onChange={e => setLoginPass(e.target.value)}
-              required
-              style={{ padding: '16px 20px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.9rem', fontWeight: '700', outline: 'none' }}
-            />
-          </div>
+      </nav>
+    );
+  }
 
-          <button type="submit" style={{
-            marginTop: '15px', padding: '18px', borderRadius: '18px', background: 'var(--brand-gradient)',
-            border: 'none', color: '#000', fontWeight: '950', fontSize: '0.9rem', cursor: 'pointer',
-            boxShadow: '0 10px 20px rgba(0, 212, 255, 0.2)'
-          }}>
-            ENTRAR AL PANEL
-          </button>
+  function renderLogin() {
+    return (
+      <div className="login-screen" style={{
+        height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: '#0a0a0a', position: 'relative', overflow: 'hidden'
+      }}>
+        <div className="aurora-bg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
+          <div style={{ position: 'absolute', top: '-20%', left: '-10%', width: '70vw', height: '70vw', background: 'radial-gradient(circle, rgba(0, 242, 255, 0.08), transparent 70%)', filter: 'blur(100px)' }}></div>
         </div>
-      </form>
-    </div>
-  );
+
+        <form onSubmit={handleLogin} className="fade-in" style={{
+          width: '90%', maxWidth: '380px', background: 'rgba(255,255,255,0.02)',
+          padding: '40px', borderRadius: '40px', border: '1px solid rgba(255,255,255,0.05)',
+          zIndex: 1, backdropFilter: 'blur(20px)'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+              <img
+                src="/logo_staff_new.jpg"
+                alt="Nexxa Staff"
+                style={{
+                  width: '140px',
+                  height: '140px',
+                  objectFit: 'cover',
+                  borderRadius: '50%',
+                  boxShadow: '0 0 50px rgba(0, 242, 255, 0.2)',
+                  border: '2px solid rgba(0, 242, 255, 0.3)'
+                }}
+              />
+            </div>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: '950', margin: 0, letterSpacing: '-1px' }}>Nexxa <span style={{ color: 'var(--primary-cyan)' }}>Staff</span></h2>
+            <p style={{ opacity: 0.4, fontSize: '0.8rem', marginTop: '8px', fontWeight: '700' }}>Inicia sesión para continuar</p>
+          </div>
+
+          {loginError && (
+            <div style={{ background: 'rgba(255,56,96,0.1)', color: '#ff3860', padding: '12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', marginBottom: '20px', border: '1px solid rgba(255,56,96,0.2)', textAlign: 'center' }}>
+              {loginError}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.4, marginLeft: '5px' }}>TU NOMBRE</label>
+              <input
+                type="text"
+                placeholder="Ej: Camila"
+                value={loginUser}
+                onChange={e => setLoginUser(e.target.value)}
+                required
+                style={{ padding: '16px 20px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.9rem', fontWeight: '700', outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.4, marginLeft: '5px' }}>CLAVE DE ACCESO</label>
+              <input
+                type="password"
+                placeholder="********"
+                value={loginPass}
+                onChange={e => setLoginPass(e.target.value)}
+                required
+                style={{ padding: '16px 20px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.9rem', fontWeight: '700', outline: 'none' }}
+              />
+            </div>
+
+            <button type="submit" style={{
+              marginTop: '15px', padding: '18px', borderRadius: '18px', background: 'var(--brand-gradient)',
+              border: 'none', color: '#000', fontWeight: '950', fontSize: '0.9rem', cursor: 'pointer',
+              boxShadow: '0 10px 20px rgba(0, 212, 255, 0.2)'
+            }}>
+              ENTRAR AL PANEL
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
 
   if (authLoading) return (
     <div style={{ height: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

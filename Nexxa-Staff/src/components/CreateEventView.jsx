@@ -297,13 +297,22 @@ const CreateEventView = ({
             <form onSubmit={(e) => { e.preventDefault(); handleCreateEvent(e); }} className="create-form">
 
                 {/* SECTION 1: PACKAGE & TIMES */}
-                <div className="form-section">
+                <div className="form-section premium-card" style={{
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    borderRadius: '28px',
+                    padding: '25px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    marginBottom: '20px',
+                    transition: 'all 0.3s ease'
+                }}>
                     <div
                         onClick={() => toggleSection('s1')}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '20px' : '0' }}
                     >
-                        <h3>1. Paquete y Horarios</h3>
-                        <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s1 ? '▼' : '▶'}</span>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>1. Paquete y Horarios</h3>
+                        <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s1 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
                     </div>
                     {sectionState.s1 && (
                         <>
@@ -412,13 +421,22 @@ const CreateEventView = ({
                 </div>
 
                 {/* SECTION 2: EXTRAS */}
-                <div className="form-section">
+                <div className="form-section premium-card" style={{
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    borderRadius: '28px',
+                    padding: '25px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    marginBottom: '20px',
+                    transition: 'all 0.3s ease'
+                }}>
                     <div
                         onClick={() => toggleSection('s2')}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s2 ? '15px' : '0' }}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s2 ? '20px' : '0' }}
                     >
-                        <h3>2. Extras</h3>
-                        <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s2 ? '▼' : '▶'}</span>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>2. Extras</h3>
+                        <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s2 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
                     </div>
 
                     {sectionState.s2 && (
@@ -462,13 +480,22 @@ const CreateEventView = ({
                 </div>
 
                 {/* SECTION 3: CLIENT */}
-                <div className="form-section">
+                <div className="form-section premium-card" style={{
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    borderRadius: '28px',
+                    padding: '25px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    marginBottom: '20px',
+                    transition: 'all 0.3s ease'
+                }}>
                     <div
                         onClick={() => toggleSection('s3')}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '15px' : '0' }}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '20px' : '0' }}
                     >
-                        <h3>3. Datos del Cliente</h3>
-                        <span style={{ fontSize: '1.2rem', color: '#00d4ff' }}>{sectionState.s3 ? '▼' : '▶'}</span>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>3. Datos del Cliente</h3>
+                        <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s3 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
                     </div>
 
                     {sectionState.s3 && (
@@ -484,8 +511,16 @@ const CreateEventView = ({
 
                 {/* SECTION 4: MISSION DETAILS */}
                 {isEventMode && (
-                    <div className="form-section">
-                        <h3>4. Detalles de la Misión</h3>
+                    <div className="form-section premium-card" style={{
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        borderRadius: '28px',
+                        padding: '25px',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        marginBottom: '20px'
+                    }}>
+                        <h3 style={{ margin: '0 0 20px 0', fontSize: '1rem', fontWeight: '900', color: '#fff' }}>4. Detalles de la Misión</h3>
                         <label style={{ fontSize: '0.75rem', color: '#666' }}>Indicaciones Especiales (Venue/Acceso)</label>
                         <textarea
                             placeholder="Ej: Ingreso por sótano, llevar mantel blanco, etc."
@@ -504,8 +539,17 @@ const CreateEventView = ({
                 )}
 
                 {/* SECTION 5: FINAL QUOTATION */}
-                <div className="form-section" style={{ borderColor: '#00d4ff', borderWidth: '1px', borderStyle: 'solid' }}>
-                    <h3 style={{ color: '#00d4ff' }}>5. Cotización Final</h3>
+                <div className="form-section premium-card" style={{
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    borderRadius: '28px',
+                    padding: '25px',
+                    border: '1px solid rgba(0, 242, 255, 0.3)',
+                    marginBottom: '20px',
+                    boxShadow: '0 0 30px rgba(0, 242, 255, 0.05)'
+                }}>
+                    <h3 style={{ margin: '0 0 20px 0', fontSize: '1rem', fontWeight: '900', color: 'var(--primary-cyan)' }}>5. Cotización Final</h3>
                     <div className="money-row">
                         <div style={{ flex: 1, fontSize: '0.8rem', color: '#ccc', background: '#222', padding: '10px', borderRadius: '8px', marginRight: '10px' }}>
                             {newEvent.packName !== 'Personalizado' ? (
