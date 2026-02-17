@@ -42,56 +42,115 @@ const TimeInput = ({ value, onChange, label }) => {
   };
 
   const { h, m, period } = getDisplayTime(value);
+  const isAM = period === 'AM';
 
   return (
-    <div style={{
+    <div className="time-input-premium" style={{
       position: 'relative',
-      background: 'linear-gradient(180deg, #3d2165 0%, #050505 100%)',
-      borderRadius: '20px',
-      padding: '25px 10px',
-      margin: '4px 0',
+      background: 'rgba(255, 255, 255, 0.02)',
+      borderRadius: '28px',
+      padding: '25px 15px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      minHeight: '130px',
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+      minHeight: '150px',
       cursor: 'pointer',
       overflow: 'hidden',
-      boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+      boxShadow: isAM ? '0 15px 45px rgba(0, 242, 255, 0.1)' : '0 15px 45px rgba(188, 111, 241, 0.1)',
+      transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      margin: '10px 0'
     }}>
-      <span style={{
+      {/* DYNAMIC AM/PM BLOB BACKGROUND */}
+      <div style={{
         position: 'absolute',
-        top: '12px',
-        fontSize: '0.65rem',
+        top: '-20%',
+        right: '-20%',
+        width: '100px',
+        height: '100px',
+        background: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
+        filter: 'blur(40px)',
+        opacity: 0.15,
+        zIndex: 0,
+        transition: 'all 0.6s ease'
+      }} />
+
+      {/* LABEL WITH SPACING */}
+      <span style={{
+        position: 'relative',
+        zIndex: 2,
+        fontSize: '0.6rem',
         color: 'rgba(255,255,255,0.4)',
         textTransform: 'uppercase',
-        fontWeight: '600',
-        letterSpacing: '1px'
+        fontWeight: '900',
+        letterSpacing: '2.5px',
+        marginBottom: '12px'
       }}>
         {label}
       </span>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-        <span style={{
-          fontSize: '4.5rem',
-          fontWeight: '200',
-          color: '#fff',
-          lineHeight: '1',
-          letterSpacing: '-2px'
-        }}>
-          {h}:{m}
-        </span>
-
-        <div style={{
-          fontSize: '0.8rem',
-          fontWeight: '700',
-          color: 'rgba(255,255,255,0.6)',
-          marginLeft: '8px',
-          marginTop: '20px'
-        }}>
-          {period}
+      {/* MAIN CLOCK DISPLAY */}
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: '6px',
+        color: '#fff'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <span style={{
+            fontSize: '4.2rem',
+            fontWeight: '100',
+            lineHeight: '1',
+            fontFamily: 'system-ui',
+            letterSpacing: '-2px'
+          }}>
+            {h}
+          </span>
         </div>
+
+        <span style={{
+          fontSize: '2.5rem',
+          fontWeight: '100',
+          color: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
+          opacity: 0.5,
+          marginBottom: '8px'
+        }}>:</span>
+
+        <div style={{ textAlign: 'center' }}>
+          <span style={{
+            fontSize: '4.2rem',
+            fontWeight: '100',
+            lineHeight: '1',
+            fontFamily: 'system-ui',
+            letterSpacing: '-2px'
+          }}>
+            {m}
+          </span>
+        </div>
+      </div>
+
+      {/* PERIOD INDICATOR PILL */}
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        marginTop: '15px',
+        fontSize: '0.75rem',
+        fontWeight: '900',
+        color: '#fff',
+        background: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
+        padding: '5px 16px',
+        borderRadius: '50px',
+        textTransform: 'uppercase',
+        letterSpacing: '1.5px',
+        boxShadow: isAM ? '0 5px 15px rgba(0, 242, 255, 0.4)' : '0 5px 15px rgba(188, 111, 241, 0.4)',
+        transition: 'all 0.3s ease'
+      }}>
+        {period}
       </div>
 
       <input
@@ -109,6 +168,18 @@ const TimeInput = ({ value, onChange, label }) => {
           zIndex: 10
         }}
       />
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .time-input-premium:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-4px);
+        }
+        .time-input-premium:active {
+            transform: scale(0.96) translateY(0);
+        }
+    `}} />
     </div>
   );
 };

@@ -33,8 +33,124 @@ function useLocalStorage(key, initialValue) {
   return [storedValue, setValue];
 }
 
+// --- TIME COMPONENT (PREMIUM) ---
+const TimeInput = ({ value, onChange, label }) => {
+  const getDisplayTime = (val) => {
+    if (!val) return { h: '08', m: '00', period: 'PM' };
+    let [hStr, mStr] = val.split(':');
+    let h = parseInt(hStr || 0);
+    let m = mStr || "00";
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return {
+      h: String(h12).padStart(2, '0'),
+      m: String(m).padStart(2, '0'),
+      period
+    };
+  };
+
+  const { h, m, period } = getDisplayTime(value);
+  const isAM = period === 'AM';
+
+  return (
+    <div className="time-input-premium" style={{
+      position: 'relative',
+      background: 'rgba(255, 255, 255, 0.03)',
+      borderRadius: '24px',
+      padding: '20px 10px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      minHeight: '140px',
+      cursor: 'pointer',
+      overflow: 'hidden',
+      boxShadow: isAM ? '0 10px 30px rgba(0, 242, 255, 0.1)' : '0 10px 30px rgba(188, 111, 241, 0.1)',
+      transition: 'all 0.3s ease',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      margin: '5px 0'
+    }}>
+      <div style={{
+        position: 'absolute',
+        top: '-10%',
+        right: '-10%',
+        width: '80px',
+        height: '80px',
+        background: isAM ? 'var(--primary-color)' : 'var(--accent-color, #bc6ff1)',
+        filter: 'blur(30px)',
+        opacity: 0.1,
+        zIndex: 0
+      }} />
+
+      <span style={{
+        position: 'relative',
+        zIndex: 2,
+        fontSize: '0.55rem',
+        color: 'rgba(255,255,255,0.4)',
+        textTransform: 'uppercase',
+        fontWeight: '900',
+        letterSpacing: '2px',
+        marginBottom: '8px'
+      }}>
+        {label}
+      </span>
+
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: '4px',
+        color: '#fff'
+      }}>
+        <span style={{ fontSize: '3.5rem', fontWeight: '100', lineHeight: '1', letterSpacing: '-1px' }}>{h}</span>
+        <span style={{ fontSize: '2rem', fontWeight: '100', color: isAM ? 'var(--primary-color)' : '#bc6ff1', opacity: 0.5 }}>:</span>
+        <span style={{ fontSize: '3.5rem', fontWeight: '100', lineHeight: '1', letterSpacing: '-1px' }}>{m}</span>
+      </div>
+
+      <div style={{
+        position: 'relative',
+        zIndex: 2,
+        marginTop: '10px',
+        fontSize: '0.65rem',
+        fontWeight: '900',
+        color: '#fff',
+        background: isAM ? 'var(--primary-color)' : '#bc6ff1',
+        padding: '4px 12px',
+        borderRadius: '50px',
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+        boxShadow: isAM ? '0 4px 10px rgba(0, 242, 255, 0.3)' : '0 4px 10px rgba(188, 111, 241, 0.3)'
+      }}>
+        {period}
+      </div>
+
+      <input
+        type="time"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          opacity: 0,
+          cursor: 'pointer',
+          zIndex: 10
+        }}
+      />
+    </div>
+  );
+};
+
+
 function App() {
   const packagesContainerRef = useRef(null);
+
+  // ... (rest of the state and hooks) ...
 
   // STATE MANAGEMENT (v6 keys to ensure clean start)
   const [selectedPackageId, setSelectedPackageId] = useLocalStorage('nexxa_pkg_v6', null);
@@ -733,22 +849,41 @@ function App() {
 
               <div className="form-group">
                 <label>Franja horaria del evento</label>
-                <div className="time-inputs">
-                  <div className="time-input-group">
-                    <input type="text" className="input-field time-text" placeholder="Inicio (08:00)" value={eventStartTime} onChange={(e) => formatTimeInput(e.target.value, setEventStartTime)} maxLength={5} />
-                    <select className="input-field ampm-select" value={startAmPm} onChange={(e) => setStartAmPm(e.target.value)}>
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
-                  <span className="time-separator">a</span>
-                  <div className="time-input-group">
-                    <input type="text" className="input-field time-text" placeholder="Fin (02:00)" value={eventEndTime} onChange={(e) => formatTimeInput(e.target.value, setEventEndTime)} maxLength={5} />
-                    <select className="input-field ampm-select" value={endAmPm} onChange={(e) => setEndAmPm(e.target.value)}>
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <TimeInput
+                    label="Inicio"
+                    value={(() => {
+                      if (!eventStartTime) return '20:00';
+                      let [h, m] = eventStartTime.split(':').map(Number);
+                      if (startAmPm === 'PM' && h !== 12) h += 12;
+                      if (startAmPm === 'AM' && h === 12) h = 0;
+                      return `${String(h).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
+                    })()}
+                    onChange={(val) => {
+                      let [h, m] = val.split(':').map(Number);
+                      const ampm = h >= 12 ? 'PM' : 'AM';
+                      const h12 = h % 12 || 12;
+                      setEventStartTime(`${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+                      setStartAmPm(ampm);
+                    }}
+                  />
+                  <TimeInput
+                    label="Fin"
+                    value={(() => {
+                      if (!eventEndTime) return '02:00';
+                      let [h, m] = eventEndTime.split(':').map(Number);
+                      if (endAmPm === 'PM' && h !== 12) h += 12;
+                      if (endAmPm === 'AM' && h === 12) h = 0;
+                      return `${String(h).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
+                    })()}
+                    onChange={(val) => {
+                      let [h, m] = val.split(':').map(Number);
+                      const ampm = h >= 12 ? 'PM' : 'AM';
+                      const h12 = h % 12 || 12;
+                      setEventEndTime(`${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+                      setEndAmPm(ampm);
+                    }}
+                  />
                 </div>
                 <p className="input-hint">Duración mínima 4 horas. Las horas adicionales se calculan automáticamente.</p>
               </div>
