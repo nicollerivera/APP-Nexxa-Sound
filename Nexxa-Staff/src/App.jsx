@@ -390,13 +390,13 @@ function App() {
       // PREVENT CRASH: If saved is "undefined" string or similar
       if (!saved || saved === 'undefined' || saved === 'null') return null;
 
-      // SECURITY: Force re-login after 12 hours (43200000 ms)
-      if (!savedTime || (Date.now() - Number(savedTime) > 43200000)) {
+      // SECURITY: Force re-login after 1 hour (3600000 ms)
+      if (!savedTime || (Date.now() - Number(savedTime) > 3600000)) {
         console.warn("Session expired. Clearing user.");
         localStorage.removeItem(savedKey);
         localStorage.removeItem(savedTimeKey);
         localStorage.removeItem('nexxa_role');
-        return null;
+        return null; // Force logout
       }
 
       const parsedUser = JSON.parse(saved);
@@ -438,6 +438,8 @@ function App() {
     }
   });
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Placeholder for session check (Moved below handleLogout)
 
   // ðŸ” FUNCIÓN DE AUDITORÃA TEMPORAL - Detectar registros corruptos
   useEffect(() => {
@@ -540,6 +542,32 @@ function App() {
       setLoginError('Nombre o clave incorrectos. Intenta de nuevo.');
     }
   };
+
+
+
+  // SECURITY: Active session monitoring (1h Timeout)
+  useEffect(() => {
+    const checkSession = () => {
+      const savedTime = localStorage.getItem('nexxa_login_time');
+      // 1 hour = 3600000 ms
+      if (savedTime && (Date.now() - Number(savedTime) > 3600000)) {
+        console.warn("Session expired during active use.");
+        // Logout silently and refresh
+        setUser(null);
+        setUserRole(null);
+        localStorage.removeItem('nexxa_user');
+        localStorage.removeItem('nexxa_role');
+        // No need to clear login_time here immediately, reload will do it or state init
+        // But better to clear it to be safe
+        localStorage.removeItem('nexxa_login_time');
+        window.location.reload();
+      }
+    };
+
+    // Check every minute
+    const interval = setInterval(checkSession, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     if (confirm('¿Cerrar sesión en el panel?')) {
