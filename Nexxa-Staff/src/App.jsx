@@ -104,6 +104,9 @@ function App() {
   const [inventory, setInventory] = useState([]);
   const [damageReports, setDamageReports] = useState([]);
   const [globalTx, setGlobalTx] = useState([]);
+  const [staffRates, setStaffRates] = useState([]);
+  const [scheduledExpenses, setScheduledExpenses] = useState([]); // Consolidate scheduledExpenses here too
+  const [adAllocations, setAdAllocations] = useState({});
   const [lastFatalError, setLastFatalError] = useState(null);
 
   // Error listener for Mobile Debugging
@@ -258,8 +261,36 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // 5. SYNC JOB TITLES (STAFF RATES)
+  useEffect(() => {
+    const unsubscribeRates = onSnapshot(collection(db, "job_titles"), (snapshot) => {
+      const liveRates = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      setStaffRates(liveRates);
+    });
 
+    const unsubscribeExpenses = onSnapshot(collection(db, "operative_agenda"), (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      setScheduledExpenses(items);
+    });
 
+    return () => {
+      unsubscribeRates();
+      unsubscribeExpenses();
+    };
+  }, []);
+
+  // 6. SYNC MARKETING DISTRIBUTION (ALLOCATIONS)
+  useEffect(() => {
+    const allocId = `ALLOC-${selectedYear}-${selectedMonth}`;
+    const unsubscribe = onSnapshot(doc(db, "marketing_allocations", allocId), (docSnap) => {
+      if (docSnap.exists()) {
+        setAdAllocations(docSnap.data().channels || {});
+      } else {
+        setAdAllocations({});
+      }
+    });
+    return () => unsubscribe();
+  }, [selectedYear, selectedMonth]);
 
   const [view, setView] = useState('logistics'); // Default to events instead of dashboard
   const [eventSubTab, setEventSubTab] = useState('list'); // list | inventory | staff
@@ -273,6 +304,8 @@ function App() {
   const [finAmount, setFinAmount] = useState('');
   const [finMethod, setFinMethod] = useState('');
   const [finCategory, setFinCategory] = useState('LOGISTICA'); // LOGISTICA, EQUIPOS, MARKETING, NOMINA, MANTENIMIENTO, FIJOS, VENTA, OTROS
+  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
+  const [newExpenseData, setNewExpenseData] = useState({ day: '', concept: '', amount: '' });
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showMonthSelector, setShowMonthSelector] = useState(false);
@@ -494,18 +527,6 @@ function App() {
     window.location.href = '/';
   };
 
-  // 5. SYNC MARKETING DISTRIBUTION (ALLOCATIONS)
-  useEffect(() => {
-    const allocId = `ALLOC-${selectedYear}-${selectedMonth}`;
-    const unsubscribe = onSnapshot(doc(db, "marketing_allocations", allocId), (docSnap) => {
-      if (docSnap.exists()) {
-        setAdAllocations(docSnap.data().channels || {});
-      } else {
-        setAdAllocations({});
-      }
-    });
-    return () => unsubscribe();
-  }, [selectedYear, selectedMonth]);
 
   // --- ESTADO: IDENTIDAD OPERATIVA (PERFIL) ---
   const [userProfile, setUserProfile] = useState({
@@ -518,32 +539,7 @@ function App() {
     signature: 'Atte: El equipo de Nexxa Sound ðŸŽ§'
   });
 
-  // --- ESTADO: AGENDA OPERATIVA (GASTOS PROGRAMADOS RECURRENTES) ---
-  const [scheduledExpenses, setScheduledExpenses] = useState([]);
-  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
-  const [newExpenseData, setNewExpenseData] = useState({ day: '', concept: '', amount: '' });
-  const [staffRates, setStaffRates] = useState({}); // Dynamic Rates
 
-  // SYNC AGENDA OPERATIVA & STAFF RATES
-  useEffect(() => {
-    const unsubscribeExpenses = onSnapshot(collection(db, "operative_agenda"), (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-      setScheduledExpenses(items);
-    });
-
-    const unsubscribeRates = onSnapshot(collection(db, "job_titles"), (snapshot) => {
-      const rates = {};
-      snapshot.docs.forEach(doc => {
-        rates[doc.data().label] = doc.data(); // Key by label (DJ, FOTO, etc.)
-      });
-      setStaffRates(rates);
-    });
-
-    return () => {
-      unsubscribeExpenses();
-      unsubscribeRates();
-    };
-  }, []);
 
   // --- MONITOR DE CIERRE AUTOMÃTICO (Turbo Context) ---
   useEffect(() => {
@@ -1267,6 +1263,50 @@ function App() {
 
   const getSelectedEvent = () => events.find(e => e.id === selectedEventId);
 
+  const calculateEventPayroll = (evt) => {
+    if (!evt) return { total: 0 };
+    const dur = getHours(evt.eventDetails?.startTime, evt.eventDetails?.endTime);
+    const eks = evt.financials?.extraHours || {};
+
+    const getRate = (search) => {
+      const norm = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const sNorm = norm(search);
+      // Special short-circuits for common names
+      const key = Object.keys(staffRates || {}).find(k => {
+        const kn = norm(k);
+        if (kn === sNorm) return true;
+        if (sNorm === 'FOTO' && (kn === 'FOTOGRAFO' || kn === 'FOTOGRAFIA')) return true;
+        if (sNorm === 'DECOR' && (kn === 'DECORADOR' || kn === 'DECORACION')) return true;
+        if (sNorm === 'LOGISTICA' && (kn === 'LOGISTICA' || kn === 'COORDINADOR')) return true;
+        if (sNorm === 'DJ' && (kn.includes('DJ') || kn.includes('OPERADOR'))) return true;
+        return false;
+      });
+      return staffRates[key] || {};
+    };
+
+    // DJ
+    const rDJ = getRate('DJ');
+    const djPay = (rDJ.base ?? 35000) + (dur * (rDJ.hourly ?? 13000)) + ((eks.DJ || 0) * (rDJ.extra ?? 15000));
+
+    // FOTO
+    const rFoto = getRate('FOTO');
+    const pDur = evt.eventDetails?.photoStartTime ? getHours(evt.eventDetails.photoStartTime, evt.eventDetails.photoEndTime) : 0;
+    const photoPay = (rFoto.base ?? 0) + (pDur * (rFoto.hourly ?? 13000)) + ((eks.FOTO || 0) * (rFoto.extra ?? 15000));
+
+    // DECOR
+    const rDecor = getRate('DECOR');
+    const pName = (evt.logistics?.packName || '').toLowerCase();
+    const hasDecor = (evt.eventDetails?.decorStartTime || pName.includes('celebration'));
+    const decorBase = hasDecor ? (rDecor.base ?? 40000) : 0;
+    const decorPay = decorBase + ((eks.DECOR || 0) * (rDecor.extra ?? 15000));
+
+    // LOGISTICA (MANAGER)
+    const rLog = getRate('LOGISTICA');
+    const managerPay = (rLog.base ?? 25000) + (dur * (rLog.hourly ?? 10000)) + ((eks.LOGISTICA || 0) * (rLog.extra ?? 15000));
+
+    return { total: djPay + photoPay + decorPay + managerPay, djPay, photoPay, decorPay, managerPay };
+  };
+
   // --- LOGIC HANDLERS ---
   // --- HANDLE EVENT PAYMENTS (70% or Custom) ---
   const handleOpenPaymentModal = (evt) => {
@@ -1912,8 +1952,8 @@ function App() {
       };
 
       const extraHoursMap = evt.financials?.extraHours || {};
-      const totalExtraHoursSum = Object.values(extraHoursMap).reduce((acc, v) => acc + (parseFloat(v) || 0), 0);
-      const payrollValue = 35000 + (duration * 13000) + (totalExtraHoursSum * 15000);
+      const payroll = calculateEventPayroll(evt);
+      const projectedPayroll = payroll.total;
 
       // CÃLCULO DE EXTRAS CLIENTE (REFORZADO)
       const customerExtrasTotal = (parseFloat(extraHoursMap.DJ || 0) * 85000) +
@@ -1927,7 +1967,11 @@ function App() {
       const paidAmount = Number(evt.financials?.deposit) || 0;
       const totalRevenuePlusExtras = baseRevenue + customerExtrasTotal;
       const currentBalanceDue = Math.max(0, totalRevenuePlusExtras - paidAmount);
-      const liquidProfit = totalRevenuePlusExtras - eventExpenses;
+
+      // Utility calculation: If staff is NOT paid, we deduct the projected payroll to show "Real" profit
+      const staffPaid = evt.logistics?.flow?.staffPaid;
+      const effectiveExpenses = eventExpenses + (staffPaid ? 0 : projectedPayroll);
+      const liquidProfit = totalRevenuePlusExtras - effectiveExpenses;
 
       // FORCE VISUAL RESET: Use Virtual List, ignore DB list for structure
       // Default to DJ if 'ALL' or invalid
@@ -2236,7 +2280,7 @@ function App() {
 
                       const updates = { [field]: timeString };
 
-                      // SYNC LOGIC: If updating DJ time, sync PHOTO/DECOR if they match old DJ time
+                      // SYNC LOGIC
                       if (field === 'eventDetails.startTime') {
                         if (evt.eventDetails?.photoStartTime === evt.eventDetails?.startTime) updates['eventDetails.photoStartTime'] = timeString;
                         if (evt.eventDetails?.decorStartTime === evt.eventDetails?.startTime) updates['eventDetails.decorStartTime'] = timeString;
@@ -2245,6 +2289,21 @@ function App() {
                         if (evt.eventDetails?.photoEndTime === evt.eventDetails?.endTime) updates['eventDetails.photoEndTime'] = timeString;
                         if (evt.eventDetails?.decorEndTime === evt.eventDetails?.endTime) updates['eventDetails.decorEndTime'] = timeString;
                       }
+
+                      // Instant feedback in local state
+                      const updatedEvents = events.map(ev => {
+                        if (ev.id === evt.id) {
+                          const newEv = { ...ev, eventDetails: { ...ev.eventDetails } };
+                          Object.keys(updates).forEach(k => {
+                            const path = k.split('.');
+                            if (path.length === 2) newEv[path[0]][path[1]] = updates[k];
+                            else newEv[k] = updates[k];
+                          });
+                          return newEv;
+                        }
+                        return ev;
+                      });
+                      setEvents(updatedEvents);
 
                       updateDoc(doc(db, "events", evt.id), updates);
                     };
@@ -2437,22 +2496,27 @@ function App() {
                     <small style={{ fontSize: '0.38rem', display: 'block', color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>Reportado Hoy</small>
                   </div>
                   <div>
-                    <span style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '2px' }}>TOTAL A COBRAR</span>
+                    <span style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '2px' }}>SALDO PENDIENTE</span>
                     <span style={{ fontSize: '0.7rem', fontWeight: '950', color: '#ff3860' }}>{formatPeso(currentBalanceDue)}</span>
-                    <small style={{ fontSize: '0.38rem', display: 'block', color: 'rgba(255,255,250,0.4)', fontWeight: '900' }}>Saldo Pendiente Real</small>
+                    <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                      <small style={{ fontSize: '0.38rem', display: 'block', color: 'rgba(255,255,250,0.4)', fontWeight: '900' }}>Est.Nómina: {formatPeso(projectedPayroll)}</small>
+                      {staffPaid && <span style={{ fontSize: '8px', color: 'var(--success-green)' }}>● PAGADA</span>}
+                    </div>
                   </div>
                 </div>
 
-                {/* UTILIDAD LÃQUIDA REAL (Solo Admin) */}
+                {/* UTILIDAD LÍQUIDA REAL (Solo Admin) */}
                 {userRole === 'admin' && (
                   <div style={{ marginTop: '15px', padding: '15px', borderRadius: '16px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <span style={{ fontSize: '0.6rem', fontWeight: '900', color: 'var(--success-green)', letterSpacing: '1px' }}>UTILIDAD LÃQUIDA REAL</span>
+                      <span style={{ fontSize: '0.6rem', fontWeight: '900', color: 'var(--success-green)', letterSpacing: '1px' }}>UTILIDAD LÍQUIDA REAL</span>
                       <small style={{ display: 'block', fontSize: '0.5rem', opacity: 0.5, color: 'var(--success-green)' }}>Total Venta - Gastos/Nómina</small>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '1.2rem', fontWeight: '950', color: 'var(--success-green)' }}>{formatPeso(liquidProfit)}</div>
-                      <small style={{ fontSize: '0.55rem', opacity: 0.5, color: '#fff' }}>Gtos asociados: {formatPeso(eventExpenses)}</small>
+                      <small style={{ fontSize: '0.55rem', opacity: 0.5, color: '#fff' }}>
+                        Gtos: {formatPeso(eventExpenses)} {staffPaid ? '' : `+ Est.Nóm: ${formatPeso(projectedPayroll)}`}
+                      </small>
                     </div>
                   </div>
                 )}
@@ -4182,6 +4246,8 @@ function App() {
             <LogisticsView
               events={events}
               quotations={quotations}
+              inventory={inventory}
+              staffRates={staffRates}
             />
           )}
           {view === 'accounting' && (
@@ -4472,10 +4538,17 @@ function App() {
                             onKeyDown={(e) => e.stopPropagation()}
                             style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#000', color: '#fff', border: '1px solid #333', fontSize: '0.7rem' }}
                           >
-                            <option value="DJ">DJ / OP</option>
-                            <option value="FOTO">FOTÃ“GRAFO</option>
-                            <option value="DECOR">DECORADOR</option>
-                            <option value="LOGISTICA">LOGÃSTICA</option>
+                            {staffRates.map(r => (
+                              <option key={r.id} value={r.id}>{r.label}</option>
+                            ))}
+                            {staffRates.length === 0 && (
+                              <>
+                                <option value="DJ">DJ / OP</option>
+                                <option value="FOTO">FOTÓGRAFO</option>
+                                <option value="DECOR">DECORADOR</option>
+                                <option value="LOGISTICA">LOGÍSTICA</option>
+                              </>
+                            )}
                           </select>
                           <button
                             type="button"
@@ -4483,34 +4556,43 @@ function App() {
                               const evt = events.find(e => e.id === finEventId);
                               if (!evt) return alert('Evento no encontrado');
 
-                              const role = document.getElementById('roleCalcSelector').value;
+                              const roleId = document.getElementById('roleCalcSelector').value;
+                              const selectedRole = staffRates.find(r => r.id === roleId) || { label: roleId, base: 0, hourly: 0 };
+
                               // Helper function for specific role durations
                               const getRoleDuration = (roleName) => {
                                 let start = evt.eventDetails.startTime;
                                 let end = evt.eventDetails.endTime;
 
-                                if (roleName === 'FOTO') {
+                                if (roleName.includes('FOTO')) {
                                   start = evt.eventDetails.photoStartTime || start;
                                   end = evt.eventDetails.photoEndTime || end;
-                                } else if (roleName === 'DECOR') {
+                                } else if (roleName.includes('DECOR')) {
                                   start = evt.eventDetails.decorStartTime || start;
                                   end = evt.eventDetails.decorEndTime || end;
-                                } else if (roleName === 'LOGISTICA') {
+                                } else if (roleName.includes('LOGISTICA')) {
                                   end = evt.eventDetails.logisticsEndTime || end;
                                 }
                                 return getHours(start, end);
                               };
-                              const dur = getRoleDuration(role);
+
+                              const dur = getRoleDuration(selectedRole.label);
 
                               let pay = 0;
-                              if (role === 'DJ') pay = 35000 + (dur * 13000);
-                              else if (role === 'LOGISTICA') pay = 25000 + (dur * 10000);
-                              else if (role === 'FOTO') pay = dur * 13000;
-                              else if (role === 'DECOR') pay = 40000; // Tarifa plana base
+                              if (staffRates.length > 0 && selectedRole.id) {
+                                pay = (Number(selectedRole.base) || 0) + (dur * (Number(selectedRole.hourly) || 0));
+                              } else {
+                                // Fallback for hardcoded if staffRates is empty
+                                const role = roleId;
+                                if (role === 'DJ') pay = 35000 + (dur * 13000);
+                                else if (role === 'LOGISTICA') pay = 25000 + (dur * 10000);
+                                else if (role === 'FOTO') pay = dur * 13000;
+                                else if (role === 'DECOR') pay = 40000;
+                              }
 
                               setFinAmount(pay);
-                              setFinDesc(`Pago Nómina ${role} - ${evt.client?.name || evt.clientName || 'Evento'}`);
-                              setFinCategory('NÃ“MINA');
+                              setFinDesc(`Pago Nómina ${selectedRole.label} - ${evt.client?.name || evt.clientName || 'Evento'}`);
+                              setFinCategory('NÓMINA');
                             }}
                             style={{ padding: '8px 12px', background: 'var(--primary-purple)', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '0.65rem', fontWeight: '900', cursor: 'pointer' }}
                           >
@@ -4737,30 +4819,7 @@ function App() {
                   <button
                     key={method}
                     onClick={async () => {
-                      const dur = getHours(staffPayModal.eventDetails.startTime, staffPayModal.eventDetails.endTime);
-                      const eks = staffPayModal.financials?.extraHours || {};
-
-                      const getRate = (role) => staffRates[role] || {};
-
-                      // DJ
-                      const rDJ = getRate('DJ');
-                      const djPay = (rDJ.base ?? 35000) + (dur * (rDJ.hourly ?? 13000)) + ((eks.DJ || 0) * (rDJ.extra ?? 15000));
-
-                      // FOTO
-                      const rFoto = getRate('FOTO');
-                      const pDur = staffPayModal.eventDetails.photoStartTime ? getHours(staffPayModal.eventDetails.photoStartTime, staffPayModal.eventDetails.photoEndTime) : 0;
-                      const photoPay = (rFoto.base ?? 0) + (pDur * (rFoto.hourly ?? 13000)) + ((eks.FOTO || 0) * (rFoto.extra ?? 15000));
-
-                      // DECOR
-                      const rDecor = getRate('DECOR');
-                      const decorBase = (staffPayModal.eventDetails.decorStartTime || staffPayModal.logistics.packName === 'Celebration') ? (rDecor.base ?? 40000) : 0;
-                      const decorPay = decorBase + ((eks.DECOR || 0) * (rDecor.extra ?? 15000));
-
-                      // LOGISTICA (MANAGER)
-                      const rLog = getRate('LOGISTICA');
-                      const managerPay = (rLog.base ?? 25000) + (dur * (rLog.hourly ?? 10000)) + ((eks.LOGISTICA || 0) * (rLog.extra ?? 15000));
-
-                      const totalPay = djPay + photoPay + decorPay + managerPay;
+                      const { total: totalPay } = calculateEventPayroll(staffPayModal);
 
                       // 1. Crear Transacción Goblal (OUT)
                       const txId = `TX-STAFF-${Date.now()}`;

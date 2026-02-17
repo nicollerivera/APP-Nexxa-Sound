@@ -27,90 +27,88 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebas
 // --- TIME COMPONENT ---
 // --- TIME COMPONENT (NATIVE) ---
 const TimeInput = ({ value, onChange, label }) => {
-  // Parse HH:mm (24h) to 12h for the UI
-  const [hStr, mStr] = (value || "08:00").split(':');
-  const h24 = parseInt(hStr || 0);
-  const m = mStr || "00";
-  const h12 = h24 % 12 || 12;
-  const period = h24 >= 12 ? 'PM' : 'AM';
-
-  const updateTime = (newH12, newM, newPeriod) => {
-    let h = parseInt(newH12);
-    if (newPeriod === 'PM' && h < 12) h += 12;
-    if (newPeriod === 'AM' && h === 12) h = 0;
-    const finalH = h.toString().padStart(2, '0');
-    onChange(`${finalH}:${newM}`);
+  const getDisplayTime = (val) => {
+    if (!val) return { h: '08', m: '00', period: 'PM' };
+    let [hStr, mStr] = val.split(':');
+    let h = parseInt(hStr || 0);
+    let m = mStr || "00";
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return {
+      h: String(h12),
+      m: String(m).padStart(2, '0'),
+      period
+    };
   };
 
-  const selectStyle = {
-    background: 'transparent',
-    border: 'none',
-    color: '#fff',
-    fontSize: '1.1rem',
-    fontWeight: '800',
-    outline: 'none',
-    cursor: 'pointer',
-    textAlign: 'center',
-    padding: '2px 4px',
-    appearance: 'none',
-    WebkitAppearance: 'none',
-    fontFamily: 'inherit'
-  };
+  const { h, m, period } = getDisplayTime(value);
 
   return (
-    <div style={{ flex: 1 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
-        <div style={{ color: '#666', opacity: 0.6 }}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-          </svg>
-        </div>
-        <label style={{ fontSize: '0.75rem', color: '#666' }}>{label}</label>
-      </div>
-
-      <div style={{
-        background: 'rgba(0, 0, 0, 0.4)',
-        border: '1px solid #333',
-        borderRadius: '10px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '48px',
-        boxSizing: 'border-box'
+    <div style={{
+      position: 'relative',
+      background: 'linear-gradient(180deg, #3d2165 0%, #050505 100%)',
+      borderRadius: '20px',
+      padding: '25px 10px',
+      margin: '4px 0',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      minHeight: '130px',
+      cursor: 'pointer',
+      overflow: 'hidden',
+      boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+    }}>
+      <span style={{
+        position: 'absolute',
+        top: '12px',
+        fontSize: '0.65rem',
+        color: 'rgba(255,255,255,0.4)',
+        textTransform: 'uppercase',
+        fontWeight: '600',
+        letterSpacing: '1px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-          <select
-            value={h12}
-            onChange={e => updateTime(e.target.value, m, period)}
-            style={selectStyle}
-          >
-            {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map(v => (
-              <option key={v} value={parseInt(v)} style={{ background: '#111' }}>{v}</option>
-            ))}
-          </select>
+        {label}
+      </span>
 
-          <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: '900', fontSize: '1.2rem', marginTop: '-2px' }}>:</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+        <span style={{
+          fontSize: '4.5rem',
+          fontWeight: '200',
+          color: '#fff',
+          lineHeight: '1',
+          letterSpacing: '-2px'
+        }}>
+          {h}:{m}
+        </span>
 
-          <select
-            value={m}
-            onChange={e => updateTime(h12, e.target.value, period)}
-            style={selectStyle}
-          >
-            {['00', '15', '30', '45'].map(v => (
-              <option key={v} value={v} style={{ background: '#111' }}>{v}</option>
-            ))}
-          </select>
-
-          <select
-            value={period}
-            onChange={e => updateTime(h12, m, e.target.value)}
-            style={{ ...selectStyle, fontSize: '0.85rem', color: 'var(--primary-cyan)', marginLeft: '8px', fontWeight: '900' }}
-          >
-            <option value="AM" style={{ background: '#111' }}>AM</option>
-            <option value="PM" style={{ background: '#111' }}>PM</option>
-          </select>
+        <div style={{
+          fontSize: '0.8rem',
+          fontWeight: '700',
+          color: 'rgba(255,255,255,0.6)',
+          marginLeft: '8px',
+          marginTop: '20px'
+        }}>
+          {period}
         </div>
       </div>
+
+      <input
+        type="time"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          opacity: 0,
+          cursor: 'pointer',
+          zIndex: 10
+        }}
+      />
     </div>
   );
 };

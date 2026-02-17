@@ -228,18 +228,15 @@ const CreateEventView = ({
     };
 
     // Logic: Constant Sync for Extra Hour Price
-    if (newEvent.packName && PRICING[newEvent.packName]) {
-        const correctRate = (PRICING[newEvent.packName].extraDJ || 0) + (PRICING[newEvent.packName].extraPhoto || 0) || 85000;
-        if (Number(newEvent.extraHourPrice) !== correctRate && !newEvent.id) {
-            // Only auto-correct for NEW/DRAFT events
-            // Prevent infinite loop by checking if state update is needed? 
-            // This is inside render, causing side effect. 
-            // BETTER: Move this to a useEffect in App.jsx or here.
-            // But for now, keeping original logic pattern (which was risky but maybe worked).
-            // To be safe, I'll wrap in setTimeout or assume parent handles it.
-            // Actually, let's just trigger it once if mismatch.
+    React.useEffect(() => {
+        if (newEvent.packName && PRICING[newEvent.packName]) {
+            const correctRate = (PRICING[newEvent.packName].extraDJ || 0) + (PRICING[newEvent.packName].extraPhoto || 0) || 85000;
+            if (Number(newEvent.extraHourPrice) !== correctRate && !newEvent.id) {
+                // Only auto-correct for NEW/DRAFT events
+                setNewEvent(prev => ({ ...prev, extraHourPrice: correctRate }));
+            }
         }
-    }
+    }, [newEvent.packName, newEvent.id, setNewEvent]);
 
     const currentConf = PRICING[newEvent.packName] || {};
     const duration = newEvent.startTime && newEvent.endTime ? getHours(newEvent.startTime, newEvent.endTime) : 0;

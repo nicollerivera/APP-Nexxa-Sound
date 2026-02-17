@@ -5,7 +5,7 @@ import {
     IconCalendar, IconClock, IconArrowLeft, IconArrowRight
 } from './Icons';
 
-const LogisticsView = ({ events, quotations = [] }) => {
+const LogisticsView = ({ events, quotations = [], inventory = [], staffRates = {} }) => {
     // START: CALENDAR LOGIC
     const [viewDate, setViewDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -94,6 +94,30 @@ const LogisticsView = ({ events, quotations = [] }) => {
         return h * 60 + m;
     };
 
+    // Derive Daily Equipment Summary
+    const inventorySummary = useMemo(() => {
+        const summary = {};
+        const targetDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+
+        const daysEvents = events.filter(e => (e.eventDetails?.date === targetDateStr) && e.status !== 'CANCELLED');
+
+        daysEvents.forEach(evt => {
+            const items = evt.logistics?.items || [];
+            items.forEach(item => {
+                const name = item.name;
+                const qty = Number(item.qty) || 1;
+                if (!summary[name]) {
+                    summary[name] = { needed: 0, stock: 0 };
+                    const invItem = inventory.find(i => i.name === name);
+                    summary[name].stock = invItem ? invItem.total : 0;
+                }
+                summary[name].needed += qty;
+            });
+        });
+
+        return Object.entries(summary).sort((a, b) => b[1].needed - a[1].needed);
+    }, [events, selectedDate, inventory]);
+
     // Derive Tasks
     const dailyTasks = useMemo(() => {
         const tasks = [];
@@ -106,24 +130,28 @@ const LogisticsView = ({ events, quotations = [] }) => {
             const client = evt.client?.name || evt.clientName || 'Cliente';
             const loc = evt.eventDetails?.location || evt.location || '';
             const hood = evt.eventDetails?.neighborhood || evt.neighborhood || '';
-            const pack = evt.packName || evt.logistics?.packName || 'Básico';
+            const pack = evt.logistics?.packName || 'Básico';
+            const manager = evt.logistics?.managerName || 'Sin asignar';
 
             if (evt.eventDetails?.startTime || evt.startTime) tasks.push({
                 id: `${evt.id}_dj_start`, time: evt.eventDetails?.startTime || evt.startTime,
                 cat: 'DJ', title: 'Montaje Principal', client, loc: hood, sub: loc,
-                icon: <IconBox size={18} />, color: '#00d4ff', glow: 'rgba(0, 212, 255, 0.5)'
+                icon: <IconBox size={18} />, color: '#00d4ff', glow: 'rgba(0, 212, 255, 0.5)',
+                staff: manager
             });
             const photoStart = evt.eventDetails?.photoStartTime || evt.logistics?.rolesSchedule?.photographerStart || evt.photoStartTime;
             if (photoStart) tasks.push({
                 id: `${evt.id}_photo_start`, time: photoStart,
                 cat: 'FOTO', title: 'Cobertura Foto', client, loc: hood, sub: loc,
-                icon: <IconCamera size={18} />, color: '#facc15', glow: 'rgba(250, 204, 21, 0.5)'
+                icon: <IconCamera size={18} />, color: '#facc15', glow: 'rgba(250, 204, 21, 0.5)',
+                staff: 'Por confirmar'
             });
             const decorStart = evt.eventDetails?.decorStartTime || evt.logistics?.rolesSchedule?.decorStart || evt.decorStartTime;
             if (decorStart) tasks.push({
                 id: `${evt.id}_decor_start`, time: decorStart,
                 cat: 'DECOR', title: 'Ambientación', client, loc: hood, sub: loc,
-                icon: <IconFlow size={18} />, color: '#bc6ff1', glow: 'rgba(188, 111, 241, 0.5)'
+                icon: <IconFlow size={18} />, color: '#bc6ff1', glow: 'rgba(188, 111, 241, 0.5)',
+                staff: 'Por confirmar'
             });
             if (evt.eventDetails?.endTime || evt.endTime) {
                 const rawEndTime = evt.eventDetails?.endTime || evt.endTime;
@@ -131,7 +159,8 @@ const LogisticsView = ({ events, quotations = [] }) => {
                 tasks.push({
                     id: `${evt.id}_end`, time: pickupTime,
                     cat: 'RECOGIDA', title: 'Desmontaje Total', client, loc: hood, sub: loc,
-                    icon: <IconHome size={18} />, color: '#ff4d4d', glow: 'rgba(255, 77, 77, 0.5)'
+                    icon: <IconHome size={18} />, color: '#ff4d4d', glow: 'rgba(255, 77, 77, 0.5)',
+                    staff: manager
                 });
             }
         });
@@ -299,12 +328,27 @@ const LogisticsView = ({ events, quotations = [] }) => {
                                                 <div style={{ width: '3px', height: '3px', background: task.color, borderRadius: '50%', margin: '3px auto' }}></div>
                                             </div>
                                             <div style={{ flex: 1, background: '#111', border: `1px solid ${task.color}40`, borderRadius: '12px', padding: '12px', position: 'relative', overflow: 'hidden' }}>
-                                                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px', background: task.color, boxShadow: `2px 0 10px ${task.color}60` }}></div>
-                                                <div style={{ paddingLeft: '8px' }}>
-                                                    <div style={{ fontSize: '0.6rem', fontWeight: '800', textTransform: 'uppercase', color: task.color, marginBottom: '2px' }}>{task.cat}</div>
-                                                    <h4 style={{ margin: '0 0 2px 0', fontSize: '1rem', fontWeight: 'bold', color: 'white' }}>{task.title}</h4>
-                                                    <p style={{ margin: '0 0 4px 0', fontSize: '0.8rem', color: '#ccc' }}>{task.client}</p>
-                                                    <div style={{ fontSize: '0.75rem', color: '#888' }}>📍 {task.loc}</div>
+                                                <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: task.color }}></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                    <div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                                            <div style={{ fontSize: '0.6rem', fontWeight: '800', textTransform: 'uppercase', color: task.color }}>{task.cat}</div>
+                                                            <div style={{ fontSize: '0.65rem', fontWeight: '950', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: '#fff' }}>
+                                                                {(() => {
+                                                                    const t = formatTimeDisplay(task.time);
+                                                                    return `${t.time} ${t.period}`;
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                        <h4 style={{ margin: '0 0 2px 0', fontSize: '1rem', fontWeight: 'bold', color: 'white' }}>{task.title}</h4>
+                                                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500' }}>{task.client}</div>
+                                                        {task.staff && (
+                                                            <div style={{ marginTop: '5px', fontSize: '0.7rem', color: task.color, fontWeight: '700', opacity: 0.9 }}>
+                                                                👤 {task.staff}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ color: task.color, opacity: 0.8 }}>{task.icon}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -315,6 +359,42 @@ const LogisticsView = ({ events, quotations = [] }) => {
                     }
                 })}
             </div>
+
+            {/* EQUIPMENT SUMMARY SECTION */}
+            {inventorySummary.length > 0 && (
+                <div style={{ padding: '0 20px', marginTop: '40px' }}>
+                    <div style={{ background: 'rgba(10,10,10,0.5)', borderRadius: '24px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <h4 style={{ margin: '0 0 15px 0', fontSize: '0.8rem', fontWeight: '950', color: '#fff', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <IconBox size={16} color="var(--primary-cyan)" /> Resumen de Equipos Necesarios
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                            {inventorySummary.map(([name, data]) => {
+                                const hasConflict = data.needed > data.stock;
+                                return (
+                                    <div key={name} style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '10px 15px', background: 'rgba(255,255,255,0.02)',
+                                        borderRadius: '12px', border: `1px solid ${hasConflict ? 'rgba(255,77,77,0.3)' : 'rgba(255,255,255,0.05)'}`
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: hasConflict ? '#ff4d4d' : '#fff' }}>{name}</div>
+                                            <div style={{ fontSize: '0.65rem', color: '#666' }}>Stock disponible: {data.stock}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '1rem', fontWeight: '950', color: hasConflict ? '#ff4d4d' : 'var(--primary-cyan)' }}>
+                                                {data.needed}
+                                            </div>
+                                            {hasConflict && (
+                                                <div style={{ fontSize: '0.55rem', color: '#ff4d4d', fontWeight: 'bold' }}>⚠️ SOBRE-USO</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div style={{ height: '50px' }}></div>
         </div>
