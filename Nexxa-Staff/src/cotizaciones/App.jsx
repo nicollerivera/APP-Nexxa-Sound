@@ -356,8 +356,9 @@ function App() {
 
   // Helper to format 24h time for URL
   const to24h = (time, ampm) => {
-    if (!time) return '';
+    if (!time || !time.includes(':')) return '';
     let [h, m] = time.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return '';
     if (ampm === 'PM' && h !== 12) h += 12;
     if (ampm === 'AM' && h === 12) h = 0;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;

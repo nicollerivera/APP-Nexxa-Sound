@@ -3,10 +3,11 @@ import React from 'react';
 const TimeInput = ({ value, onChange, label }) => {
 
     const getDisplayTime = (val) => {
-        if (!val) return { h: '00', m: '00', period: 'AM' };
+        if (!val || !val.includes(':')) return { h: '00', m: '00', period: 'AM' };
         let [hStr, mStr] = val.split(':');
         let h = parseInt(hStr || 0);
-        let m = mStr || "00";
+        let m = parseInt(mStr || 0);
+        if (isNaN(h) || isNaN(m)) return { h: '00', m: '00', period: 'AM' };
         const period = h >= 12 ? 'PM' : 'AM';
         const h12 = h % 12 || 12;
         return {
