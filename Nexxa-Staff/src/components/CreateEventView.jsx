@@ -290,7 +290,7 @@ const CreateEventView = ({
                 </div>
 
                 <div style={{ textAlign: 'right', flex: 1 }}>
-                    <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 'bold' }}>{isEventMode ? 'EDITANDO EVENTO' : 'NUEVA COTIZACIÓN (V4)'}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 'bold' }}>{isEventMode ? 'EDITANDO EVENTO' : 'NUEVA COTIZACIÓN'}</span>
                 </div>
             </div>
 

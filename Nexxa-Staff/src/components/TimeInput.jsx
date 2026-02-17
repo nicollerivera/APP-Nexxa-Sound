@@ -22,7 +22,7 @@ const TimeInput = ({ value, onChange, label }) => {
     return (
         <div className="time-input-premium" style={{
             position: 'relative',
-            background: 'purple', // TEST BACKGROUND
+            background: 'rgba(255, 255, 255, 0.02)',
             borderRadius: '28px',
             padding: '25px 15px',
             display: 'flex',
@@ -35,8 +35,7 @@ const TimeInput = ({ value, onChange, label }) => {
             boxShadow: isAM ? '0 15px 45px rgba(0, 242, 255, 0.1)' : '0 15px 45px rgba(188, 111, 241, 0.1)',
             transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
             backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '2px solid red' // TEMPORAL: Test deployment
+            WebkitBackdropFilter: 'blur(20px)'
         }}>
             {/* DYNAMIC AM/PM BLOB BACKGROUND */}
             <div style={{
