@@ -224,7 +224,7 @@ const LogisticsView = ({ events }) => {
     };
 
     return (
-        <div className="fade-in" style={{ paddingBottom: '100px', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+        <div className="fade-in notranslate" style={{ paddingBottom: '100px', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
 
             {/* 1. CALENDAR HEADER */}
             <div style={{ padding: '20px' }}>
