@@ -21,30 +21,30 @@ const TimeInput = ({ value, onChange, label }) => {
     const isAM = period === 'AM';
 
     return (
-        <div className="time-input-compact" style={{
+        <div className="time-input-mobile" style={{
             position: 'relative',
             background: 'rgba(255, 255, 255, 0.03)',
-            borderRadius: '16px',
-            padding: '12px',
+            borderRadius: '12px',
+            padding: '8px 10px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            overflow: 'hidden',
-            border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.15)' : 'rgba(188, 111, 241, 0.15)'}`,
-            transition: 'all 0.3s ease',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)'
+            overflow: 'visible',
+            border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.2)' : 'rgba(188, 111, 241, 0.2)'}`,
+            transition: 'all 0.2s ease',
+            minHeight: '70px'
         }}>
             {/* LABEL */}
             <span style={{
-                fontSize: '0.55rem',
-                color: 'rgba(255,255,255,0.4)',
+                fontSize: '0.5rem',
+                color: 'rgba(255,255,255,0.5)',
                 textTransform: 'uppercase',
-                fontWeight: '800',
-                letterSpacing: '1.5px',
-                marginBottom: '6px'
+                fontWeight: '700',
+                letterSpacing: '1px',
+                marginBottom: '4px',
+                pointerEvents: 'none'
             }}>
                 {label}
             </span>
@@ -53,32 +53,33 @@ const TimeInput = ({ value, onChange, label }) => {
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                color: '#fff'
+                gap: '2px',
+                color: '#fff',
+                pointerEvents: 'none'
             }}>
                 <span style={{
-                    fontSize: '1.8rem',
+                    fontSize: '1.4rem',
                     fontWeight: '300',
                     lineHeight: '1',
                     fontFamily: 'system-ui',
-                    letterSpacing: '-1px'
+                    letterSpacing: '-0.5px'
                 }}>
                     {h}
                 </span>
 
                 <span style={{
-                    fontSize: '1.4rem',
+                    fontSize: '1rem',
                     fontWeight: '200',
                     color: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
                     opacity: 0.6
                 }}>:</span>
 
                 <span style={{
-                    fontSize: '1.8rem',
+                    fontSize: '1.4rem',
                     fontWeight: '300',
                     lineHeight: '1',
                     fontFamily: 'system-ui',
-                    letterSpacing: '-1px'
+                    letterSpacing: '-0.5px'
                 }}>
                     {m}
                 </span>
@@ -86,26 +87,28 @@ const TimeInput = ({ value, onChange, label }) => {
 
             {/* PERIOD PILL */}
             <div style={{
-                marginTop: '6px',
-                fontSize: '0.5rem',
-                fontWeight: '900',
+                marginTop: '4px',
+                fontSize: '0.45rem',
+                fontWeight: '800',
                 color: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
-                padding: '3px 10px',
-                borderRadius: '20px',
+                padding: '2px 8px',
+                borderRadius: '12px',
                 textTransform: 'uppercase',
-                letterSpacing: '1px',
-                background: isAM ? 'rgba(0, 242, 255, 0.1)' : 'rgba(188, 111, 241, 0.1)',
-                border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.3)' : 'rgba(188, 111, 241, 0.3)'}`,
-                transition: 'all 0.3s ease'
+                letterSpacing: '0.5px',
+                background: isAM ? 'rgba(0, 242, 255, 0.15)' : 'rgba(188, 111, 241, 0.15)',
+                border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.4)' : 'rgba(188, 111, 241, 0.4)'}`,
+                transition: 'all 0.2s ease',
+                pointerEvents: 'none'
             }}>
                 {period}
             </div>
 
-            {/* NATIVE TIME PICKER OVERLAY */}
+            {/* NATIVE TIME PICKER OVERLAY - ASEGURANDO QUE SEA CLICKEABLE */}
             <input
                 type="time"
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
                 style={{
                     position: 'absolute',
                     top: 0,
@@ -114,19 +117,36 @@ const TimeInput = ({ value, onChange, label }) => {
                     height: '100%',
                     opacity: 0,
                     cursor: 'pointer',
-                    zIndex: 10
+                    zIndex: 100,
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    appearance: 'none'
                 }}
             />
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                .time-input-compact:hover {
-                    background: rgba(255, 255, 255, 0.06);
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                .time-input-mobile:active {
+                    transform: scale(0.97);
+                    background: rgba(255, 255, 255, 0.05);
                 }
-                .time-input-compact:active {
-                    transform: scale(0.98) translateY(0);
+                
+                /* Asegurar que el input sea clickeable en móvil */
+                .time-input-mobile input[type="time"] {
+                    -webkit-tap-highlight-color: transparent;
+                }
+                
+                .time-input-mobile input[type="time"]::-webkit-calendar-picker-indicator {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    width: auto;
+                    height: auto;
+                    color: transparent;
+                    background: transparent;
+                    cursor: pointer;
                 }
             `}} />
         </div>
