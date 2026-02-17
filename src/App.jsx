@@ -395,66 +395,69 @@ function App() {
     }
     setIsSending(true);
 
-    // 1. Prepare Object for Firestore
-    const activeIds = Object.keys(activeExtras).filter(k => activeExtras[k]);
-    const selectedExtrasObj = {};
-    activeIds.forEach(id => {
-      selectedExtrasObj[id] = true;
-    });
-
-    // Determine roles based on package
-    const roles = {
-      dj: true, // Always included
-      photographer: selectedPackageId === 'memories' || selectedPackageId === 'celebration',
-      decorator: selectedPackageId === 'celebration'
-    };
-
-    const quotationData = {
-      status: 'SENT',
-      createdAt: serverTimestamp(),
-      client: {
-        name: clientName,
-        phone: clientPhone,
-        phone2: ''
-      },
-      eventDetails: {
-        date: eventDate,
-        occasion: eventOccasion,
-        startTime: to24h(eventStartTime, startAmPm),
-        endTime: to24h(eventEndTime, endAmPm),
-        location: eventAddress,
-        neighborhood: eventNeighborhood,
-        guestCount: guestCount
-      },
-      financials: {
-        totalValue: totalPrice,
-        deposit: 0,
-        balance: totalPrice
-      },
-      logistics: {
-        packName: selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado',
-        selectedExtras: selectedExtrasObj,
-        makeupCount: makeupCount,
-        // New required fields for Staff App
-        rolesSchedule: roles,
-        materials: `Paquete ${selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado'} + ${activeIds.length} extras`
-      }
-    };
-
-    // Use the detailed WhatsApp link with all quote info
-    const waLink = generateWhatsappLink();
-
     try {
+      // 1. Prepare Object for Firestore
+      const activeIds = Object.keys(activeExtras).filter(k => activeExtras[k]);
+      const selectedExtrasObj = {};
+      activeIds.forEach(id => {
+        selectedExtrasObj[id] = true;
+      });
+
+      // Determine roles based on package
+      const roles = {
+        dj: true, // Always included
+        photographer: selectedPackageId === 'memories' || selectedPackageId === 'celebration',
+        decorator: selectedPackageId === 'celebration'
+      };
+
+      const quotationData = {
+        status: 'SENT',
+        createdAt: serverTimestamp(),
+        client: {
+          name: clientName.trim(), // Ensure trimmed
+          phone: clientPhone || '',
+          phone2: ''
+        },
+        clientName: clientName.trim(), // DOUBLE SAVE for compatibility
+        eventDetails: {
+          date: eventDate || '',
+          occasion: eventOccasion || '',
+          startTime: to24h(eventStartTime, startAmPm) || '',
+          endTime: to24h(eventEndTime, endAmPm) || '',
+          location: eventAddress || '',
+          neighborhood: eventNeighborhood || '',
+          guestCount: Number(guestCount) || 10
+        },
+        financials: {
+          totalValue: Number(totalPrice) || 0,
+          deposit: 0,
+          balance: Number(totalPrice) || 0
+        },
+        logistics: {
+          packName: selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado',
+          selectedExtras: selectedExtrasObj,
+          makeupCount: Number(makeupCount) || 1,
+          rolesSchedule: roles,
+          materials: `Paquete ${selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado'} + ${activeIds.length} extras`
+        }
+      };
+
       // 2. SAVE TO FIREBASE (MANDATORY)
-      console.log("PREPARING TO SAVE:", quotationData);
+      console.log("PREPARING TO SAVE QUOTATION:", JSON.stringify(quotationData, null, 2));
 
       const docRef = await addDoc(collection(db, "quotations"), quotationData);
       console.log("FIREBASE SUCCESS - DOCUMENT ID:", docRef.id);
 
-      // Notify user of success before jumping to WhatsApp
-      alert("✅ ¡ÉXITO! Cotización registrada en sistema Staff.\nID: " + docRef.id + "\n\nAhora abriremos WhatsApp para que el pedido sea notificado.");
+      // Verify write (Optional, but good for debugging)
+      // await getDoc(docRef); 
 
-      // 3. OPEN WHATSAPP ONLY ON SUCCESS
+      // 3. GENERATE WHATSAPP LINK
+      const waLink = generateWhatsappLink();
+
+      // Notify user of success before jumping to WhatsApp
+      alert("✅ ¡ÉXITO! Cotización enviada a sistema.\nID: " + docRef.id + "\n\nAhora abriendo WhatsApp...");
+
+      // 4. OPEN WHATSAPP
       window.location.href = waLink;
 
     } catch (error) {
