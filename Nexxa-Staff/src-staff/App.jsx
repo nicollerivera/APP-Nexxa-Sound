@@ -60,9 +60,10 @@ const TimeInput = ({ value, onChange, label }) => {
       overflow: 'hidden',
       boxShadow: isAM ? '0 15px 45px rgba(0, 242, 255, 0.1)' : '0 15px 45px rgba(188, 111, 241, 0.1)',
       transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-      backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      margin: '10px 0'
+      margin: '10px 0',
+      background: 'purple', // TEST
+      border: '2px solid red' // TEST
     }}>
       {/* DYNAMIC AM/PM BLOB BACKGROUND */}
       <div style={{
@@ -3767,7 +3768,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             </div>
 
             <div style={{ textAlign: 'right', flex: 1 }}>
-              <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 'bold' }}>{isEventMode ? 'EDITANDO EVENTO' : 'NUEVA COTIZACIÓN'}</span>
+              <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 'bold' }}>{isEventMode ? 'EDITANDO EVENTO' : 'NUEVA COTIZACIÓN (V4)'}</span>
             </div>
           </div>
 
