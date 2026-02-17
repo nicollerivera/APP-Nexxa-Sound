@@ -214,22 +214,11 @@ const LogisticsView = ({ events }) => {
         if (!timeStr) return { time: '--:--', period: '' };
         const [h, m] = timeStr.split(':').map(Number);
 
-        // Handle "late night" logic for display if needed, but usually 01:00 is just 01:00
-        const ampm = h >= 12 ? 'PM' : (h < 5 ? 'SOY' : 'AM'); // "SOY" is meaningless, let's use AM but maybe 'Late Night' indicator? 
-        // User image shows "12:00 SOY"? Maybe "SOY" means something specific or it's a typo in the mock?
-        // Ah, likely "Early Morning" -> "AM". User image shows "12:00 SOY", maybe "SOY" is "Soy" (I am)? No.
-        // Or maybe "SOY" = "Start of Yesterday"? No. 
-        // Wait, the user image shows 'SOY' under 12:00. 
-        // It might be 'A.M.' cut off or 'Sun' ? 
-        // 12:00 SOY seems weird. I'll stick to 'AM'/'PM'.
+        // Standard AM/PM logic
+        let period = h >= 12 ? 'PM' : 'AM';
 
         let h12 = h % 12;
         if (h12 === 0) h12 = 12; // 0 -> 12
-
-        let period = h >= 12 ? 'PM' : 'AM';
-
-        // Special case from user image: 12:00 AM might be displayed differently?
-        // I'll stick to standard AM/PM.
 
         return { time: `${h12}:${String(m).padStart(2, '0')}`, period };
     };
