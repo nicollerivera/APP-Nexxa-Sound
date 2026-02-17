@@ -20,6 +20,22 @@ const TimeInput = ({ value, onChange, label }) => {
     const { h, m, period } = getDisplayTime(value);
     const isAM = period === 'AM';
 
+    // Función para manejar cambios en el selector
+    const handleTimeChange = (newH, newM, newPeriod) => {
+        let hour24 = parseInt(newH);
+        const minute = parseInt(newM);
+
+        // Convertir a formato 24h
+        if (newPeriod === 'PM' && hour24 !== 12) {
+            hour24 += 12;
+        } else if (newPeriod === 'AM' && hour24 === 12) {
+            hour24 = 0;
+        }
+
+        const timeString = `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        onChange(timeString);
+    };
+
     return (
         <div className="time-input-mobile" style={{
             position: 'relative',
@@ -43,8 +59,7 @@ const TimeInput = ({ value, onChange, label }) => {
                 textTransform: 'uppercase',
                 fontWeight: '700',
                 letterSpacing: '1px',
-                marginBottom: '4px',
-                pointerEvents: 'none'
+                marginBottom: '4px'
             }}>
                 {label}
             </span>
@@ -54,8 +69,7 @@ const TimeInput = ({ value, onChange, label }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '2px',
-                color: '#fff',
-                pointerEvents: 'none'
+                color: '#fff'
             }}>
                 <span style={{
                     fontSize: '1.4rem',
@@ -97,57 +111,80 @@ const TimeInput = ({ value, onChange, label }) => {
                 letterSpacing: '0.5px',
                 background: isAM ? 'rgba(0, 242, 255, 0.15)' : 'rgba(188, 111, 241, 0.15)',
                 border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.4)' : 'rgba(188, 111, 241, 0.4)'}`,
-                transition: 'all 0.2s ease',
-                pointerEvents: 'none'
+                transition: 'all 0.2s ease'
             }}>
                 {period}
             </div>
 
-            {/* NATIVE TIME PICKER OVERLAY - ASEGURANDO QUE SEA CLICKEABLE */}
-            <input
-                type="time"
-                step="900"
-                value={value || ''}
-                onChange={(e) => onChange(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: 'pointer',
-                    zIndex: 100,
-                    WebkitAppearance: 'none',
-                    MozAppearance: 'none',
-                    appearance: 'none'
-                }}
-            />
+            {/* SELECTORES INVISIBLES */}
+            <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                opacity: 0,
+                zIndex: 100
+            }}>
+                {/* Selector de Hora */}
+                <select
+                    value={h}
+                    onChange={(e) => handleTimeChange(e.target.value, m, period)}
+                    style={{
+                        flex: 1,
+                        opacity: 0,
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: 'transparent'
+                    }}
+                >
+                    {[...Array(12)].map((_, i) => {
+                        const hour = i + 1;
+                        return <option key={hour} value={String(hour).padStart(2, '0')}>{String(hour).padStart(2, '0')}</option>;
+                    })}
+                </select>
+
+                {/* Selector de Minutos (15 min intervals) */}
+                <select
+                    value={m}
+                    onChange={(e) => handleTimeChange(h, e.target.value, period)}
+                    style={{
+                        flex: 1,
+                        opacity: 0,
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: 'transparent'
+                    }}
+                >
+                    <option value="00">00</option>
+                    <option value="15">15</option>
+                    <option value="30">30</option>
+                    <option value="45">45</option>
+                </select>
+
+                {/* Selector de AM/PM */}
+                <select
+                    value={period}
+                    onChange={(e) => handleTimeChange(h, m, e.target.value)}
+                    style={{
+                        flex: 1,
+                        opacity: 0,
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: 'transparent'
+                    }}
+                >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                </select>
+            </div>
 
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .time-input-mobile:active {
                     transform: scale(0.97);
                     background: rgba(255, 255, 255, 0.05);
-                }
-                
-                /* Asegurar que el input sea clickeable en móvil */
-                .time-input-mobile input[type="time"] {
-                    -webkit-tap-highlight-color: transparent;
-                }
-                
-                .time-input-mobile input[type="time"]::-webkit-calendar-picker-indicator {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    width: auto;
-                    height: auto;
-                    color: transparent;
-                    background: transparent;
-                    cursor: pointer;
                 }
             `}} />
         </div>
