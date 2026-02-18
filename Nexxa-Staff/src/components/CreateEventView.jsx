@@ -137,7 +137,7 @@ const CreateEventView = ({
         }
     };
 
-    // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE
+    // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE (Forzando deploy)
     // Si ya existe horario DJ pero Foto/Decor están vacíos, sincronizarlos.
     useEffect(() => {
         if (!newEvent.startTime || !newEvent.endTime) return;
