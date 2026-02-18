@@ -240,6 +240,7 @@ const TimeInput = ({ value, onChange, label }) => {
 
                 {/* BOTÓN AM/PM */}
                 <button
+                    type="button" // IMPORTANTE: Evita submit del formulario
                     onClick={togglePeriod}
                     style={{
                         padding: '0',

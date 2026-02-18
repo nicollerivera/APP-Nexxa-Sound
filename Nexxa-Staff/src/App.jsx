@@ -858,7 +858,7 @@ function App() {
       // 2. GENERATE PDF
       await generateQuotationPDF(eventObj);
 
-      alert('âœ… CotizaciÃ³n Guardada y Enviada.');
+      alert('✅ Cotización Guardada y Enviada.');
       setView('quotations');
       setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '' });
       localStorage.removeItem('nexxa_draft_event');
