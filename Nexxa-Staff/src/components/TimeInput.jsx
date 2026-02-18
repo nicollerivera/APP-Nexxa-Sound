@@ -121,12 +121,11 @@ const TimeInput = ({ value, onChange, label }) => {
                         fontFamily: 'system-ui'
                     }}
                 />
-                <select
-                    value={period}
-                    onChange={(e) => handleTimeChange(h, m, e.target.value)}
+                <button
+                    onClick={() => handleTimeChange(h, m, period === 'AM' ? 'PM' : 'AM')}
                     style={{
-                        padding: '2px 4px',
-                        fontSize: '0.5rem',
+                        padding: '4px 8px',
+                        fontSize: '0.6rem',
                         fontWeight: '800',
                         background: isAM ? 'rgba(0, 242, 255, 0.15)' : 'rgba(188, 111, 241, 0.15)',
                         border: `1px solid ${isAM ? 'rgba(0, 242, 255, 0.4)' : 'rgba(188, 111, 241, 0.4)'}`,
@@ -134,12 +133,16 @@ const TimeInput = ({ value, onChange, label }) => {
                         color: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
                         cursor: 'pointer',
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        letterSpacing: '0.5px',
+                        minWidth: '35px',
+                        textAlign: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                     }}
                 >
-                    <option value="AM" style={{ background: '#1a1a1a' }}>AM</option>
-                    <option value="PM" style={{ background: '#1a1a1a' }}>PM</option>
-                </select>
+                    {period}
+                </button>
             </div>
         </div>
     );
