@@ -155,41 +155,60 @@ const CreateEventView = ({
         } else if (field === 'startTime') {
             updated.startTime = value;
 
-            // Sincronizar Foto Inicio si no ha sido editado manualmente
-            if (!updated.manuallyEdited?.photoStartTime) {
+            // FOTO DURATION
+            // Sincronizar Foto Inicio: Si no se ha editado manualmente O si es el valor por defecto/nulo
+            const isPhotoDefault = !updated.photoStartTime || updated.photoStartTime === '00:00';
+            if (!updated.manuallyEdited?.photoStartTime || isPhotoDefault) {
                 updated.photoStartTime = value;
+                // Si sincronizamos automáticamente, limpiamos el flag manual
+                if (updated.manuallyEdited) updated.manuallyEdited.photoStartTime = false;
             }
-            // Sincronizar Decoración solo si no ha sido editado manualmente (default: 1h antes)
-            if (!updated.manuallyEdited?.decorStartTime) {
+
+            // DECOR DURATION
+            const isDecorDefault = !updated.decorStartTime || updated.decorStartTime === '00:00';
+            if (!updated.manuallyEdited?.decorStartTime || isDecorDefault) {
                 updated.decorStartTime = subtractMinutes(value, 60);
+                if (updated.manuallyEdited) updated.manuallyEdited.decorStartTime = false;
             }
-            if (!updated.manuallyEdited?.decorEndTime) {
+            const isDecorEndDefault = !updated.decorEndTime || updated.decorEndTime === '00:00';
+            if (!updated.manuallyEdited?.decorEndTime || isDecorEndDefault) {
                 updated.decorEndTime = subtractMinutes(value, -60);
+                if (updated.manuallyEdited) updated.manuallyEdited.decorEndTime = false;
             }
 
         } else if (field === 'endTime') {
             updated.endTime = value;
 
-            // Sincronizar Foto Fin si no ha sido editado manualmente
-            if (!updated.manuallyEdited?.photoEndTime) {
+            // Sincronizar Foto Fin
+            const isPhotoEndDefault = !updated.photoEndTime || updated.photoEndTime === '00:00';
+            if (!updated.manuallyEdited?.photoEndTime || isPhotoEndDefault) {
                 updated.photoEndTime = value;
+                if (updated.manuallyEdited) updated.manuallyEdited.photoEndTime = false;
             }
 
         } else if (field === 'photoStartTime') {
             updated.photoStartTime = value;
-            updated.manuallyEdited = { ...updated.manuallyEdited, photoStartTime: true };
+            if (value && value !== '00:00') {
+                updated.manuallyEdited = { ...updated.manuallyEdited, photoStartTime: true };
+            }
 
         } else if (field === 'photoEndTime') {
             updated.photoEndTime = value;
-            updated.manuallyEdited = { ...updated.manuallyEdited, photoEndTime: true };
+            if (value && value !== '00:00') {
+                updated.manuallyEdited = { ...updated.manuallyEdited, photoEndTime: true };
+            }
 
         } else if (field === 'decorStartTime') {
             updated.decorStartTime = value;
-            updated.manuallyEdited = { ...updated.manuallyEdited, decorStartTime: true };
+            if (value && value !== '00:00') {
+                updated.manuallyEdited = { ...updated.manuallyEdited, decorStartTime: true };
+            }
 
         } else if (field === 'decorEndTime') {
             updated.decorEndTime = value;
-            updated.manuallyEdited = { ...updated.manuallyEdited, decorEndTime: true };
+            if (value && value !== '00:00') {
+                updated.manuallyEdited = { ...updated.manuallyEdited, decorEndTime: true };
+            }
 
         } else if (field !== 'recalc') {
             updated[field] = value;

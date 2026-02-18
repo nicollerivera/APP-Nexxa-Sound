@@ -192,8 +192,7 @@ const TimeInput = ({ value, onChange, label }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    height: '24px',
-                    paddingBottom: '2px'
+                    height: '24px'
                 }}>:</span>
 
                 {/* INPUT MINUTOS */}
