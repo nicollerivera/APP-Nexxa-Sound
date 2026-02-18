@@ -29,7 +29,55 @@ const CreateEventView = ({
 }) => {
     const [sectionState, setSectionState] = useState({ s1: true, s2: false, s3: false });
 
+    console.log("CreateEventView Loaded - Fix V3 Applied");
+
     const toggleSection = (key) => setSectionState(prev => ({ ...prev, [key]: !prev[key] }));
+
+    // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE (Forzando deploy)
+    // Si ya existe horario DJ pero Foto/Decor están vacíos, sincronizarlos.
+    useEffect(() => {
+        if (!newEvent.startTime || !newEvent.endTime) return;
+
+        const needsPhoto = (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration');
+        const needsDecor = (newEvent.packName === 'Celebration');
+
+        let updates = {};
+        let hasChanges = false;
+
+        // Sync Foto
+        if (needsPhoto) {
+            const photoStartEmpty = !newEvent.photoStartTime || newEvent.photoStartTime === '00:00';
+            const photoEndEmpty = !newEvent.photoEndTime || newEvent.photoEndTime === '00:00';
+
+            if (photoStartEmpty) {
+                updates.photoStartTime = newEvent.startTime;
+                hasChanges = true;
+            }
+            if (photoEndEmpty) {
+                updates.photoEndTime = newEvent.endTime;
+                hasChanges = true;
+            }
+        }
+
+        // Sync Decor
+        if (needsDecor) {
+            const decorStartEmpty = !newEvent.decorStartTime || newEvent.decorStartTime === '00:00';
+            const decorEndEmpty = !newEvent.decorEndTime || newEvent.decorEndTime === '00:00';
+
+            if (decorStartEmpty) {
+                updates.decorStartTime = subtractMinutes(newEvent.startTime, 60);
+                hasChanges = true;
+            }
+            if (decorEndEmpty) {
+                updates.decorEndTime = subtractMinutes(newEvent.startTime, -60);
+                hasChanges = true;
+            }
+        }
+
+        if (hasChanges) {
+            setNewEvent(prev => ({ ...prev, ...updates }));
+        }
+    }, [newEvent.packName, newEvent.startTime, newEvent.endTime]); // Dependencias clave
 
     // --- PARSER DE WHATSAPP ---
     const handlePasteFromWhatsApp = async () => {
@@ -136,52 +184,6 @@ const CreateEventView = ({
             alert('No se pudo leer el portapapeles. Asegúrate de dar permiso.');
         }
     };
-
-    // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE (Forzando deploy)
-    // Si ya existe horario DJ pero Foto/Decor están vacíos, sincronizarlos.
-    useEffect(() => {
-        if (!newEvent.startTime || !newEvent.endTime) return;
-
-        const needsPhoto = (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration');
-        const needsDecor = (newEvent.packName === 'Celebration');
-
-        let updates = {};
-        let hasChanges = false;
-
-        // Sync Foto
-        if (needsPhoto) {
-            const photoStartEmpty = !newEvent.photoStartTime || newEvent.photoStartTime === '00:00';
-            const photoEndEmpty = !newEvent.photoEndTime || newEvent.photoEndTime === '00:00';
-
-            if (photoStartEmpty) {
-                updates.photoStartTime = newEvent.startTime;
-                hasChanges = true;
-            }
-            if (photoEndEmpty) {
-                updates.photoEndTime = newEvent.endTime;
-                hasChanges = true;
-            }
-        }
-
-        // Sync Decor
-        if (needsDecor) {
-            const decorStartEmpty = !newEvent.decorStartTime || newEvent.decorStartTime === '00:00';
-            const decorEndEmpty = !newEvent.decorEndTime || newEvent.decorEndTime === '00:00';
-
-            if (decorStartEmpty) {
-                updates.decorStartTime = subtractMinutes(newEvent.startTime, 60);
-                hasChanges = true;
-            }
-            if (decorEndEmpty) {
-                updates.decorEndTime = subtractMinutes(newEvent.startTime, -60);
-                hasChanges = true;
-            }
-        }
-
-        if (hasChanges) {
-            setNewEvent(prev => ({ ...prev, ...updates }));
-        }
-    }, [newEvent.packName, newEvent.startTime, newEvent.endTime]); // Dependencias clave
 
     // Smart Updater
     const updateEvent = (field, value) => {
