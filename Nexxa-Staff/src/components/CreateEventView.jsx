@@ -410,8 +410,9 @@ const CreateEventView = ({
                             )}
 
                             {duration > 0 && (
-                                <div style={{ marginBottom: '10px', padding: '4px 8px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: '#00d4ff' }}>
+                                <div style={{ marginBottom: '10px', padding: '4px 8px', background: duration < 4 ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: duration < 4 ? '#ff4d4d' : '#00d4ff', border: duration < 4 ? '1px solid #ff4d4d' : 'none' }}>
                                     ⏳ <strong>{duration.toFixed(1)}h</strong> (DJ/Sonido)
+                                    {duration < 4 && <span> ⚠️ Mínimo 4 Horas requeridas</span>}
                                     {extrasKy > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extrasKy}h extra)</span>}
                                 </div>
                             )}
@@ -426,13 +427,15 @@ const CreateEventView = ({
                                             <IconCalendar size={14} />
                                             <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Fotografía (OBLIGATORIO)</span>
                                         </div>
+                                        {/* Implementación Maestro-Espejo: Se llenan con DJ por defecto, se desvinculan al editar manual */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                             <TimeInput label="Inicio Foto" value={newEvent.photoStartTime} onChange={(val) => updateEvent('photoStartTime', val)} />
                                             <TimeInput label="Fin Foto" value={newEvent.photoEndTime} onChange={(val) => updateEvent('photoEndTime', val)} />
                                         </div>
                                         {newEvent.photoDuration > 0 && (
-                                            <div style={{ marginTop: '10px', padding: '5px 10px', background: 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: '#facc15' }}>
+                                            <div style={{ marginTop: '10px', padding: '5px 10px', background: newEvent.photoDuration < 4 ? 'rgba(255,0,0,0.1)' : 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: newEvent.photoDuration < 4 ? '#ff4d4d' : '#facc15' }}>
                                                 📸 <strong>{newEvent.photoDuration}h</strong> Fotografía
+                                                {newEvent.photoDuration < 4 && <span> ⚠️ Mínimo 4h</span>}
                                             </div>
                                         )}
                                     </div>
