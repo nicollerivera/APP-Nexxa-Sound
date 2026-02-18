@@ -406,7 +406,7 @@ const CreateEventView = ({
                         onClick={() => toggleSection('s1')}
                         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '20px' : '0' }}
                     >
-                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>1. Paquete y Horarios (v2)</h3>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>1. Paquete y Horarios (v3 - CONFIRMACIÓN)</h3>
                         <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s1 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
                     </div>
                     {sectionState.s1 && (
