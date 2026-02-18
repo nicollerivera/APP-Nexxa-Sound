@@ -33,54 +33,55 @@ const CreateEventView = ({
 
     const toggleSection = (key) => setSectionState(prev => ({ ...prev, [key]: !prev[key] }));
 
-    // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE (DESACTIVADO A PETICIÓN)
-    // useEffect(() => {
-    //     if (!newEvent || !newEvent.startTime || !newEvent.endTime) return;
+    // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE (REACTIVADO)
+    // Si ya existe horario DJ pero Foto/Decor están vacíos, sincronizarlos.
+    useEffect(() => {
+        if (!newEvent || !newEvent.startTime || !newEvent.endTime) return;
 
-    //     try {
-    //         const needsPhoto = (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration');
-    //         const needsDecor = (newEvent.packName === 'Celebration');
+        try {
+            const needsPhoto = (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration');
+            const needsDecor = (newEvent.packName === 'Celebration');
 
-    //         let updates = {};
-    //         let hasChanges = false;
+            let updates = {};
+            let hasChanges = false;
 
-    //         // Sync Foto
-    //         if (needsPhoto) {
-    //             const photoStartEmpty = !newEvent.photoStartTime || newEvent.photoStartTime === '00:00';
-    //             const photoEndEmpty = !newEvent.photoEndTime || newEvent.photoEndTime === '00:00';
+            // Sync Foto
+            if (needsPhoto) {
+                const photoStartEmpty = !newEvent.photoStartTime || newEvent.photoStartTime === '00:00';
+                const photoEndEmpty = !newEvent.photoEndTime || newEvent.photoEndTime === '00:00';
 
-    //             if (photoStartEmpty) {
-    //                 updates.photoStartTime = newEvent.startTime;
-    //                 hasChanges = true;
-    //             }
-    //             if (photoEndEmpty) {
-    //                 updates.photoEndTime = newEvent.endTime;
-    //                 hasChanges = true;
-    //             }
-    //         }
+                if (photoStartEmpty) {
+                    updates.photoStartTime = newEvent.startTime;
+                    hasChanges = true;
+                }
+                if (photoEndEmpty) {
+                    updates.photoEndTime = newEvent.endTime;
+                    hasChanges = true;
+                }
+            }
 
-    //         // Sync Decor
-    //         if (needsDecor) {
-    //             const decorStartEmpty = !newEvent.decorStartTime || newEvent.decorStartTime === '00:00';
-    //             const decorEndEmpty = !newEvent.decorEndTime || newEvent.decorEndTime === '00:00';
+            // Sync Decor
+            if (needsDecor) {
+                const decorStartEmpty = !newEvent.decorStartTime || newEvent.decorStartTime === '00:00';
+                const decorEndEmpty = !newEvent.decorEndTime || newEvent.decorEndTime === '00:00';
 
-    //             if (decorStartEmpty) {
-    //                 updates.decorStartTime = subtractMinutes(newEvent.startTime, 60);
-    //                 hasChanges = true;
-    //             }
-    //             if (decorEndEmpty) {
-    //                 updates.decorEndTime = subtractMinutes(newEvent.startTime, -60);
-    //                 hasChanges = true;
-    //             }
-    //         }
+                if (decorStartEmpty) {
+                    updates.decorStartTime = subtractMinutes(newEvent.startTime, 60);
+                    hasChanges = true;
+                }
+                if (decorEndEmpty) {
+                    updates.decorEndTime = subtractMinutes(newEvent.startTime, -60);
+                    hasChanges = true;
+                }
+            }
 
-    //         if (hasChanges) {
-    //             setNewEvent(prev => ({ ...prev, ...updates }));
-    //         }
-    //     } catch (err) {
-    //         console.error("Error in auto-sync effect:", err);
-    //     }
-    // }, [newEvent?.packName, newEvent?.startTime, newEvent?.endTime]);
+            if (hasChanges) {
+                setNewEvent(prev => ({ ...prev, ...updates }));
+            }
+        } catch (err) {
+            console.error("Error in auto-sync effect:", err);
+        }
+    }, [newEvent?.packName, newEvent?.startTime, newEvent?.endTime]);
 
     // --- PARSER DE WHATSAPP ---
     const handlePasteFromWhatsApp = async () => {
@@ -204,9 +205,42 @@ const CreateEventView = ({
         } else if (field === 'packName') {
             updated.packName = value;
         } else if (field === 'startTime') {
+            const prevStart = newEvent.startTime; // Valor anterior
             updated.startTime = value;
+
+            // FOTO INICIO: Sincronizar si está vacío/default O si estaba sincronizado con el anterior
+            const photoIsDefault = !updated.photoStartTime || updated.photoStartTime === '00:00';
+            const photoWasSynced = updated.photoStartTime === prevStart;
+
+            if (photoIsDefault || photoWasSynced) {
+                updated.photoStartTime = value;
+            }
+
+            // DECOR INICIO: Sincronizar si está vacío/default O si estaba sincronizado (1h antes)
+            const decorIsDefault = !updated.decorStartTime || updated.decorStartTime === '00:00';
+            // Calcular si estaba "sincronizado" (es decir, era prevStart - 60min)
+            // Para simplificar, si estaba default o vacío, se actualiza.
+            if (decorIsDefault) {
+                updated.decorStartTime = subtractMinutes(value, 60);
+            }
+
+            // DECOR FIN (siempre ligado al inicio de decoración normalmente, pero aquí se mueve con start si estaba default)
+            const decorEndIsDefault = !updated.decorEndTime || updated.decorEndTime === '00:00';
+            if (decorEndIsDefault) {
+                updated.decorEndTime = subtractMinutes(value, -60);
+            }
+
         } else if (field === 'endTime') {
+            const prevEnd = newEvent.endTime;
             updated.endTime = value;
+
+            // FOTO FIN: Sincronizar si está vacío/default O si estaba sincronizado
+            const photoEndIsDefault = !updated.photoEndTime || updated.photoEndTime === '00:00';
+            const photoEndWasSynced = updated.photoEndTime === prevEnd;
+
+            if (photoEndIsDefault || photoEndWasSynced) {
+                updated.photoEndTime = value;
+            }
 
         } else if (field === 'photoStartTime') {
             updated.photoStartTime = value;

@@ -176,6 +176,7 @@ const TimeInput = ({ value, onChange, label }) => {
                     onChange={handleHChange}
                     onFocus={() => setIsEditingH(true)}
                     onBlur={() => handleBlur('h')}
+                    onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                     placeholder="12"
                     style={{
                         width: '32px',
@@ -218,6 +219,7 @@ const TimeInput = ({ value, onChange, label }) => {
                     onChange={handleMChange}
                     onFocus={() => setIsEditingM(true)}
                     onBlur={() => handleBlur('m')}
+                    onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
                     placeholder="00"
                     style={{
                         width: '32px',
