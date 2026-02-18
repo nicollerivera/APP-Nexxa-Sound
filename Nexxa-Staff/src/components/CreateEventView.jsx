@@ -154,12 +154,43 @@ const CreateEventView = ({
             updated.packName = value;
         } else if (field === 'startTime') {
             updated.startTime = value;
-            if (!updated.photoStartTime || updated.photoStartTime === '08:00') updated.photoStartTime = value;
-            if (!updated.decorStartTime || updated.decorStartTime === '08:00') updated.decorStartTime = subtractMinutes(value, 60);
-            if (!updated.decorEndTime || updated.decorEndTime === '08:00') updated.decorEndTime = subtractMinutes(value, -60);
+
+            // Sincronizar Foto Inicio si no ha sido editado manualmente
+            if (!updated.manuallyEdited?.photoStartTime) {
+                updated.photoStartTime = value;
+            }
+            // Sincronizar Decoración solo si no ha sido editado manualmente (default: 1h antes)
+            if (!updated.manuallyEdited?.decorStartTime) {
+                updated.decorStartTime = subtractMinutes(value, 60);
+            }
+            if (!updated.manuallyEdited?.decorEndTime) {
+                updated.decorEndTime = subtractMinutes(value, -60);
+            }
+
         } else if (field === 'endTime') {
             updated.endTime = value;
-            if (!updated.photoEndTime || updated.photoEndTime === '08:00') updated.photoEndTime = value;
+
+            // Sincronizar Foto Fin si no ha sido editado manualmente
+            if (!updated.manuallyEdited?.photoEndTime) {
+                updated.photoEndTime = value;
+            }
+
+        } else if (field === 'photoStartTime') {
+            updated.photoStartTime = value;
+            updated.manuallyEdited = { ...updated.manuallyEdited, photoStartTime: true };
+
+        } else if (field === 'photoEndTime') {
+            updated.photoEndTime = value;
+            updated.manuallyEdited = { ...updated.manuallyEdited, photoEndTime: true };
+
+        } else if (field === 'decorStartTime') {
+            updated.decorStartTime = value;
+            updated.manuallyEdited = { ...updated.manuallyEdited, decorStartTime: true };
+
+        } else if (field === 'decorEndTime') {
+            updated.decorEndTime = value;
+            updated.manuallyEdited = { ...updated.manuallyEdited, decorEndTime: true };
+
         } else if (field !== 'recalc') {
             updated[field] = value;
         }
