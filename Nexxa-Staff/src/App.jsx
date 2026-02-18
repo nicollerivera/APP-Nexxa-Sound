@@ -764,7 +764,7 @@ function App() {
     // Mandatory Roles based on Package
     if (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') {
       if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
-        return alert(`⚠️ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÍA.`);
+        return alert('⚠️ EL PAQUETE ' + newEvent.packName.toUpperCase() + ' REQUIERE HORARIO DE FOTOGRAFÍA.');
       }
       const photoDur = getHours(newEvent.photoStartTime, newEvent.photoEndTime);
       if (photoDur <= 0) {
