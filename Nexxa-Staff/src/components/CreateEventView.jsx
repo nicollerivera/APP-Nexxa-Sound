@@ -660,7 +660,7 @@ const CreateEventView = ({
                 </div>
 
                 <div className="action-buttons-row" style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
-                    <button type="button" className="action-btn secondary-btn" style={{ flex: 1, padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleCreateQuotation('SENT')}>
+                    <button type="button" className="action-btn primary-btn" style={{ flex: 1, padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleCreateQuotation('SENT')}>
                         <IconServices /> Cotizar
                     </button>
                     <button type="submit" className="action-btn primary-btn" style={{ flex: 1, padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
