@@ -155,60 +155,40 @@ const CreateEventView = ({
         } else if (field === 'startTime') {
             updated.startTime = value;
 
-            // FOTO DURATION
-            // Sincronizar Foto Inicio: Si no se ha editado manualmente O si es el valor por defecto/nulo
-            const isPhotoDefault = !updated.photoStartTime || updated.photoStartTime === '00:00';
-            if (!updated.manuallyEdited?.photoStartTime || isPhotoDefault) {
+            // FOTO: Solo sincronizar si está en '00:00' (Default/Vacío)
+            if (!updated.photoStartTime || updated.photoStartTime === '00:00') {
                 updated.photoStartTime = value;
-                // Si sincronizamos automáticamente, limpiamos el flag manual
-                if (updated.manuallyEdited) updated.manuallyEdited.photoStartTime = false;
             }
 
-            // DECOR DURATION
-            const isDecorDefault = !updated.decorStartTime || updated.decorStartTime === '00:00';
-            if (!updated.manuallyEdited?.decorStartTime || isDecorDefault) {
+            // DECOR: Solo sincronizar si está en '00:00'
+            // Default Decor es 1h antes
+            if (!updated.decorStartTime || updated.decorStartTime === '00:00') {
                 updated.decorStartTime = subtractMinutes(value, 60);
-                if (updated.manuallyEdited) updated.manuallyEdited.decorStartTime = false;
             }
-            const isDecorEndDefault = !updated.decorEndTime || updated.decorEndTime === '00:00';
-            if (!updated.manuallyEdited?.decorEndTime || isDecorEndDefault) {
+            if (!updated.decorEndTime || updated.decorEndTime === '00:00') {
                 updated.decorEndTime = subtractMinutes(value, -60);
-                if (updated.manuallyEdited) updated.manuallyEdited.decorEndTime = false;
             }
 
         } else if (field === 'endTime') {
             updated.endTime = value;
 
-            // Sincronizar Foto Fin
-            const isPhotoEndDefault = !updated.photoEndTime || updated.photoEndTime === '00:00';
-            if (!updated.manuallyEdited?.photoEndTime || isPhotoEndDefault) {
+            // Solo sincronizar Foto Fin si está en default
+            if (!updated.photoEndTime || updated.photoEndTime === '00:00') {
                 updated.photoEndTime = value;
-                if (updated.manuallyEdited) updated.manuallyEdited.photoEndTime = false;
             }
 
         } else if (field === 'photoStartTime') {
             updated.photoStartTime = value;
-            if (value && value !== '00:00') {
-                updated.manuallyEdited = { ...updated.manuallyEdited, photoStartTime: true };
-            }
+            // No need for manuallyEdited flag anymore, value itself is the flag
 
         } else if (field === 'photoEndTime') {
             updated.photoEndTime = value;
-            if (value && value !== '00:00') {
-                updated.manuallyEdited = { ...updated.manuallyEdited, photoEndTime: true };
-            }
 
         } else if (field === 'decorStartTime') {
             updated.decorStartTime = value;
-            if (value && value !== '00:00') {
-                updated.manuallyEdited = { ...updated.manuallyEdited, decorStartTime: true };
-            }
 
         } else if (field === 'decorEndTime') {
             updated.decorEndTime = value;
-            if (value && value !== '00:00') {
-                updated.manuallyEdited = { ...updated.manuallyEdited, decorEndTime: true };
-            }
 
         } else if (field !== 'recalc') {
             updated[field] = value;

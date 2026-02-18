@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 
 const TimeInput = ({ value, onChange, label }) => {
-    // Estado local para lo que el usuario está escribiendo
+    // ESTADO LOCAL: Permite edición libre sin validación inmediata
     const [localH, setLocalH] = useState('12');
     const [localM, setLocalM] = useState('00');
+
+    // Flags para saber si el usuario está enfocado en el input
     const [isEditingH, setIsEditingH] = useState(false);
     const [isEditingM, setIsEditingM] = useState(false);
 
+    // Helper para parsear "HH:MM" a {h, m, period}
     const parseTime = (val) => {
         if (!val || !val.includes(':')) return { h: '12', m: '00', period: 'AM' };
         let [hStr, mStr] = val.split(':');
@@ -28,7 +31,7 @@ const TimeInput = ({ value, onChange, label }) => {
         };
     };
 
-    // Sincronizar estado local cuando cambia la prop value (si no estamos editando)
+    // Sincronizar estado local con prop value SOLAMENTE si no se está editando
     useEffect(() => {
         if (!isEditingH && !isEditingM) {
             const { h, m } = parseTime(value);
@@ -40,76 +43,77 @@ const TimeInput = ({ value, onChange, label }) => {
     const { period } = parseTime(value);
     const isAM = period === 'AM';
 
-    // Manejar cambios mientras se escribe (permite borrar y escribir libremente)
-    const handleLocalChange = (setter) => (e) => {
-        let val = e.target.value;
-        // Permitir cadena vacía o números hasta 2 dígitos
-        if (val === '' || val.length <= 2) {
+    // Manejador de cambios: PERMITE CADENA VACÍA y escribe libremente
+    const handleLocalChange = (setter, nextRef) => (e) => {
+        const val = e.target.value;
+        // Solo permitir números (regex) o vacío
+        if (val === '' || /^\d{0,2}$/.test(val)) {
             setter(val);
         }
+        // Auto-focus al siguiente si escribe 2 dígitos (opcional, mejora UX)
+        // if (val.length === 2 && nextRef) { nextRef.current.focus(); }
     };
 
-    // Validar y guardar al perder el foco (onBlur)
+    // Validación al salir del foco (onBlur)
     const handleBlur = (type) => {
         if (type === 'h') setIsEditingH(false);
         if (type === 'm') setIsEditingM(false);
 
-        let hVal = type === 'h' ? localH : localH; // Usar el estado actual
+        let hVal = type === 'h' ? localH : localH; // valor actual del estado
         let mVal = type === 'm' ? localM : localM;
 
-        // Si está vacío, revertir a los valores actuales o por defecto
+        // Si está vacío, asignar valor por defecto
         if (hVal === '') {
+            // Si el usuario deja vacío, volvemos a lo que había o 12
             const { h } = parseTime(value);
-            hVal = h;
+            hVal = h; // O '12' si prefieres resetear
         }
         if (mVal === '') {
-            const { m } = parseTime(value);
+            const { m } = parseTime(value); // o '00'
             mVal = m;
         }
 
         let hInt = parseInt(hVal);
         let mInt = parseInt(mVal);
 
-        // Validaciones de seguridad
         if (isNaN(hInt)) hInt = 12;
         if (isNaN(mInt)) mInt = 0;
 
-        // Validar rangos estrictos
+        // Validar rangos 1-12
         if (type === 'h') {
             if (hInt < 1) hInt = 1;
             if (hInt > 12) hInt = 12;
         }
+        // Validar minutos 0-59 y redondear a 15 min
         if (type === 'm') {
             if (mInt < 0) mInt = 0;
             if (mInt > 59) mInt = 59;
-            // Redondear minutos a 15 min
             mInt = Math.round(mInt / 15) * 15;
-            if (mInt === 60) {
-                mInt = 0;
-            }
+            if (mInt === 60) mInt = 0;
         }
 
-        // Convertir a formato 24h para guardar
+        // Guardar en formato 24h
         let h24 = hInt;
-        if (period === 'PM' && h24 !== 12) h24 += 12;
-        if (period === 'AM' && h24 === 12) h24 = 0;
+        let currentPeriod = period;
+
+        // Mantener periodo actual
+        if (currentPeriod === 'PM' && h24 !== 12) h24 += 12;
+        if (currentPeriod === 'AM' && h24 === 12) h24 = 0;
 
         const timeString = `${String(h24).padStart(2, '0')}:${String(mInt).padStart(2, '0')}`;
         onChange(timeString);
 
-        // Actualizar estado local formateado inmediatamente para feedback visual
+        // Actualizar estado visual inmediatamente
         if (type === 'h') setLocalH(String(hInt).padStart(2, '0'));
         if (type === 'm') setLocalM(String(mInt).padStart(2, '0'));
     };
 
     const togglePeriod = () => {
-        let { h } = parseTime(value); // Hora visual actual (1-12)
+        // Toggle AM/PM sin cambiar la hora visual (1-12)
+        let { h } = parseTime(value);
         let hInt = parseInt(h);
-
-        // Invertir periodo
         const newPeriod = period === 'AM' ? 'PM' : 'AM';
 
-        // Calcular nueva hora 24h manteniendo la hora visual
         let h24 = hInt;
         if (newPeriod === 'PM' && h24 !== 12) h24 += 12;
         if (newPeriod === 'AM' && h24 === 12) h24 = 0;
@@ -129,6 +133,7 @@ const TimeInput = ({ value, onChange, label }) => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
+            alignItems: 'center',
             gap: '0px'
         }}>
             {/* LABEL */}
@@ -138,7 +143,7 @@ const TimeInput = ({ value, onChange, label }) => {
                 textTransform: 'uppercase',
                 fontWeight: '700',
                 letterSpacing: '0.5px',
-                textAlign: 'center', // CENTRADO
+                textAlign: 'center',
                 marginBottom: '2px',
                 display: 'block',
                 width: '100%'
@@ -146,17 +151,18 @@ const TimeInput = ({ value, onChange, label }) => {
                 {label}
             </span>
 
-            {/* CONTENEDOR DE INPUTS - Alineación perfecta */}
+            {/* CONTENEDOR INPUTS - Alineación con Flexbox estricto */}
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center', // CENTRADO HORIZONTAL
-                gap: '4px',
+                justifyContent: 'center',
+                lineHeight: 'normal', // Solicitado por usuario
                 height: '32px'
             }}>
                 {/* INPUT HORA */}
                 <input
-                    type="number"
+                    type="tel"
+                    inputMode="numeric"
                     value={localH}
                     onChange={handleLocalChange(setLocalH)}
                     onFocus={() => setIsEditingH(true)}
@@ -172,10 +178,8 @@ const TimeInput = ({ value, onChange, label }) => {
                         border: 'none',
                         color: '#fff',
                         fontFamily: 'system-ui',
-                        appearance: 'textfield',
                         margin: 0,
-                        lineHeight: '1',
-                        height: '24px',
+                        height: '100%', // Llenar altura del flex container
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -187,20 +191,20 @@ const TimeInput = ({ value, onChange, label }) => {
                     fontSize: '1.2rem',
                     color: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
                     opacity: 0.8,
-                    lineHeight: '1',
                     fontWeight: '300',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    height: '24px',
                     fontFamily: 'system-ui',
-                    margin: 0,
-                    padding: 0
+                    margin: '0 2px',
+                    height: '100%',
+                    paddingBottom: '2px' // Ajuste fino visual si es necesario, pero alineado con flex
                 }}>:</span>
 
                 {/* INPUT MINUTOS */}
                 <input
-                    type="number"
+                    type="tel"
+                    inputMode="numeric"
                     value={localM}
                     onChange={handleLocalChange(setLocalM)}
                     onFocus={() => setIsEditingM(true)}
@@ -216,10 +220,8 @@ const TimeInput = ({ value, onChange, label }) => {
                         border: 'none',
                         color: '#fff',
                         fontFamily: 'system-ui',
-                        appearance: 'textfield',
                         margin: 0,
-                        lineHeight: '1',
-                        height: '24px',
+                        height: '100%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -245,26 +247,12 @@ const TimeInput = ({ value, onChange, label }) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        marginLeft: '4px',
-                        lineHeight: '1'
+                        marginLeft: '4px'
                     }}
                 >
                     {period}
                 </button>
             </div>
-
-            {/* Styles para quitar las flechas del input number */}
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                input[type=number]::-webkit-inner-spin-button, 
-                input[type=number]::-webkit-outer-spin-button { 
-                    -webkit-appearance: none; 
-                    margin: 0; 
-                }
-                input[type=number] {
-                    -moz-appearance: textfield;
-                }
-            `}} />
         </div>
     );
 };
