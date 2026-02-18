@@ -208,25 +208,36 @@ const CreateEventView = ({
             const prevStart = newEvent.startTime; // Valor anterior
             updated.startTime = value;
 
-            // FOTO INICIO: Sincronizar si está vacío/default O si estaba sincronizado con el anterior
-            const photoIsDefault = !updated.photoStartTime || updated.photoStartTime === '00:00';
-            const photoWasSynced = updated.photoStartTime === prevStart;
+            // Lógica Inteligente:
+            // Solo sincronizamos si el usuario NO ha tocado los horarios manualmente.
+            // ¿Cómo sabemos si los tocó?
+            // 1. Si están vacíos o son 00:00 -> Sincronizar (Primera vez)
+            // 2. Si coinciden EXACTAMENTE con el horario anterior del DJ -> Sincronizar (Significa que seguían "atados")
 
-            if (photoIsDefault || photoWasSynced) {
+            // FOTO INICIO
+            const photoIsEmpty = !updated.photoStartTime || updated.photoStartTime === '00:00';
+            const photoWasSynced = updated.photoStartTime === prevStart; // ¿Era igual al DJ antes del cambio?
+
+            if (photoIsEmpty || photoWasSynced) {
                 updated.photoStartTime = value;
             }
 
-            // DECOR INICIO: Sincronizar si está vacío/default O si estaba sincronizado (1h antes)
-            const decorIsDefault = !updated.decorStartTime || updated.decorStartTime === '00:00';
-            // Calcular si estaba "sincronizado" (es decir, era prevStart - 60min)
-            // Para simplificar, si estaba default o vacío, se actualiza.
-            if (decorIsDefault) {
+            // DECOR INICIO (El decorador entra 1 hora antes)
+            const decorIsEmpty = !updated.decorStartTime || updated.decorStartTime === '00:00';
+            // Verificamos si estaba sincronizado (1h antes del DJ)
+            const decorWasSynced = updated.decorStartTime === subtractMinutes(prevStart, 60);
+
+            if (decorIsEmpty || decorWasSynced) {
                 updated.decorStartTime = subtractMinutes(value, 60);
             }
 
-            // DECOR FIN (siempre ligado al inicio de decoración normalmente, pero aquí se mueve con start si estaba default)
-            const decorEndIsDefault = !updated.decorEndTime || updated.decorEndTime === '00:00';
-            if (decorEndIsDefault) {
+            // DECOR FIN (El decorador sale 1 hora después del INICIO del evento para montaje)
+            // OJO: Tu regla decía "solo trabaja 2 hrs".
+            // Si el montaje es 1h antes y dura 2h, entonces termina 1h después del inicio.
+            const decorEndIsEmpty = !updated.decorEndTime || updated.decorEndTime === '00:00';
+            const decorEndWasSynced = updated.decorEndTime === subtractMinutes(prevStart, -60);
+
+            if (decorEndIsEmpty || decorEndWasSynced) {
                 updated.decorEndTime = subtractMinutes(value, -60);
             }
 
@@ -234,11 +245,11 @@ const CreateEventView = ({
             const prevEnd = newEvent.endTime;
             updated.endTime = value;
 
-            // FOTO FIN: Sincronizar si está vacío/default O si estaba sincronizado
-            const photoEndIsDefault = !updated.photoEndTime || updated.photoEndTime === '00:00';
-            const photoEndWasSynced = updated.photoEndTime === prevEnd;
+            // FOTO FIN
+            const photoEndIsEmpty = !updated.photoEndTime || updated.photoEndTime === '00:00';
+            const photoEndWasSynced = updated.photoEndTime === prevEnd; // ¿Era igual al DJ?
 
-            if (photoEndIsDefault || photoEndWasSynced) {
+            if (photoEndIsEmpty || photoEndWasSynced) {
                 updated.photoEndTime = value;
             }
 
