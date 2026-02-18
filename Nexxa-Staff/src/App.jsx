@@ -135,9 +135,22 @@ function App() {
     };
   });
 
-  // --- 3. UI & NAVIGATION STATE ---
-  const [view, setView] = useState('logistics');
-  const [eventSubTab, setEventSubTab] = useState('list');
+  // --- 3. UI & NAVIGATION STATE (PERSISTENT MEMORY) ---
+  const [view, setView] = useState(() => {
+    return localStorage.getItem('nexxa_last_view') || 'logistics';
+  });
+  const [eventSubTab, setEventSubTab] = useState(() => {
+    return localStorage.getItem('nexxa_last_subtab') || 'list';
+  });
+
+  // --- PERSISTENCE EFFECTS ---
+  useEffect(() => {
+    localStorage.setItem('nexxa_last_view', view);
+  }, [view]);
+
+  useEffect(() => {
+    localStorage.setItem('nexxa_last_subtab', eventSubTab);
+  }, [eventSubTab]);
   const [detailTab, setDetailTab] = useState('general');
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [lastFatalError, setLastFatalError] = useState(null);
