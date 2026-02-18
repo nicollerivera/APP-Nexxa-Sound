@@ -36,48 +36,52 @@ const CreateEventView = ({
     // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE (Forzando deploy)
     // Si ya existe horario DJ pero Foto/Decor están vacíos, sincronizarlos.
     useEffect(() => {
-        if (!newEvent.startTime || !newEvent.endTime) return;
+        if (!newEvent || !newEvent.startTime || !newEvent.endTime) return;
 
-        const needsPhoto = (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration');
-        const needsDecor = (newEvent.packName === 'Celebration');
+        try {
+            const needsPhoto = (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration');
+            const needsDecor = (newEvent.packName === 'Celebration');
 
-        let updates = {};
-        let hasChanges = false;
+            let updates = {};
+            let hasChanges = false;
 
-        // Sync Foto
-        if (needsPhoto) {
-            const photoStartEmpty = !newEvent.photoStartTime || newEvent.photoStartTime === '00:00';
-            const photoEndEmpty = !newEvent.photoEndTime || newEvent.photoEndTime === '00:00';
+            // Sync Foto
+            if (needsPhoto) {
+                const photoStartEmpty = !newEvent.photoStartTime || newEvent.photoStartTime === '00:00';
+                const photoEndEmpty = !newEvent.photoEndTime || newEvent.photoEndTime === '00:00';
 
-            if (photoStartEmpty) {
-                updates.photoStartTime = newEvent.startTime;
-                hasChanges = true;
+                if (photoStartEmpty) {
+                    updates.photoStartTime = newEvent.startTime;
+                    hasChanges = true;
+                }
+                if (photoEndEmpty) {
+                    updates.photoEndTime = newEvent.endTime;
+                    hasChanges = true;
+                }
             }
-            if (photoEndEmpty) {
-                updates.photoEndTime = newEvent.endTime;
-                hasChanges = true;
+
+            // Sync Decor
+            if (needsDecor) {
+                const decorStartEmpty = !newEvent.decorStartTime || newEvent.decorStartTime === '00:00';
+                const decorEndEmpty = !newEvent.decorEndTime || newEvent.decorEndTime === '00:00';
+
+                if (decorStartEmpty) {
+                    updates.decorStartTime = subtractMinutes(newEvent.startTime, 60);
+                    hasChanges = true;
+                }
+                if (decorEndEmpty) {
+                    updates.decorEndTime = subtractMinutes(newEvent.startTime, -60);
+                    hasChanges = true;
+                }
             }
+
+            if (hasChanges) {
+                setNewEvent(prev => ({ ...prev, ...updates }));
+            }
+        } catch (err) {
+            console.error("Error in auto-sync effect:", err);
         }
-
-        // Sync Decor
-        if (needsDecor) {
-            const decorStartEmpty = !newEvent.decorStartTime || newEvent.decorStartTime === '00:00';
-            const decorEndEmpty = !newEvent.decorEndTime || newEvent.decorEndTime === '00:00';
-
-            if (decorStartEmpty) {
-                updates.decorStartTime = subtractMinutes(newEvent.startTime, 60);
-                hasChanges = true;
-            }
-            if (decorEndEmpty) {
-                updates.decorEndTime = subtractMinutes(newEvent.startTime, -60);
-                hasChanges = true;
-            }
-        }
-
-        if (hasChanges) {
-            setNewEvent(prev => ({ ...prev, ...updates }));
-        }
-    }, [newEvent.packName, newEvent.startTime, newEvent.endTime]); // Dependencias clave
+    }, [newEvent?.packName, newEvent?.startTime, newEvent?.endTime]); // Dependencias clave
 
     // --- PARSER DE WHATSAPP ---
     const handlePasteFromWhatsApp = async () => {
@@ -315,13 +319,17 @@ const CreateEventView = ({
     };
 
     // Logic: Constant Sync for Extra Hour Price
-    React.useEffect(() => {
-        if (newEvent.packName && PRICING[newEvent.packName]) {
-            const correctRate = (PRICING[newEvent.packName].extraDJ || 0) + (PRICING[newEvent.packName].extraPhoto || 0) || 85000;
-            if (Number(newEvent.extraHourPrice) !== correctRate && !newEvent.id) {
-                // Only auto-correct for NEW/DRAFT events
-                setNewEvent(prev => ({ ...prev, extraHourPrice: correctRate }));
+    useEffect(() => {
+        try {
+            if (newEvent?.packName && PRICING[newEvent.packName]) {
+                const correctRate = (PRICING[newEvent.packName].extraDJ || 0) + (PRICING[newEvent.packName].extraPhoto || 0) || 85000;
+                if (Number(newEvent.extraHourPrice) !== correctRate && !newEvent.id) {
+                    // Only auto-correct for NEW/DRAFT events
+                    setNewEvent(prev => ({ ...prev, extraHourPrice: correctRate }));
+                }
             }
+        } catch (error) {
+            console.error("Error in pricing sync effect:", error);
         }
     }, [newEvent.packName, newEvent.id, setNewEvent]);
 
