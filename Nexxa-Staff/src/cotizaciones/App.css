@@ -10,7 +10,7 @@
 
 /* Brand Logo - Navbar */
 .brand-logo {
-  height: 200px;
+  height: 60px;
   width: auto;
   object-fit: contain;
   margin-bottom: 0px;
@@ -36,16 +36,13 @@
 
 /* Landing Logo */
 .landing-logo-img {
-  width: 100%;
-  max-width: 180px;
-  /* Increased max-width */
-  height: auto;
-  object-fit: contain;
-  margin-bottom: 15px;
-  /* Badge Style */
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  margin-bottom: 8px;
   border-radius: 50%;
-  border: 4px solid rgba(0, 212, 255, 0.3);
-  box-shadow: 0 0 30px rgba(157, 78, 221, 0.4);
+  border: 3px solid rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 20px rgba(157, 78, 221, 0.4);
   background: black;
 }
 
@@ -905,26 +902,26 @@ input:checked+.slider:before {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 80vh;
+  min-height: 100dvh;
   text-align: center;
-  padding: 20px 0;
+  padding: 10px 0 20px 0;
+  box-sizing: border-box;
 }
 
 .landing-content {
   width: 100%;
-  max-width: 600px;
+  max-width: 500px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 25px;
+  gap: 12px;
 }
 
 @media (max-width: 600px) {
   .landing-screen {
-    padding-top: 0;
-    /* Maximize top space */
-    min-height: auto;
-    /* Allow content to fit naturally */
+    padding-top: 10px;
+    min-height: 100dvh;
+    justify-content: flex-start;
   }
 }
 
@@ -957,10 +954,11 @@ input:checked+.slider:before {
 
 /* 3D Carousel */
 .carousel-3d-scene {
-  width: 500px;
-  height: 300px;
+  width: 100%;
+  max-width: 340px;
+  height: 190px;
   perspective: 1500px;
-  margin: 40px auto;
+  margin: 10px auto;
   position: relative;
 }
 
@@ -1016,8 +1014,8 @@ input:checked+.slider:before {
 
 .carousel-3d-item {
   position: absolute;
-  width: 500px;
-  height: 300px;
+  width: 100%;
+  height: 100%;
   left: 0;
   top: 0;
   display: flex;
@@ -1079,16 +1077,16 @@ input:checked+.slider:before {
 /* Responsive adjustments for 3D Carousel */
 @media (max-width: 600px) {
   .carousel-3d-scene {
-    width: 320px;
-    /* Wider landscape for mobile */
-    height: 200px;
+    width: 100%;
+    max-width: 300px;
+    height: 150px;
     perspective: 600px;
-    margin: 20px auto;
+    margin: 8px auto;
   }
 
   .carousel-3d-item {
-    width: 320px;
-    height: 200px;
+    width: 100%;
+    height: 100%;
   }
 }
 
