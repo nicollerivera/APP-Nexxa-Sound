@@ -589,76 +589,102 @@ function App() {
         {currentStep === 0 && (
           <section className="landing-screen fade-in">
             <div className="landing-content">
-              <div className="landing-brand-area">
+
+              {/* HERO: Logo + Nombre en fila compacta */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <img
                   src="/logo_disco_futurista.png"
-                  alt="NEXXA Sound Level Productions"
-                  className="landing-logo-img"
+                  alt="NEXXA"
                   onClick={handleLogoClick}
+                  style={{
+                    width: '72px', height: '72px', borderRadius: '50%',
+                    border: '2px solid rgba(0,212,255,0.4)',
+                    boxShadow: '0 0 18px rgba(157,78,221,0.5)',
+                    background: '#000', objectFit: 'cover', flexShrink: 0
+                  }}
                 />
-                <p className="landing-subtitle" style={{ fontSize: '1rem', letterSpacing: '2px', fontWeight: 'bold', marginTop: '5px', textTransform: 'uppercase', color: '#ccc' }}>
-                  DJ · Sonido · Iluminación · Experiencias
-                </p>
-              </div>
-
-              <div
-                className="carousel-3d-scene"
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-              >
-                <button
-                  className="carousel-nav prev"
-                  onClick={(e) => { e.stopPropagation(); setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length); }}
-                >
-                  &#10094;
-                </button>
-
-                <div className="carousel-3d-spinner" style={{ transform: `rotateY(${currentSlide * -120}deg)` }}>
-                  {slides.map((slide, index) => (
-                    <div
-                      key={index}
-                      className={`carousel-3d-item ${index === currentSlide ? 'active' : ''}`}
-                      style={{
-                        transform: `rotateY(${index * 120}deg) translateZ(var(--carousel-tz))`
-                      }}
-                      onClick={() => setCurrentSlide(index)}
-                    >
-                      <img
-                        src={slide.src}
-                        alt={slide.label}
-                        className="carousel-img"
-                      />
-                      <div className="carousel-label">{slide.label}</div>
-                    </div>
-                  ))}
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '900', background: 'linear-gradient(90deg,#00d4ff,#9d4edd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.1 }}>
+                    NEXXA SOUND
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: '#888', letterSpacing: '2px', textTransform: 'uppercase', marginTop: '3px' }}>
+                    DJ · Sonido · Iluminación
+                  </div>
                 </div>
-
-                <button
-                  className="carousel-nav next"
-                  onClick={(e) => { e.stopPropagation(); setCurrentSlide((prev) => (prev + 1) % slides.length); }}
-                >
-                  &#10095;
-                </button>
               </div>
 
-
-              <div className="value-props-container">
-                <h3 className="value-props-header" style={{ color: 'var(--primary-cyan)', textTransform: 'uppercase', fontSize: '1rem', marginBottom: '10px' }}>NEXXA TE OFRECE:</h3>
-                <ul className="value-props" style={{ gap: '15px' }}>
-                  <li>⏱️ Cotización en 60 segundos</li>
-                  <li>💰 Cotiza y negocia con un asesor al instante</li>
-                  <li>🎧 DJ + sonido + luces en un solo lugar</li>
-                  <li>💬 Asesoría inmediata</li>
-                </ul>
+              {/* IMAGEN HERO — solo una imagen estática, sin carrusel 3D pesado */}
+              <div style={{
+                width: '100%', maxWidth: '360px',
+                height: '160px', borderRadius: '20px',
+                overflow: 'hidden', position: 'relative',
+                border: '1px solid rgba(255,255,255,0.08)'
+              }}>
+                <img
+                  src={slides[currentSlide].src}
+                  alt={slides[currentSlide].label}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.5s' }}
+                />
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                  background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                  padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {slides[currentSlide].label}
+                  </span>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {slides.map((_, i) => (
+                      <button key={i} onClick={() => setCurrentSlide(i)} style={{
+                        width: i === currentSlide ? '18px' : '6px', height: '6px',
+                        borderRadius: '3px', border: 'none', cursor: 'pointer',
+                        background: i === currentSlide ? '#00d4ff' : 'rgba(255,255,255,0.3)',
+                        transition: 'all 0.3s', padding: 0
+                      }} />
+                    ))}
+                  </div>
+                </div>
               </div>
+
+              {/* VALUE PROPS — 2 columnas compactas */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr',
+                gap: '8px', width: '100%', maxWidth: '360px'
+              }}>
+                {[
+                  { icon: '⏱️', text: 'Cotización en 60 seg' },
+                  { icon: '🎧', text: 'DJ + Sonido + Luces' },
+                  { icon: '💰', text: 'Precio negociable' },
+                  { icon: '💬', text: 'Asesoría inmediata' }
+                ].map((p, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: '12px', padding: '10px 12px',
+                    display: 'flex', alignItems: 'center', gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '1.1rem' }}>{p.icon}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#ccc', fontWeight: '600', lineHeight: 1.2 }}>{p.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA — SIEMPRE VISIBLE */}
               <button
-                className="action-btn landing-btn"
-                style={{ width: '100%', maxWidth: '400px', padding: '18px', background: 'linear-gradient(90deg, #00d4ff 0%, #9d4edd 100%)', borderRadius: '30px', fontSize: '1.2rem', fontWeight: 'bold' }}
                 onClick={() => { setCurrentStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                style={{
+                  width: '100%', maxWidth: '360px',
+                  padding: '18px', borderRadius: '30px',
+                  background: 'linear-gradient(90deg, #00d4ff 0%, #9d4edd 100%)',
+                  border: 'none', color: '#fff', fontSize: '1.1rem',
+                  fontWeight: '900', letterSpacing: '2px', cursor: 'pointer',
+                  boxShadow: '0 8px 25px rgba(0,212,255,0.3)',
+                  textTransform: 'uppercase'
+                }}
               >
                 COTIZAR MI EVENTO
               </button>
+
             </div>
           </section>
         )}
