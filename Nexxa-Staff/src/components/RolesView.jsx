@@ -15,7 +15,7 @@ const RolesView = ({ setView }) => {
     });
 
     // 1. Fetch Roles Real-time
-    useEffect(() => {
+    React.useEffect(() => {
         const unsubscribe = onSnapshot(collection(db, "job_titles"), (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             // If empty, maybe seeding default values? We can do that manually or let user add them.

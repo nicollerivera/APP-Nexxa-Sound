@@ -6,7 +6,7 @@ export function AuroraBackground() {
     const blob3Ref = useRef(null);
     const requestRef = useRef(null);
 
-    useEffect(() => {
+    React.useEffect(() => {
         const handleMouseMove = (e) => {
             if (requestRef.current) return;
 

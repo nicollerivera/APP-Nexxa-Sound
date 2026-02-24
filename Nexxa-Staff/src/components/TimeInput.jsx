@@ -34,7 +34,7 @@ const TimeInput = ({ value, onChange, label }) => {
     };
 
     // 3. SINCRONIZACIÓN: Solo si NO se está editando
-    useEffect(() => {
+    React.useEffect(() => {
         if (!isEditingH && !isEditingM) {
             const { h, m } = parseTime(value);
             setLocalH(h);

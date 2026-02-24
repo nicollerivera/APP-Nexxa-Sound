@@ -93,7 +93,7 @@ function App() {
     }
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
@@ -387,6 +387,8 @@ function App() {
   };
 
   const [isSending, setIsSending] = useState(false);
+  const [quotationSent, setQuotationSent] = useState(false);
+  const [sentQuoId, setSentQuoId] = useState('');
 
   const handleSendQuotation = async () => {
     if (isSending) return;
@@ -446,21 +448,22 @@ function App() {
     const waLink = generateWhatsappLink();
 
     try {
-      // 2. SAVE TO FIREBASE (MANDATORY)
+      // 2. SAVE TO FIREBASE (MANDATORY - must complete before opening WhatsApp)
       console.log("PREPARING TO SAVE:", quotationData);
 
       const docRef = await addDoc(collection(db, "quotations"), quotationData);
       console.log("FIREBASE SUCCESS - DOCUMENT ID:", docRef.id);
 
-      // Notify user of success before jumping to WhatsApp
-      alert("✅ ¡ÉXITO! Cotización registrada en sistema Staff.\nID: " + docRef.id + "\n\nAhora abriremos WhatsApp para que el pedido sea notificado.");
+      // 3. Firebase confirmed → save ID and show success screen
+      setSentQuoId(docRef.id);
+      setQuotationSent(true);
 
-      // 3. OPEN WHATSAPP ONLY ON SUCCESS
-      window.location.href = waLink;
+      // 4. Open WhatsApp in new tab/app WITHOUT leaving this page
+      window.open(waLink, '_blank');
 
     } catch (error) {
       console.error("FIREBASE ERROR:", error);
-      alert("❌ ERROR AL GUARDAR EN BASE DE DATOS:\n\n" + (error.message || "Error desconocido") + "\n\nPor favor, verifica tu conexión o intenta más tarde.");
+      alert("❌ Error al registrar la cotización. Por favor intenta de nuevo o escríbenos directamente al WhatsApp.");
     } finally {
       setTimeout(() => setIsSending(false), 2000);
     }
@@ -516,6 +519,54 @@ function App() {
   return (
     <div className="app-container">
       <AuroraBackground />
+
+      {/* PANTALLA DE ÉXITO */}
+      {quotationSent && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(5,5,5,0.98)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexDirection: 'column', padding: '30px', textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🎉</div>
+          <h2 style={{ color: '#00d4ff', fontWeight: '900', fontSize: '1.8rem', marginBottom: '10px' }}>
+            ¡Cotización Enviada!
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem', marginBottom: '8px', lineHeight: '1.5' }}>
+            Tu solicitud quedó registrada en nuestro sistema.<br />
+            Un asesor te contactará pronto por WhatsApp.
+          </p>
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', marginBottom: '35px' }}>
+            Ref: {sentQuoId}
+          </p>
+          <button
+            onClick={() => window.open(generateWhatsappLink(), '_blank')}
+            style={{
+              padding: '16px 32px', borderRadius: '30px',
+              background: 'linear-gradient(90deg, #25d366, #128C7E)',
+              border: 'none', color: '#fff', fontWeight: '900',
+              fontSize: '1rem', cursor: 'pointer', marginBottom: '15px',
+              width: '100%', maxWidth: '320px'
+            }}
+          >
+            💬 Abrir WhatsApp
+          </button>
+          <button
+            onClick={() => {
+              setQuotationSent(false);
+              setSentQuoId('');
+              setCurrentStep(0);
+            }}
+            style={{
+              padding: '12px 24px', borderRadius: '20px', background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)',
+              fontSize: '0.85rem', cursor: 'pointer'
+            }}
+          >
+            Hacer otra cotización
+          </button>
+        </div>
+      )}
 
       {currentStep > 0 && (
         <nav className="container navbar">

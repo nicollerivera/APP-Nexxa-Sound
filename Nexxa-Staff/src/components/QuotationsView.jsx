@@ -41,15 +41,26 @@ const QuotationsView = ({
     const [selectedMonth] = useState(new Date().getMonth());
     const [selectedYear] = useState(new Date().getFullYear());
 
-    // Sorting logic
-    const sortedQuotations = [...quotations].sort((a, b) => {
-        if (!a || !b) return 0;
-        if (a.status === 'SENT' && b.status !== 'SENT') return -1;
-        if (a.status !== 'SENT' && b.status === 'SENT') return 1;
-        const dateA = parseFirestoreDate(a?.createdAt);
-        const dateB = parseFirestoreDate(b?.createdAt);
-        if (dateA && dateB && dateA.getTime && dateB.getTime && dateA.getTime() !== dateB.getTime()) return dateB - dateA;
-        return (b.id || '').localeCompare(a.id || '');
+    // Sorting logic - Robust to all types of input
+    const sortedQuotations = [...(quotations || [])].sort((a, b) => {
+        try {
+            if (!a || !b) return 0;
+            // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
+            if (a.status === 'SENT' && b.status !== 'SENT') return -1;
+            if (a.status !== 'SENT' && b.status === 'SENT') return 1;
+
+            // 2. ORDEN CRONOLÓGICO: Más reciente primero
+            const dateA = parseFirestoreDate(a?.createdAt);
+            const dateB = parseFirestoreDate(b?.createdAt);
+
+            const timeA = dateA && typeof dateA.getTime === 'function' ? dateA.getTime() : 0;
+            const timeB = dateB && typeof dateB.getTime === 'function' ? dateB.getTime() : 0;
+
+            if (timeA !== timeB) return timeB - timeA;
+
+            // 3. FALLBACK: ID
+            return (String(b?.id || '')).localeCompare(String(a?.id || ''));
+        } catch (e) { return 0; }
     });
 
     // Filter logic
@@ -57,20 +68,29 @@ const QuotationsView = ({
         .filter(q => q && (q.client?.name || q.clientName))
         .filter(q => showLost ? q.status === 'LOST' : q.status === 'SENT');
 
-    // Stats
-    const monthLeads = quotations.filter(q => {
-        if (!q || !q.createdAt) return false;
-        const d = parseFirestoreDate(q.createdAt);
-        return d && d.getMonth && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-    }).length;
+    // Stats calculation with error protection
+    const getStats = () => {
+        try {
+            const list = Array.isArray(quotations) ? quotations : [];
+            const leads = list.filter(q => {
+                if (!q || !q.createdAt) return false;
+                const d = parseFirestoreDate(q.createdAt);
+                return d && typeof d.getMonth === 'function' && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+            }).length;
 
-    const monthWon = quotations.filter(q => {
-        if (!q || !q.createdAt || !q.status) return false;
-        const d = parseFirestoreDate(q.createdAt);
-        return d && d.getMonth && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear && q.status === 'APPROVED';
-    }).length;
+            const won = list.filter(q => {
+                if (!q || !q.createdAt || !q.status) return false;
+                const d = parseFirestoreDate(q.createdAt);
+                return d && typeof d.getMonth === 'function' && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear && q.status === 'APPROVED';
+            }).length;
 
-    const effectiveness = monthLeads > 0 ? Math.round((monthWon / monthLeads) * 100) : 0;
+            return { leads, won, eff: leads > 0 ? Math.round((won / leads) * 100) : 0 };
+        } catch (e) {
+            return { leads: 0, won: 0, eff: 0 };
+        }
+    };
+
+    const { leads: monthLeads, won: monthWon, eff: effectiveness } = getStats();
 
     return (
         <div className="fade-in container" style={{ paddingBottom: '140px' }}>

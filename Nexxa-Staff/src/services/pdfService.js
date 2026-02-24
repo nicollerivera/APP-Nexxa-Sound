@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatPeso, formatT, subtractMinutes, addMinutes } from '../utils/helpers';
+import { formatPeso, formatT, subtractMinutes, addMinutes, getClientName } from '../utils/helpers';
 
 // --- PDF GENERATOR (LOGISTICS MISSION) - STATE OF THE ART DESIGN ---
 const COLORS = {
@@ -182,8 +182,7 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
 
         doc.setTextColor(...COLORS.WHITE);
         doc.setFontSize(12);
-        // Fallback for names: client.name or clientName (legacy)
-        const nameText = (evt.client?.name || evt.clientName || 'Invitado').toUpperCase();
+        const nameText = getClientName(evt).toUpperCase();
         const occasionText = (evt.eventDetails?.occasion || evt.eventDetails?.type || '---').toUpperCase();
         doc.text(`${nameText}  |  ${occasionText}`, margin + 7, y + 15);
 
@@ -444,7 +443,7 @@ export const generateQuotationPDF = async (quo, getDynamicExtras) => {
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = 297;
         const margin = 20; // Increased margin for cleaner look
-        const contractClientName = (quo.client?.name || 'Cliente').toUpperCase();
+        const contractClientName = getClientName(quo).toUpperCase();
 
         // Load Logo Logic (Base64)
         const getBase64 = async (url) => {
@@ -514,7 +513,7 @@ export const generateQuotationPDF = async (quo, getDynamicExtras) => {
 
         const evtTime = `${formatT(quo.eventDetails?.startTime)} - ${formatT(quo.eventDetails?.endTime)}`;
         const evtLoc = (quo.eventDetails?.location || 'Ubicación por confirmar');
-        const clientN = (quo.client?.name || 'Cliente');
+        const clientN = getClientName(quo);
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
@@ -805,7 +804,7 @@ export const generateQuotationPDF = async (quo, getDynamicExtras) => {
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...THEME.TEXT_MAIN);
         doc.text('EL CLIENTE', margin, y + 5);
         doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...THEME.TEXT_SUB);
-        doc.text(`Nombre: ${quo.client?.name || ''}`, margin, y + 10);
+        doc.text(`Nombre: ${getClientName(quo)}`, margin, y + 10);
         doc.text(`Cédula: ${quo.client?.id || ''}`, margin, y + 15);
 
         // Provider

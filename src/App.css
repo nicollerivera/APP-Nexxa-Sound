@@ -358,7 +358,7 @@ input:checked+.slider {
 input:checked+.slider:before {
   transform: translate(22px, -50%);
   background-color: white;
-  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
 /* Summary Page - Premium Neon Design */
@@ -844,9 +844,11 @@ input:checked+.slider:before {
 .makeup-counter {
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* Align to right */
+  justify-content: flex-end;
+  /* Align to right */
   gap: 10px;
-  margin-top: 0; /* Align inline */
+  margin-top: 0;
+  /* Align inline */
   background: rgba(0, 212, 255, 0.1);
   padding: 5px 10px;
   border-radius: 50px;
@@ -890,7 +892,7 @@ input:checked+.slider:before {
 .selected-extra {
   background: linear-gradient(90deg, rgba(0, 212, 255, 0.05), transparent) !important;
   border-left: 4px solid var(--primary-cyan) !important;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .fade-in-fast {

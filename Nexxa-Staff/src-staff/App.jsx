@@ -189,7 +189,7 @@ const TimeInput = ({ value, onChange, label }) => {
 function App() {
 
   // --- MAGIC LINK RECEIVER (Auto-fill from URL) ---
-  useEffect(() => {
+  React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('client')) {
       try {
@@ -257,7 +257,7 @@ function App() {
   const [lastFatalError, setLastFatalError] = useState(null);
 
   // Error listener for Mobile Debugging
-  useEffect(() => {
+  React.useEffect(() => {
     const handleError = (event) => {
       setLastFatalError(event.error?.message || event.message);
     };
@@ -266,7 +266,7 @@ function App() {
   }, []);
 
   // 1. SYNC EVENTS
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "events"), (snapshot) => {
       // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
@@ -310,7 +310,7 @@ function App() {
   }, []);
 
   // 1.5 SYNC QUOTATIONS
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
       // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
@@ -355,7 +355,7 @@ function App() {
   }, []);
 
   // 2. SYNC INVENTORY
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "inventory"), (snapshot) => {
       // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
@@ -387,7 +387,7 @@ function App() {
   }, []);
 
   // 3. SYNC GLOBAL TX
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "globalTx"), (snapshot) => {
       const liveTx = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setGlobalTx(liveTx.sort((a, b) => {
@@ -400,7 +400,7 @@ function App() {
   }, []);
 
   // 4. SYNC REPORTS
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "damageReports"), (snapshot) => {
       const liveRep = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setDamageReports(liveRep);
@@ -495,7 +495,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
 
   // 🔍 FUNCIÓN DE AUDITORÍA TEMPORAL - Detectar registros corruptos
-  useEffect(() => {
+  React.useEffect(() => {
     const auditFirebaseData = async () => {
       console.log("🔍 INICIANDO AUDITORÍA DE FIREBASE...");
 
@@ -605,7 +605,7 @@ function App() {
   };
 
   // 5. SYNC MARKETING DISTRIBUTION (ALLOCATIONS)
-  useEffect(() => {
+  React.useEffect(() => {
     const allocId = `ALLOC-${selectedYear}-${selectedMonth}`;
     const unsubscribe = onSnapshot(doc(db, "marketing_allocations", allocId), (docSnap) => {
       if (docSnap.exists()) {
@@ -634,7 +634,7 @@ function App() {
   const [newExpenseData, setNewExpenseData] = useState({ day: '', concept: '', amount: '' });
 
   // SYNC AGENDA OPERATIVA
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "operative_agenda"), (snapshot) => {
       const items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setScheduledExpenses(items);
@@ -643,7 +643,7 @@ function App() {
   }, []);
 
   // --- MONITOR DE CIERRE AUTOMÁTICO (Turbo Context) ---
-  useEffect(() => {
+  React.useEffect(() => {
     if (view === 'detail' && selectedEventId) {
       const currentEvt = events.find(e => e.id === selectedEventId);
       if (currentEvt && currentEvt.status !== 'CLOSED') {
@@ -818,7 +818,7 @@ function App() {
   });
 
   // Auto-Save Draft Effect (Keep Local for privacy/speed until save)
-  useEffect(() => {
+  React.useEffect(() => {
     localStorage.setItem('nexxa_draft_event', JSON.stringify(newEvent));
   }, [newEvent]);
 
@@ -1061,7 +1061,7 @@ function App() {
   };
 
   // --- AUTO-MIGRATION: FIX OLD IDS ---
-  useEffect(() => {
+  React.useEffect(() => {
     let migrationNeeded = false;
 
     const migratedEvents = events.map(evt => {
@@ -1090,7 +1090,7 @@ function App() {
   // But let's check events.length to be safe against deletions/additions triggering check.
 
   // --- AUTO-CLEANUP: EXPIRED QUOTATIONS ---
-  useEffect(() => {
+  React.useEffect(() => {
     const cleanupExpired = async () => {
       const today = new Date().toISOString().split('T')[0];
       const expiredLeads = quotations.filter(q => q.status === 'SENT' && q.eventDetails?.date && q.eventDetails.date < today);

@@ -36,12 +36,13 @@ const AccountingView = ({
     // Finance Modal States (Local)
     const [showFinanceModal, setShowFinanceModal] = useState(null); // 'IN' | 'OUT' | 'XFER'
     const [finType, setFinType] = useState('GENERAL'); // 'GENERAL' | 'EVENT'
+    const [payingPartner, setPayingPartner] = useState(null); // Partner being liquidated
 
     // Scheduled Expenses (Operative Agenda)
     const [scheduledExpenses, setScheduledExpenses] = useState([]);
 
     // Fetch Scheduled Expenses
-    useEffect(() => {
+    React.useEffect(() => {
         if (!db) return;
         const unsubscribe = onSnapshot(collection(db, "operative_agenda"), (snapshot) => {
             const liveExpenses = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
@@ -51,7 +52,7 @@ const AccountingView = ({
     }, [db]);
 
     // Fetch Marketing Allocations
-    useEffect(() => {
+    React.useEffect(() => {
         if (!db) return;
         const allocId = `ALLOC-${selectedYear}-${selectedMonth}`;
         const unsubscribe = onSnapshot(doc(db, "marketing_allocations", allocId), (doc) => {
@@ -91,12 +92,24 @@ const AccountingView = ({
     const getMonthStats = (txs) => {
         const totalIn = txs.filter(t => t.type === 'IN').reduce((acc, t) => acc + t.amount, 0);
         const totalOut = txs.filter(t => t.type === 'OUT').reduce((acc, t) => acc + t.amount, 0);
-        return { income: totalIn, expense: totalOut, balance: totalIn - totalOut };
+        const dividendsOut = txs.filter(t => t.type === 'OUT' && t.category === 'DIVIDENDOS').reduce((acc, t) => acc + t.amount, 0);
+
+        // El Profit Operativo es la utilidad ANTES de pagarle a los socios
+        const operatingProfit = totalIn - (totalOut - dividendsOut);
+
+        return {
+            income: totalIn,
+            expense: totalOut,
+            balance: totalIn - totalOut,
+            operatingProfit: operatingProfit,
+            dividends: dividendsOut
+        };
     };
 
     const stats = getMonthStats(filteredGlobalTx);
     const currentIncome = stats.income;
-    const currentBalance = stats.balance;
+    const currentBalance = stats.balance; // Saldo real en bancos/caja
+    const operatingProfit = stats.operatingProfit; // Base para liquidación
 
     const prevStats = getMonthStats(prevTx);
     const lastMonthBalance = prevStats.balance;
@@ -223,27 +236,60 @@ const AccountingView = ({
             {accountingTab === 'RESUMEN' && (
                 <div className="fade-in">
                     {/* CARD MAESTRA (LA MARCA - SUPER COMPACT ROW) */}
-                    <div style={{
-                        background: 'linear-gradient(135deg, rgba(0, 242, 255, 0.1) 0%, rgba(188, 111, 241, 0.1) 100%)',
-                        border: '1px solid rgba(0, 242, 255, 0.2)',
-                        padding: '15px 20px',
-                        borderRadius: '20px',
-                        marginBottom: '15px',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}>
+                    <div
+                        onClick={async () => {
+                            if (currentBalance <= 0) return alert('No hay utilidades para distribuir.');
+                            if (!window.confirm(`¿Deseas registrar la liquidación de ${formatPeso(currentBalance)} y dejar los saldos en 0?\n\nSe creará un registro de salida para cada socio según sus porcentajes.`)) return;
+
+                            try {
+                                const dist = [
+                                    { name: '🏛️ NEXXA CORP (50%)', amount: currentBalance * 0.5, cat: 'LIQUIDACIÓN_CORP' },
+                                    { name: '🟣 OPERATIVO JULI (20%)', amount: currentBalance * 0.2, cat: 'LIQUIDACIÓN_JULI' },
+                                    { name: '💎 PATRIMONIO YO (30%)', amount: currentBalance * 0.3, cat: 'LIQUIDACIÓN_PATRIMONIO' }
+                                ];
+
+                                for (const item of dist) {
+                                    const txId = `TX-DIST-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                                    await setDoc(doc(db, "globalTx", txId), {
+                                        id: txId,
+                                        desc: `Liquidación: ${item.name}`,
+                                        amount: item.amount,
+                                        method: 'Efectivo', // Defaulting to one method for zeroing, or we could split
+                                        type: 'OUT',
+                                        category: item.cat,
+                                        date: new Date().toISOString().split('T')[0],
+                                        createdAt: new Date().toISOString()
+                                    });
+                                }
+                                alert('✅ Profit liquidado. Los saldos del mes ahora están en 0.');
+                            } catch (err) {
+                                console.error(err);
+                                alert('Error al liquidar');
+                            }
+                        }}
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(0, 242, 255, 0.1) 0%, rgba(188, 111, 241, 0.1) 100%)',
+                            border: '1px solid rgba(0, 242, 255, 0.2)',
+                            padding: '15px 20px',
+                            borderRadius: '20px',
+                            marginBottom: '15px',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            cursor: 'pointer'
+                        }}
+                    >
                         <div style={{ position: 'absolute', right: '-10px', top: '-20px', opacity: 0.05, transform: 'rotate(-15deg)' }}>
                             <IconLogoNexxa size={100} />
                         </div>
 
                         {/* Left: Label + Amount */}
                         <div style={{ zIndex: 1 }}>
-                            <small style={{ color: 'var(--primary-cyan)', fontWeight: '950', letterSpacing: '1px', fontSize: '0.55rem', display: 'block', marginBottom: '2px' }}>PROFIT {months[selectedMonth].toUpperCase()}</small>
+                            <small style={{ color: 'var(--primary-cyan)', fontWeight: '950', letterSpacing: '1px', fontSize: '0.55rem', display: 'block', marginBottom: '2px' }}>PROFIT OPERATIVO (BASE)</small>
                             <div style={{ fontSize: '1.8rem', fontWeight: '950', letterSpacing: '-1px', color: '#fff', lineHeight: 1 }}>
-                                {formatPeso(currentBalance)}
+                                {formatPeso(operatingProfit)}
                             </div>
                         </div>
 
@@ -258,24 +304,62 @@ const AccountingView = ({
                         </div>
                     </div>
 
-                    {/* REPARTICIÓN DE ACTIVOS (COMPACT GRID) */}
+                    {/* REPARTICIÓN DE ACTIVOS (INDIVIDUAL LIQUIDATION) */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                         {[
-                            { label: 'NEXXA CORP (50%)', val: currentBalance * 0.5, color: 'var(--primary-cyan)', icon: '🏛️' },
-                            { label: 'OPERATIVO JULI (20%)', val: currentBalance * 0.2, color: 'var(--primary-purple)', icon: '🟣' },
-                            { label: 'PATRIMONIO YO (30%)', val: currentBalance * 0.3, color: 'var(--primary-pink)', icon: '💎' }
-                        ].map(p => (
-                            <div key={p.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--glass-bg)', padding: '10px 15px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <div style={{ fontSize: '0.9rem' }}>{p.icon}</div>
-                                    <div>
-                                        <div style={{ fontSize: '0.6rem', fontWeight: '950', color: '#fff' }}>{p.label}</div>
-                                        <div style={{ width: '25px', height: '2px', background: p.color, borderRadius: '10px', marginTop: '2px' }}></div>
+                            { label: 'NEXXA CORP (50%)', perc: 0.5, color: 'var(--primary-cyan)', icon: '🏛️', short: 'CORP' },
+                            { label: 'OPERATIVO JULI (20%)', perc: 0.2, color: 'var(--primary-purple)', icon: '🟣', short: 'JULI' },
+                            { label: 'PATRIMONIO YO (30%)', perc: 0.3, color: 'var(--primary-pink)', icon: '💎', short: 'PATRIMONIO' }
+                        ].map(p => {
+                            // Calculamos cuánto se le ha pagado YA a este socio en este mes
+                            const alreadyPaid = filteredGlobalTx
+                                .filter(t => t.type === 'OUT' && t.category === 'DIVIDENDOS' && t.desc.includes(p.label))
+                                .reduce((acc, t) => acc + t.amount, 0);
+
+                            // Lo que queda por pagar es su porcentaje del profit operativo menos lo ya pagado
+                            const remaining = (operatingProfit * p.perc) - alreadyPaid;
+                            const isFullyPaid = remaining <= 0 && operatingProfit > 0;
+
+                            return (
+                                <div
+                                    key={p.label}
+                                    onClick={() => {
+                                        if (remaining <= 0) return alert('Este socio ya ha sido liquidado o no tiene saldo pendiente.');
+                                        setPayingPartner({ ...p, remaining });
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        background: 'var(--glass-bg)',
+                                        padding: '10px 15px',
+                                        borderRadius: '14px',
+                                        border: '1px solid rgba(255,255,255,0.05)',
+                                        cursor: remaining > 0 ? 'pointer' : 'default',
+                                        opacity: isFullyPaid ? 0.5 : 1
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ fontSize: '0.9rem' }}>{p.icon}</div>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <div style={{ fontSize: '0.6rem', fontWeight: '950', color: '#fff' }}>{p.label}</div>
+                                                {isFullyPaid && <span style={{ fontSize: '0.5rem', color: 'var(--success-green)' }}>✅</span>}
+                                            </div>
+                                            <div style={{ width: '25px', height: '2px', background: p.color, borderRadius: '10px', marginTop: '2px' }}></div>
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '0.8rem', fontWeight: '950', color: isFullyPaid ? 'var(--success-green)' : '#fff' }}>
+                                            {isFullyPaid ? 'LIQUIDADO' : formatPeso(remaining)}
+                                        </div>
+                                        <small style={{ fontSize: '0.45rem', opacity: 0.3, fontWeight: '900' }}>
+                                            {isFullyPaid ? 'PAGO COMPLETO' : 'CLIC PARA PAGAR'}
+                                        </small>
                                     </div>
                                 </div>
-                                <div style={{ fontSize: '0.8rem', fontWeight: '950', color: '#fff' }}>{formatPeso(p.val)}</div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* AGENDA OPERATIVA - GASTOS PROGRAMADOS (DYNAMIC) */}
@@ -518,7 +602,12 @@ const AccountingView = ({
                                                 <small
                                                     onClick={async (e) => {
                                                         e.stopPropagation();
-                                                        const next = tx.method === 'Nequi' ? 'Daviplata' : (tx.method === 'Daviplata' ? 'Efectivo' : 'Nequi');
+                                                        const current = tx.method || 'Efectivo';
+                                                        let next = 'Nequi';
+                                                        if (current === 'Nequi') next = 'Daviplata';
+                                                        else if (current === 'Daviplata') next = 'Efectivo';
+                                                        else next = 'Nequi';
+
                                                         if (window.confirm(`¿Corregir método a ${next}?`)) {
                                                             await updateDoc(doc(db, "globalTx", tx.id), { method: next });
                                                         }
@@ -526,7 +615,7 @@ const AccountingView = ({
                                                     style={{ fontSize: '0.55rem', opacity: 0.6, cursor: 'pointer', borderBottom: '1px dotted rgba(255,255,255,0.3)' }}
                                                     title="Clic para corregir método"
                                                 >
-                                                    {tx.method || 'S/M'}
+                                                    {tx.method || 'Efectivo'}
                                                 </small>
                                                 {tx.eventId && (
                                                     <>
@@ -954,7 +1043,59 @@ const AccountingView = ({
                 </div>
             )}
 
-        </div >
+            {/* MODAL DE MÉTODO PARA LIQUIDACIÓN */}
+            {payingPartner && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div className="fade-in" style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '35px', padding: '30px', width: '100%', maxWidth: '380px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>{payingPartner.icon}</div>
+                        <h3 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', fontWeight: '950' }}>Liquidar a {payingPartner.short}</h3>
+                        <div style={{ fontSize: '1.5rem', fontWeight: '950', color: 'var(--primary-cyan)', marginBottom: '25px' }}>{formatPeso(payingPartner.remaining)}</div>
+
+                        <p style={{ fontSize: '0.7rem', opacity: 0.5, fontWeight: '800', marginBottom: '20px' }}>SELECCIONA EL MÉTODO DE PAGO:</p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                            {['Efectivo', 'Nequi', 'Daviplata'].map(method => (
+                                <button
+                                    key={method}
+                                    onClick={async () => {
+                                        try {
+                                            const txId = `TX-DIV-${Date.now()}-${payingPartner.short}`;
+                                            await setDoc(doc(db, "globalTx", txId), {
+                                                id: txId,
+                                                desc: `Pago de Ganancias: ${payingPartner.label}`,
+                                                amount: payingPartner.remaining,
+                                                method: method,
+                                                type: 'OUT',
+                                                category: 'DIVIDENDOS',
+                                                date: new Date().toISOString().split('T')[0],
+                                                createdAt: new Date().toISOString()
+                                            });
+                                            alert(`✅ Liquidación de ${payingPartner.label} vía ${method} registrada.`);
+                                            setPayingPartner(null);
+                                        } catch (err) {
+                                            console.error(err);
+                                            alert('Error al procesar');
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '18px', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.05)',
+                                        background: 'rgba(255,255,255,0.03)', color: '#fff', fontWeight: '950', fontSize: '0.8rem', cursor: 'pointer'
+                                    }}
+                                >
+                                    Pagar con {method.toUpperCase()}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setPayingPartner(null)}
+                                style={{ marginTop: '10px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', fontWeight: '800', fontSize: '0.7rem', cursor: 'pointer' }}
+                            >
+                                CANCELAR
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 

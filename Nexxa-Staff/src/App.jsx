@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react'; // Fix
 import RolesView from './components/RolesView';
 
 import QuotationsView from './components/QuotationsView';
@@ -6,7 +6,7 @@ import AccountingView from './components/AccountingView';
 import CreateEventView from './components/CreateEventView';
 import InventoryView from './components/InventoryView';
 import LogisticsView from './components/LogisticsView';
-import { getDynamicExtras } from './utils/helpers';
+import { getDynamicExtras, getClientName } from './utils/helpers';
 
 // --- IMPORTS MOVED ---
 import { formatPeso, months, getHours, parseFirestoreDate, parseLocalStrDate, getTodayStr, getTomorrowStr, subtractMinutes, formatInputNumber, parseInputNumber } from './utils/helpers';
@@ -144,11 +144,11 @@ function App() {
   });
 
   // --- PERSISTENCE EFFECTS ---
-  useEffect(() => {
+  React.useEffect(() => {
     localStorage.setItem('nexxa_last_view', view);
   }, [view]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     localStorage.setItem('nexxa_last_subtab', eventSubTab);
   }, [eventSubTab]);
   const [detailTab, setDetailTab] = useState('general');
@@ -173,6 +173,7 @@ function App() {
   const [staffRates, setStaffRates] = useState([]);
   const [scheduledExpenses, setScheduledExpenses] = useState([]);
   const [adAllocations, setAdAllocations] = useState({});
+  const [manualTasks, setManualTasks] = useState([]);
 
   // --- 5. MODALS & HELPERS ---
   const [showFinanceModal, setShowFinanceModal] = useState(null);
@@ -255,7 +256,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
 
   // --- 7. MAGIC LINK RECEIVER ---
-  useEffect(() => {
+  React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('client')) {
       try {
@@ -297,7 +298,7 @@ function App() {
   }, []);
 
   // Error listener for Mobile Debugging
-  useEffect(() => {
+  React.useEffect(() => {
     const handleError = (event) => {
       setLastFatalError(event.error?.message || event.message);
     };
@@ -306,7 +307,7 @@ function App() {
   }, []);
 
   // 1. SYNC EVENTS
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "events"), (snapshot) => {
       // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
@@ -350,7 +351,7 @@ function App() {
   }, []);
 
   // 1.5 SYNC QUOTATIONS
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
       // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
@@ -395,7 +396,7 @@ function App() {
   }, []);
 
   // 2. SYNC INVENTORY
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "inventory"), (snapshot) => {
       // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
       if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
@@ -427,7 +428,7 @@ function App() {
   }, []);
 
   // 3. SYNC GLOBAL TX
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "globalTx"), (snapshot) => {
       const liveTx = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setGlobalTx(liveTx.sort((a, b) => {
@@ -440,7 +441,7 @@ function App() {
   }, []);
 
   // 4. SYNC REPORTS
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "damageReports"), (snapshot) => {
       const liveRep = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setDamageReports(liveRep);
@@ -449,7 +450,7 @@ function App() {
   }, []);
 
   // 5. SYNC JOB TITLES (STAFF RATES)
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribeRates = onSnapshot(collection(db, "job_titles"), (snapshot) => {
       const liveRates = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setStaffRates(liveRates);
@@ -467,7 +468,7 @@ function App() {
   }, []);
 
   // 6. SYNC MARKETING DISTRIBUTION (ALLOCATIONS)
-  useEffect(() => {
+  React.useEffect(() => {
     const allocId = `ALLOC-${selectedYear}-${selectedMonth}`;
     const unsubscribe = onSnapshot(doc(db, "marketing_allocations", allocId), (docSnap) => {
       if (docSnap.exists()) {
@@ -479,13 +480,22 @@ function App() {
     return () => unsubscribe();
   }, [selectedYear, selectedMonth]);
 
+  // 7. SYNC MANUAL TASKS
+  React.useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "manual_tasks"), (snapshot) => {
+      const liveTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      setManualTasks(liveTasks);
+    });
+    return () => unsubscribe();
+  }, []);
+
 
 
 
   // Placeholder for session check (Moved below handleLogout)
 
   // ðŸ” FUNCIÓN DE AUDITORÃA TEMPORAL - Detectar registros corruptos
-  useEffect(() => {
+  React.useEffect(() => {
     const auditFirebaseData = async () => {
       console.log("ðŸ” INICIANDO AUDITORÃA DE FIREBASE...");
 
@@ -589,7 +599,7 @@ function App() {
 
 
   // SECURITY: Active session monitoring (1h Timeout)
-  useEffect(() => {
+  React.useEffect(() => {
     const checkSession = () => {
       const savedTime = localStorage.getItem('nexxa_login_time');
       // 1 hour = 3600000 ms
@@ -638,7 +648,7 @@ function App() {
 
 
   // --- MONITOR DE CIERRE AUTOMÃTICO (Turbo Context) ---
-  useEffect(() => {
+  React.useEffect(() => {
     if (view === 'detail' && selectedEventId) {
       const currentEvt = events.find(e => e.id === selectedEventId);
       if (currentEvt && currentEvt.status !== 'CLOSED') {
@@ -728,7 +738,7 @@ function App() {
 
 
   // Auto-Save Draft Effect (Keep Local for privacy/speed until save)
-  useEffect(() => {
+  React.useEffect(() => {
     localStorage.setItem('nexxa_draft_event', JSON.stringify(newEvent));
   }, [newEvent]);
 
@@ -796,10 +806,23 @@ function App() {
 
     const total = Number(newEvent.totalValue) || 0;
 
-    // GENERATE QUOTATION ID
-    const dateCode = newEvent.date.replace(/-/g, '').slice(2);
-    const dailyCount = quotations.filter(q => q.eventDetails?.date === newEvent.date).length + 1;
-    const finalQuoId = `QUO-${dateCode}-${String(dailyCount).padStart(2, '0')}`;
+    // INTELIGENCIA DE ID: Generar ID tipo QUO-YYMMDD-INDEX-CLIENTE
+    let finalQuoId = newEvent.id;
+    let oldId = null;
+
+    if (!finalQuoId || (!finalQuoId.startsWith('QUO-') && !finalQuoId.startsWith('EVT-'))) {
+      oldId = finalQuoId; // Guardamos el ID viejo para borrarlo si cambia
+      const [year, month, day] = (newEvent.date || getTodayStr()).split('-').map(s => s.padStart(2, '0'));
+      const yy = year.slice(-2);
+      const mm = month;
+      const dd = day;
+      const datePrefix = `${yy}${mm}${dd}`;
+
+      const dailyCount = quotations.filter(q => q.eventDetails?.date === newEvent.date).length + 1;
+      const cleanName = (newEvent.clientName || 'CLIENTE').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
+
+      finalQuoId = `QUO-${datePrefix}-${String(dailyCount).padStart(2, '0')}-${cleanName}`;
+    }
 
     // INITIAL ITEMS (Same logic as handleCreateEvent)
     let defaultItems = [];
@@ -829,7 +852,7 @@ function App() {
     }
 
     const eventObj = {
-      status: status, // 'SENT'
+      status: finalQuoId.startsWith('EVT-') ? 'CONFIRMED' : status, // Preserve confirmed status for events
       createdAt: newEvent.createdAt || serverTimestamp(),
       client: {
         name: newEvent.clientName,
@@ -865,19 +888,54 @@ function App() {
     };
 
     try {
-      // 1. SAVE AS QUOTATION
-      await setDoc(doc(db, "quotations", finalQuoId), eventObj);
+      // 1. SAVE TO CORRECT COLLECTION (Polymorphic Save)
+      const collectionName = finalQuoId.startsWith('EVT-') ? "events" : "quotations";
+      await setDoc(doc(db, collectionName, finalQuoId), eventObj);
+
+      // 2. CLEANUP OLD DOC if ID changed
+      if (oldId && oldId !== finalQuoId) {
+        await deleteDoc(doc(db, "quotations", oldId));
+        await deleteDoc(doc(db, "events", oldId));
+      }
 
       // 2. GENERATE PDF
       await generateQuotationPDF(eventObj);
 
-      alert('✅ Cotización Guardada y Enviada.');
+      const msg = finalQuoId.startsWith('EVT-') ? '✅ Cambios Guardados en el Evento.' : '✅ Cotización Guardada y Enviada.';
+      alert(msg);
       setView('quotations');
       setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '' });
       localStorage.removeItem('nexxa_draft_event');
     } catch (err) {
       console.error(err);
       alert('Error en la conversiÃ³n: ' + err.message);
+    }
+  };
+
+  const handleSaveManualTask = async (taskData) => {
+    try {
+      const taskId = `TASK-${Date.now()}`;
+      await setDoc(doc(db, "manual_tasks", taskId), {
+        ...taskData,
+        id: taskId,
+        createdAt: new Date().toISOString()
+      });
+      return true;
+    } catch (err) {
+      console.error("Error saving manual task:", err);
+      alert("Error al guardar la actividad");
+      return false;
+    }
+  };
+
+  const handleDeleteManualTask = async (taskId) => {
+    if (!confirm('¿Estás seguro de eliminar esta actividad?')) return;
+    try {
+      await deleteDoc(doc(db, "manual_tasks", taskId));
+      return true;
+    } catch (err) {
+      console.error("Error deleting manual task:", err);
+      return false;
     }
   };
 
@@ -966,7 +1024,7 @@ function App() {
         const txId = `TX-${Date.now()}`;
         await setDoc(doc(db, "globalTx", txId), {
           id: txId,
-          desc: `Abono Inicial (30%) Evento: ${quo.client?.name || quo.clientName || 'Cliente'}`,
+          desc: `Abono Inicial (30%) Evento: ${getClientName(quo)}`,
           amount: depositAmount,
           method: method,
           type: 'IN',
@@ -992,7 +1050,7 @@ function App() {
   };
 
   // --- AUTO-MIGRATION: FIX OLD IDS ---
-  useEffect(() => {
+  React.useEffect(() => {
     let migrationNeeded = false;
 
     const migratedEvents = events.map(evt => {
@@ -1021,7 +1079,7 @@ function App() {
   // But let's check events.length to be safe against deletions/additions triggering check.
 
   // --- AUTO-CLEANUP: EXPIRED QUOTATIONS ---
-  useEffect(() => {
+  React.useEffect(() => {
     const cleanupExpired = async () => {
       const today = new Date().toISOString().split('T')[0];
       const expiredLeads = quotations.filter(q => q.status === 'SENT' && q.eventDetails?.date && q.eventDetails.date < today);
@@ -1093,6 +1151,11 @@ function App() {
 
     const total = Number(newEvent.totalValue) || 0;
     const dep = Number(newEvent.deposit) || 0;
+
+    // BLOQUEO CRÍTICO: No permitir CONFIRMED sin abono
+    if (status === 'CONFIRMED' && dep <= 0) {
+      return alert('⚠️ ERROR: No puedes confirmar un evento sin registrar un Abono.\n\nSi el cliente aún no ha separado el cupo, usa el botón "COTIZAR".');
+    }
 
     // 1. DEFINIR ITEMS (Calculated based on Package + Extras?)
     // Note: Currently simple package mapping.
@@ -1203,10 +1266,20 @@ function App() {
 
     // GENERATE OR REUSE ID
     let finalId = newEvent.id;
-    if (!finalId) {
-      const dateCode = newEvent.date ? newEvent.date.replace(/-/g, '').slice(2) : 'XXXXXX';
-      const dailyCount = events.filter(e => e.eventDetails.date === newEvent.date).length + 1;
-      finalId = `EVT-${dateCode}-${String(dailyCount).padStart(2, '0')}`;
+    let oldIdToCleanup = null;
+
+    if (!finalId || (!finalId.startsWith('EVT-') && status === 'CONFIRMED')) {
+      if (finalId) oldIdToCleanup = finalId;
+      const [year, month, day] = (newEvent.date || getTodayStr()).split('-').map(s => s.padStart(2, '0'));
+      const yy = year.slice(-2);
+      const mm = month;
+      const dd = day;
+      const datePrefix = `${yy}${mm}${dd}`;
+
+      const dailyCount = events.filter(e => e.eventDetails?.date === newEvent.date).length + 1;
+      const cleanName = (newEvent.clientName || 'CLIENTE').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
+
+      finalId = `EVT-${datePrefix}-${String(dailyCount).padStart(2, '0')}-${cleanName}`;
     }
 
     const eventObj = {
@@ -1259,6 +1332,12 @@ function App() {
     // FIRESTORE UPSERT
     try {
       await setDoc(doc(db, "events", finalId), eventObj);
+
+      // Cleanup old ID if it changed
+      if (oldIdToCleanup && oldIdToCleanup !== finalId) {
+        await deleteDoc(doc(db, "events", oldIdToCleanup));
+        await deleteDoc(doc(db, "quotations", oldIdToCleanup));
+      }
       alert(status === 'DRAFT' ? 'ðŸ“ Borrador Guardado' : (newEvent.id ? 'âœ… Evento Actualizado' : 'âœ… Evento Creado'));
 
       setView('events');
@@ -1275,7 +1354,7 @@ function App() {
     // Map Event -> Form State
     const formState = {
       id: evt.id,
-      clientName: (evt.client?.name || evt.clientName || 'Cliente'),
+      clientName: getClientName(evt),
       clientPhone: evt.client?.phone || '',
       clientPhone2: evt.client?.phone2 || '',
       date: evt.eventDetails.date,
@@ -2188,7 +2267,7 @@ function App() {
           <section style={{ padding: '0 15px 35px 15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
               <h4 style={{ fontSize: '0.75rem', fontWeight: '950', textTransform: 'uppercase', margin: 0, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>
-                {(evt.client?.name || 'Cliente').toUpperCase()} â€¢ <span style={{ color: 'var(--primary-purple)' }}>{evt.eventDetails?.occasion?.toUpperCase() || 'EVENTO'}</span>
+                {getClientName(evt).toUpperCase()} • <span style={{ color: 'var(--primary-purple)' }}>{evt.eventDetails?.occasion?.toUpperCase() || 'EVENTO'}</span>
               </h4>
               <span style={{ color: 'var(--primary-cyan)', fontSize: '0.65rem', fontWeight: '950', letterSpacing: '0.5px' }}>
                 WP-{evt.id?.split('-').slice(1).join('-') || '000000-00'}
@@ -3036,7 +3115,7 @@ function App() {
             if (allOk) return false; // Todo recibido y pagado -> Fuera
           }
 
-          return (e.status === 'CONFIRMED' || e.status === 'SENT') && (e.client?.name || e.clientName || 'Cliente') && e.eventDetails?.date;
+          return (e.status === 'CONFIRMED' || e.status === 'SENT') && getClientName(e) && e.eventDetails?.date;
         })
         .sort((a, b) => {
           // SAFE SORT: Validar que ambos objetos existan
@@ -4272,6 +4351,9 @@ function App() {
               quotations={quotations}
               inventory={inventory}
               staffRates={staffRates}
+              manualTasks={manualTasks}
+              onSaveTask={handleSaveManualTask}
+              onDeleteTask={handleDeleteManualTask}
             />
           )}
           {view === 'accounting' && (
@@ -4299,57 +4381,71 @@ function App() {
                     setView('create');
                   }}
                   onEdit={(quo) => {
-                    setNewEvent({
-                      id: quo.id,
-                      createdAt: quo.createdAt || null,
-                      clientName: quo.client?.name || quo.clientName || '',
-                      clientPhone: quo.client?.phone || '',
-                      clientPhone2: quo.client?.phone2 || '',
-                      date: quo.eventDetails?.date || '',
-                      startTime: quo.eventDetails?.startTime || '',
-                      endTime: quo.eventDetails?.endTime || '',
-                      location: quo.eventDetails?.location || '',
-                      neighborhood: quo.eventDetails?.neighborhood || '',
-                      packName: (() => {
-                        const p = (quo.logistics?.packName || '').toLowerCase();
-                        if (p.includes('memories')) return 'Memories';
-                        if (p.includes('celebration')) return 'Celebration';
-                        return 'Essential';
-                      })(),
-                      totalValue: quo.financials?.totalValue || 0,
-                      deposit: (() => {
-                        const total = Number(quo.financials?.totalValue) || 0;
-                        const savedDep = quo.financials?.deposit;
-                        if (savedDep) return savedDep;
-                        return total > 0 ? Math.round((total * 0.3) / 1000) * 1000 : '';
-                      })(),
-                      managerName: '',
-                      guestCount: quo.eventDetails?.guestCount || 0,
-                      selectedExtras: (() => {
-                        const raw = quo.logistics?.selectedExtras || {};
-                        const clean = {};
-                        Object.keys(raw).forEach(k => {
-                          if (raw[k]) {
-                            const lowerK = k.toLowerCase();
-                            if (lowerK === 'makeup' || lowerK === 'neon' || lowerK.includes('maquillaje')) clean['extra_makeup'] = true;
-                            else clean[k] = true;
+                    try {
+                      if (!quo) throw new Error("Cotización inválida");
+
+                      setNewEvent({
+                        id: quo.id || null,
+                        createdAt: quo.createdAt || null,
+                        clientName: (quo.client?.name || quo.clientName || '').toString(),
+                        clientPhone: (quo.client?.phone || '').toString(),
+                        clientPhone2: (quo.client?.phone2 || '').toString(),
+                        date: (quo.eventDetails?.date || '').toString(),
+                        startTime: (quo.eventDetails?.startTime || '').toString(),
+                        endTime: (quo.eventDetails?.endTime || '').toString(),
+                        location: (quo.eventDetails?.location || '').toString(),
+                        neighborhood: (quo.eventDetails?.neighborhood || '').toString(),
+                        packName: (() => {
+                          const p = (quo.logistics?.packName || quo.packName || '').toString().toLowerCase();
+                          if (p.includes('memories')) return 'Memories';
+                          if (p.includes('celebration')) return 'Celebration';
+                          return 'Essential';
+                        })(),
+                        totalValue: Number(quo.financials?.totalValue || quo.totalValue) || 0,
+                        deposit: (() => {
+                          const total = Number(quo.financials?.totalValue || quo.totalValue) || 0;
+                          const savedDep = Number(quo.financials?.deposit || quo.deposit);
+                          if (!isNaN(savedDep) && savedDep > 0) return savedDep;
+                          return total > 0 ? Math.round((total * 0.3) / 1000) * 1000 : 0;
+                        })(),
+                        managerName: (quo.logistics?.managerName || '').toString(),
+                        guestCount: Number(quo.eventDetails?.guestCount || quo.guestCount) || 0,
+                        selectedExtras: (() => {
+                          const raw = quo.logistics?.selectedExtras || quo.selectedExtras || {};
+                          const clean = {};
+                          if (typeof raw === 'object' && raw !== null) {
+                            Object.keys(raw).forEach(k => {
+                              if (raw[k]) {
+                                const lowerK = k.toLowerCase();
+                                if (lowerK === 'makeup' || lowerK === 'neon' || lowerK.includes('maquillaje')) clean['extra_makeup'] = true;
+                                else clean[k] = true;
+                              }
+                            });
                           }
-                        });
-                        return clean;
-                      })(),
-                      makeupCount: quo.logistics?.makeupCount || 1,
-                      occasion: quo.eventDetails?.occasion || '',
-                      extraHourPrice: quo.financials?.extraHourPrice || (() => {
-                        const p = (quo.logistics?.packName || '').toLowerCase();
-                        if (p.includes('memories') || p.includes('celebration')) return 120000;
-                        return 85000;
-                      })(),
-                      indications: quo.eventDetails?.indications || 'Ninguna',
-                      materialsTime: '',
-                      warehouseTime: '',
-                      materialExplanation: ''
-                    });
-                    setView('create');
+                          return clean;
+                        })(),
+                        makeupCount: Number(quo.logistics?.makeupCount || quo.makeupCount) || 1,
+                        occasion: (quo.eventDetails?.occasion || quo.occasion || '').toString(),
+                        extraHourPrice: Number(quo.financials?.extraHourPrice || quo.extraHourPrice) || (() => {
+                          const p = (quo.logistics?.packName || quo.packName || '').toString().toLowerCase();
+                          if (p.includes('memories') || p.includes('celebration')) return 120000;
+                          return 85000;
+                        })(),
+                        indications: (quo.eventDetails?.indications || quo.indications || 'Ninguna').toString(),
+                        materialsTime: '',
+                        warehouseTime: (quo.eventDetails?.warehouseTime || '').toString(),
+                        materialExplanation: (quo.materialExplanation || '').toString(),
+                        photoStartTime: (quo.eventDetails?.photoStartTime || '').toString(),
+                        photoEndTime: (quo.eventDetails?.photoEndTime || '').toString(),
+                        decorStartTime: (quo.eventDetails?.decorStartTime || '').toString(),
+                        decorEndTime: (quo.eventDetails?.decorEndTime || '').toString(),
+                        paymentMethod: (quo.financials?.paymentMethod || 'Nequi').toString()
+                      });
+                      setView('create');
+                    } catch (e) {
+                      console.error("Error al editar cotización:", e, quo);
+                      alert("Error: Esta cotización tiene datos dañados y no se puede abrir.");
+                    }
                   }}
                   onApprove={(quo) => approveQuotation(quo)}
                   onMarkLost={(quo) => updateQuotationStatus(quo.id, 'LOST')}
@@ -4548,8 +4644,8 @@ function App() {
                       style={{ padding: '18px', borderRadius: '18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontWeight: '700' }}
                       required
                     />
-                    {events.filter(ev => ev.client?.name || ev.clientName).map(ev => (
-                      <option key={ev.id} value={ev.id}>{ev.client?.name || ev.clientName} (ID: {ev.id})</option>
+                    {events.filter(ev => getClientName(ev)).map(ev => (
+                      <option key={ev.id} value={ev.id}>{getClientName(ev)} (ID: {ev.id})</option>
                     ))}
 
                     {/* CALCULADORA DE NÃ“MINA DINÃMICA */}
