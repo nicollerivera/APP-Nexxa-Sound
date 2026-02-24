@@ -29,9 +29,16 @@ const CreateEventView = ({
 }) => {
     const [sectionState, setSectionState] = useState({ s1: true, s2: false, s3: false });
 
-    console.log("CreateEventView Loaded - Fix V3 Applied");
+    console.log("CreateEventView Loaded - Fix V4 Applied");
 
     const toggleSection = (key) => setSectionState(prev => ({ ...prev, [key]: !prev[key] }));
+
+    const getAlertStyle = (val) => ({
+        border: !val ? '2px solid #ff4444' : '1px solid rgba(255,255,255,0.05)',
+        background: !val ? 'rgba(255, 68, 68, 0.15)' : 'rgba(255,255,255,0.03)',
+        color: !val ? '#ffcccc' : '#fff',
+        transition: 'all 0.3s ease'
+    });
 
     // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE (REACTIVADO)
     // Si ya existe horario DJ pero Foto/Decor están vacíos, sincronizarlos.
@@ -201,7 +208,7 @@ const CreateEventView = ({
             updated.makeupCount = value;
         } else if (field === 'guestCount') {
             updated.guestCount = value;
-            updated.makeupCount = null;
+            // Quitamos el reset de makeupCount para que no salte el precio si el usuario ya lo ajustó
         } else if (field === 'packName') {
             updated.packName = value;
         } else if (field === 'startTime') {
@@ -344,282 +351,74 @@ const CreateEventView = ({
         }
     }, [newEvent.packName, newEvent.id, setNewEvent]);
 
-    const currentConf = PRICING[newEvent.packName] || {};
-    const duration = newEvent.startTime && newEvent.endTime ? getHours(newEvent.startTime, newEvent.endTime) : 0;
-    const extrasKy = Math.max(0, Math.ceil(duration - 4));
-    const isEventMode = newEvent.id?.startsWith('EVT');
+    try {
+        const currentConf = PRICING[newEvent.packName] || {};
+        const duration = newEvent.startTime && newEvent.endTime ? getHours(newEvent.startTime, newEvent.endTime) : 0;
+        const extrasKy = Math.max(0, Math.ceil(duration - 4));
+        const isEventMode = newEvent.id?.startsWith('EVT');
 
-    return (
-        <div className="fade-in container">
-            <div className="header-row" style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button
-                        onClick={() => setView(newEvent.id?.startsWith('EVT') ? 'events' : 'quotations')}
-                        style={{
-                            background: 'rgba(255,255,255,0.05)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: '10px',
-                            padding: '10px 15px',
-                            color: 'var(--primary-cyan)',
-                            fontSize: '0.75rem',
-                            fontWeight: '900',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase'
-                        }}
-                    >
-                        <IconArrowLeft size={16} /> Volver
-                    </button>
+        return (
+            <div className="fade-in container">
+                <div className="header-row" style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={() => setView(newEvent.id?.startsWith('EVT') ? 'events' : 'quotations')}
+                            style={{
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '10px',
+                                padding: '10px 15px',
+                                color: 'var(--primary-cyan)',
+                                fontSize: '0.75rem',
+                                fontWeight: '900',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                cursor: 'pointer',
+                                textTransform: 'uppercase'
+                            }}
+                        >
+                            <IconArrowLeft size={16} /> Volver
+                        </button>
 
-                    <button
-                        onClick={handlePasteFromWhatsApp}
-                        className="action-btn"
-                        style={{ padding: '8px 14px', fontSize: '0.8rem', background: '#25D366', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '8px', cursor: 'pointer' }}
-                    >
-                        <IconWhatsApp /> Pegar WhatsApp
-                    </button>
+                        <button
+                            onClick={handlePasteFromWhatsApp}
+                            className="action-btn"
+                            style={{ padding: '8px 14px', fontSize: '0.8rem', background: '#25D366', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '8px', cursor: 'pointer' }}
+                        >
+                            <IconWhatsApp /> Pegar WhatsApp
+                        </button>
 
-                    <button
-                        onClick={() => {
-                            if (window.confirm('¿Descartar cambios y limpiar formulario?')) {
-                                const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
-                                setNewEvent(emptyState);
-                                localStorage.removeItem('nexxa_draft_event');
-                            }
-                        }}
-                        className="action-btn"
-                        style={{ padding: '8px 14px', fontSize: '0.8rem', background: 'rgba(255,255,255,0.05)', color: '#ccc', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <IconTrash /> Limpiar
-                    </button>
-                </div>
-
-                <div style={{ textAlign: 'right', flex: 1 }}>
-                    <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 'bold' }}>{isEventMode ? 'EDITANDO EVENTO' : 'NUEVA COTIZACIÓN'}</span>
-                </div>
-            </div>
-
-            <form onSubmit={(e) => { e.preventDefault(); handleCreateEvent(e); }} className="create-form">
-
-                {/* SECTION 1: PACKAGE & TIMES */}
-                <div className="form-section premium-card" style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    borderRadius: '28px',
-                    padding: '25px',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    marginBottom: '20px',
-                    transition: 'all 0.3s ease'
-                }}>
-                    <div
-                        onClick={() => toggleSection('s1')}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '20px' : '0' }}
-                    >
-                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>1. Paquete y Horarios (v3 - CONFIRMACIÓN)</h3>
-                        <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s1 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-                    </div>
-                    {sectionState.s1 && (
-                        <>
-                            <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                                <select style={{ flex: 1 }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
-                                    <option value="Essential">Essential ($450k)</option>
-                                    <option value="Memories">Memories ($650k)</option>
-                                    <option value="Celebration">Celebration ($850k)</option>
-                                    <option value="Personalizado">Personalizado</option>
-                                </select>
-                                <select style={{ flex: 1 }} value={newEvent.leadSource || ''} onChange={e => updateEvent('leadSource', e.target.value)}>
-                                    <option value="">¿Cómo nos conoció?</option>
-                                    <option value="Facebook">📘 Facebook</option>
-                                    <option value="Instagram">📸 Instagram</option>
-                                    <option value="Google">🔍 Google</option>
-                                    <option value="Recomendación">👥 Recomendación</option>
-                                    <option value="WhatsApp">💬 WhatsApp</option>
-                                    <option value="TikTok">🎵 TikTok</option>
-                                    <option value="Otro">🌐 Otro</option>
-                                </select>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
-                                <div>
-                                    <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Fecha</label>
-                                    <input required type="date" value={newEvent.date} onChange={e => updateEvent('date', e.target.value)} style={{ width: '100%' }} />
-                                </div>
-                                <div>
-                                    <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Ocasión</label>
-                                    <input placeholder="Ej: Cumpleaños" value={newEvent.occasion} onChange={e => updateEvent('occasion', e.target.value)} style={{ width: '100%' }} />
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
-                                <div>
-                                    <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Invitados</label>
-                                    <input type="tel" inputMode="numeric" placeholder="#" value={newEvent.guestCount || ''} onChange={e => updateEvent('guestCount', e.target.value)} style={{ width: '100%' }} />
-                                </div>
-                                <div>
-                                    <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Valor Hora Extra ($)</label>
-                                    <input type="tel" inputMode="numeric" value={formatInputNumber(newEvent.extraHourPrice)} onChange={e => updateEvent('extraHourPrice', parseInputNumber(e.target.value))} style={{ width: '100%', color: '#facc15', fontWeight: 'bold' }} />
-                                </div>
-                            </div>
-
-                            {isEventMode ? (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
-                                    <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
-                                    <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
-                                    <TimeInput label="Bodega" value={newEvent.warehouseTime} onChange={(val) => updateEvent('warehouseTime', val)} />
-                                </div>
-                            ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                                    <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
-                                    <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
-                                </div>
-                            )}
-
-                            {duration > 0 && (
-                                <div style={{ marginBottom: '10px', padding: '4px 8px', background: duration < 4 ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: duration < 4 ? '#ff4d4d' : '#00d4ff', border: duration < 4 ? '1px solid #ff4d4d' : 'none' }}>
-                                    ⏳ <strong>{duration.toFixed(1)}h</strong> (DJ/Sonido)
-                                    {duration < 4 && <span> ⚠️ Mínimo 4 Horas requeridas</span>}
-                                    {extrasKy > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extrasKy}h extra)</span>}
-                                </div>
-                            )}
-
-                            <div style={{ marginTop: '15px' }}>
-                                {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
-                                    <h4 style={{ fontSize: '0.8rem', color: 'var(--primary-cyan)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>1.1 Asignación Operativa</h4>
-                                )}
-                                {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
-                                    <div style={{ padding: '15px', background: 'rgba(255, 150, 0, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 150, 0, 0.2)', marginBottom: '10px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#facc15' }}>
-                                            <IconCalendar size={14} />
-                                            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Fotografía (OBLIGATORIO)</span>
-                                        </div>
-                                        {/* Implementación Maestro-Espejo: Se llenan con DJ por defecto, se desvinculan al editar manual */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                            <TimeInput label="Inicio Foto" value={newEvent.photoStartTime} onChange={(val) => updateEvent('photoStartTime', val)} />
-                                            <TimeInput label="Fin Foto" value={newEvent.photoEndTime} onChange={(val) => updateEvent('photoEndTime', val)} />
-                                        </div>
-                                        {newEvent.photoDuration > 0 && (
-                                            <div style={{ marginTop: '10px', padding: '5px 10px', background: newEvent.photoDuration < 4 ? 'rgba(255,0,0,0.1)' : 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: newEvent.photoDuration < 4 ? '#ff4d4d' : '#facc15' }}>
-                                                📸 <strong>{newEvent.photoDuration}h</strong> Fotografía
-                                                {newEvent.photoDuration < 4 && <span> ⚠️ Mínimo 4h</span>}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                {(newEvent.packName === 'Celebration') && (
-                                    <div style={{ padding: '15px', background: 'rgba(188, 111, 241, 0.05)', borderRadius: '15px', border: '1px solid rgba(188, 111, 241, 0.2)', marginBottom: '10px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-purple)' }}>
-                                            <IconFlow size={14} />
-                                            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Decoración (OBLIGATORIO)</span>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                            <TimeInput label="Inicio Decor" value={newEvent.decorStartTime} onChange={(val) => updateEvent('decorStartTime', val)} />
-                                            <TimeInput label="Fin Decor" value={newEvent.decorEndTime} onChange={(val) => updateEvent('decorEndTime', val)} />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
-                                <input required placeholder="Barrio" value={newEvent.neighborhood || ''} onChange={e => updateEvent('neighborhood', e.target.value)} />
-                                <input required placeholder="Dirección Exacta" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} />
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* SECTION 2: EXTRAS */}
-                <div className="form-section premium-card" style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    borderRadius: '28px',
-                    padding: '25px',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    marginBottom: '20px',
-                    transition: 'all 0.3s ease'
-                }}>
-                    <div
-                        onClick={() => toggleSection('s2')}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s2 ? '20px' : '0' }}
-                    >
-                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>2. Extras</h3>
-                        <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s2 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                        <button
+                            onClick={() => {
+                                if (window.confirm('¿Descartar cambios y limpiar formulario?')) {
+                                    const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
+                                    setNewEvent(emptyState);
+                                    localStorage.removeItem('nexxa_draft_event');
+                                }
+                            }}
+                            className="action-btn"
+                            style={{ padding: '8px 14px', fontSize: '0.8rem', background: 'rgba(255,255,255,0.05)', color: '#ccc', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <IconTrash /> Limpiar
+                        </button>
                     </div>
 
-                    {sectionState.s2 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '4px' }}>Adicionales Disponibles:</label>
-                            {getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).map(extra => {
-                                const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]);
-                                return (
-                                    <div
-                                        key={extra.id}
-                                        onClick={() => updateEvent('toggleExtra', extra.id)}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px',
-                                            background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
-                                            border: '1px solid', borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
-                                            borderRadius: '8px', cursor: 'pointer'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra?.name || 'Extra'}</span>
-                                            <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
-                                                + ${extra.price.toLocaleString()}
-                                            </span>
-                                            {extra.isMakeup && isActive && (
-                                                <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
-                                                    <small onClick={() => updateEvent('changeMakeupCount', Math.max(1, (extra.qty || 1) - 1))} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
-                                                    <span style={{ fontSize: '0.8rem' }}>{extra.qty}</span>
-                                                    <small onClick={() => updateEvent('changeMakeupCount', (extra.qty || 1) + 1)} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
-                                                </div>
-                                            )}
-                                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-
-                {/* SECTION 3: CLIENT */}
-                <div className="form-section premium-card" style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    borderRadius: '28px',
-                    padding: '25px',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    marginBottom: '20px',
-                    transition: 'all 0.3s ease'
-                }}>
-                    <div
-                        onClick={() => toggleSection('s3')}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '20px' : '0' }}
-                    >
-                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>3. Datos del Cliente</h3>
-                        <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s3 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                    <div style={{ textAlign: 'right', flex: 1 }}>
+                        <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 'bold' }}>{isEventMode ? 'EDITANDO EVENTO' : 'NUEVA COTIZACIÓN'}</span>
                     </div>
-
-                    {sectionState.s3 && (
-                        <>
-                            <input required placeholder="Nombre Cliente" value={newEvent.clientName} onChange={e => updateEvent('clientName', e.target.value)} />
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '6px' }}>
-                                <input placeholder="WhatsApp P." value={newEvent.clientPhone} onChange={e => updateEvent('clientPhone', e.target.value)} type="tel" />
-                                <input placeholder="WhatsApp S." value={newEvent.clientPhone2} onChange={e => updateEvent('clientPhone2', e.target.value)} type="tel" />
-                            </div>
-                        </>
-                    )}
                 </div>
 
-                {/* SECTION 4: MISSION DETAILS */}
-                {isEventMode && (
+                <form
+                    onSubmit={(e) => { e.preventDefault(); handleCreateEvent(e); }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                            e.preventDefault();
+                        }
+                    }}
+                    className="create-form"
+                >
+
+                    {/* SECTION 1: PACKAGE & TIMES */}
                     <div className="form-section premium-card" style={{
                         background: 'rgba(255, 255, 255, 0.02)',
                         backdropFilter: 'blur(20px)',
@@ -627,158 +426,448 @@ const CreateEventView = ({
                         borderRadius: '28px',
                         padding: '25px',
                         border: '1px solid rgba(255, 255, 255, 0.08)',
-                        marginBottom: '20px'
+                        marginBottom: '20px',
+                        transition: 'all 0.3s ease'
                     }}>
-                        <h3 style={{ margin: '0 0 20px 0', fontSize: '1rem', fontWeight: '900', color: '#fff' }}>4. Detalles de la Misión</h3>
-                        <label style={{ fontSize: '0.75rem', color: '#666' }}>Indicaciones Especiales (Venue/Acceso)</label>
-                        <textarea
-                            placeholder="Ej: Ingreso por sótano, llevar mantel blanco, etc."
-                            value={newEvent.indications}
-                            onChange={e => updateEvent('indications', e.target.value)}
-                            style={{ width: '100%', minHeight: '60px', background: '#222', color: '#fff', border: '1px solid #333', borderRadius: '12px', padding: '10px', fontSize: '0.9rem', marginBottom: '10px' }}
-                        />
-                        <label style={{ fontSize: '0.75rem', color: '#666' }}>Explicación del Material (Inventario/Uso)</label>
-                        <textarea
-                            placeholder="Notas sobre el material asignado o uso específico..."
-                            value={newEvent.materialExplanation}
-                            onChange={e => updateEvent('materialExplanation', e.target.value)}
-                            style={{ width: '100%', minHeight: '60px', background: '#222', color: '#fff', border: '1px solid #333', borderRadius: '12px', padding: '10px', fontSize: '0.9rem' }}
-                        />
-                    </div>
-                )}
+                        <div
+                            onClick={() => toggleSection('s1')}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '20px' : '0' }}
+                        >
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>1. Paquete y Horarios</h3>
+                            <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s1 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                        </div>
+                        {sectionState.s1 && (
+                            <>
+                                <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                                    <select style={{ flex: 1 }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
+                                        <option value="Essential">Essential ($450k)</option>
+                                        <option value="Memories">Memories ($650k)</option>
+                                        <option value="Celebration">Celebration ($850k)</option>
+                                        <option value="Personalizado">Personalizado</option>
+                                    </select>
+                                    <select
+                                        style={{
+                                            flex: 1,
+                                            ...getAlertStyle(newEvent.leadSource)
+                                        }}
+                                        value={newEvent.leadSource || ''}
+                                        onChange={e => updateEvent('leadSource', e.target.value)}
+                                    >
+                                        <option value="" style={{ color: '#ff4444', fontWeight: 'bold' }}>⚠️ ¿Cómo nos conoció?</option>
+                                        <option value="Facebook" style={{ color: '#000' }}>📘 Facebook</option>
+                                        <option value="Instagram" style={{ color: '#000' }}>📸 Instagram</option>
+                                        <option value="Google" style={{ color: '#000' }}>🔍 Google</option>
+                                        <option value="Recomendación" style={{ color: '#000' }}>👥 Recomendación</option>
+                                        <option value="WhatsApp" style={{ color: '#000' }}>💬 WhatsApp</option>
+                                        <option value="TikTok" style={{ color: '#000' }}>🎵 TikTok</option>
+                                        <option value="Otro" style={{ color: '#000' }}>🌐 Otro</option>
+                                    </select>
+                                </div>
 
-                {/* SECTION 5: FINAL QUOTATION */}
-                <div className="form-section premium-card" style={{
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    borderRadius: '28px',
-                    padding: '25px',
-                    border: '1px solid rgba(0, 242, 255, 0.3)',
-                    marginBottom: '20px',
-                    boxShadow: '0 0 30px rgba(0, 242, 255, 0.05)'
-                }}>
-                    <h3 style={{ margin: '0 0 20px 0', fontSize: '1rem', fontWeight: '900', color: 'var(--primary-cyan)' }}>5. Cotización Final</h3>
-                    <div className="money-row">
-                        <div style={{ flex: 1, fontSize: '0.8rem', color: '#ccc', background: '#222', padding: '10px', borderRadius: '8px', marginRight: '10px' }}>
-                            {newEvent.packName !== 'Personalizado' ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white' }}>
-                                        <span>Paquete Base (4h):</span>
-                                        <strong>${(currentConf.base || 0).toLocaleString()}</strong>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Fecha</label>
+                                        <input
+                                            required
+                                            type="date"
+                                            value={newEvent.date}
+                                            onChange={e => updateEvent('date', e.target.value)}
+                                            style={{ width: '100%', ...getAlertStyle(newEvent.date) }}
+                                        />
                                     </div>
-                                    {extrasKy > 0 && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', alignItems: 'center' }}>
-                                            <span>+ {extrasKy} Horas Extras (${(Number(newEvent.extraHourPrice) || 0).toLocaleString()} c/u):</span>
-                                            <strong>${(extrasKy * (Number(newEvent.extraHourPrice) || 0)).toLocaleString()}</strong>
+                                    <div>
+                                        <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Ocasión</label>
+                                        <input
+                                            placeholder="Ej: Cumpleaños"
+                                            value={newEvent.occasion}
+                                            onChange={e => updateEvent('occasion', e.target.value)}
+                                            style={{ width: '100%', ...getAlertStyle(newEvent.occasion) }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Invitados</label>
+                                        <input
+                                            type="tel"
+                                            inputMode="numeric"
+                                            placeholder="#"
+                                            value={newEvent.guestCount || ''}
+                                            onChange={e => updateEvent('guestCount', e.target.value)}
+                                            style={{ width: '100%', ...getAlertStyle(newEvent.guestCount) }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Valor Hora Extra ($)</label>
+                                        <input type="tel" inputMode="numeric" value={formatInputNumber(newEvent.extraHourPrice)} onChange={e => updateEvent('extraHourPrice', parseInputNumber(e.target.value))} style={{ width: '100%', color: '#facc15', fontWeight: 'bold' }} />
+                                    </div>
+                                </div>
+
+                                {isEventMode ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                                        <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
+                                        <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
+                                        <TimeInput label="Bodega" value={newEvent.warehouseTime} onChange={(val) => updateEvent('warehouseTime', val)} />
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                                        <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
+                                        <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
+                                    </div>
+                                )}
+
+                                {duration > 0 && (
+                                    <div style={{ marginBottom: '10px', padding: '4px 8px', background: duration < 4 ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: duration < 4 ? '#ff4d4d' : '#00d4ff', border: duration < 4 ? '1px solid #ff4d4d' : 'none' }}>
+                                        ⏳ <strong>{(Number(duration) || 0).toFixed(1)}h</strong> (DJ/Sonido)
+                                        {duration < 4 && <span> ⚠️ Mínimo 4 Horas requeridas</span>}
+                                        {extrasKy > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extrasKy}h extra)</span>}
+                                    </div>
+                                )}
+
+                                <div style={{ marginTop: '15px' }}>
+                                    {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
+                                        <h4 style={{ fontSize: '0.8rem', color: 'var(--primary-cyan)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>1.1 Asignación Operativa</h4>
+                                    )}
+                                    {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
+                                        <div style={{ padding: '15px', background: 'rgba(255, 150, 0, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 150, 0, 0.2)', marginBottom: '10px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#facc15' }}>
+                                                <IconCalendar size={14} />
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Fotografía (OBLIGATORIO)</span>
+                                            </div>
+                                            {/* Implementación Maestro-Espejo: Se llenan con DJ por defecto, se desvinculan al editar manual */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                <TimeInput label="Inicio Foto" value={newEvent.photoStartTime} onChange={(val) => updateEvent('photoStartTime', val)} />
+                                                <TimeInput label="Fin Foto" value={newEvent.photoEndTime} onChange={(val) => updateEvent('photoEndTime', val)} />
+                                            </div>
+                                            {newEvent.photoDuration > 0 && (
+                                                <div style={{ marginTop: '10px', padding: '5px 10px', background: newEvent.photoDuration < 4 ? 'rgba(255,0,0,0.1)' : 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: newEvent.photoDuration < 4 ? '#ff4d4d' : '#facc15' }}>
+                                                    📸 <strong>{newEvent.photoDuration}h</strong> Fotografía
+                                                    {newEvent.photoDuration < 4 && <span> ⚠️ Mínimo 4h</span>}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
-                                    {(() => {
-                                        const activeExtras = getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).filter(
-                                            ex => newEvent.selectedExtras?.[ex.id]
-                                        );
-                                        if (activeExtras.length === 0) return null;
-                                        return activeExtras.map(ex => (
-                                            <div key={ex.id} style={{ marginBottom: '4px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#bc6ff1' }}>
-                                                    <span>+ {ex?.name || 'Extra'}:</span>
-                                                    <strong>${ex.price.toLocaleString()}</strong>
-                                                </div>
-                                                <div style={{ fontSize: '0.65rem', color: '#999', paddingLeft: '10px', fontStyle: 'italic' }}>
-                                                    {ex.details}
-                                                </div>
+                                    {(newEvent.packName === 'Celebration') && (
+                                        <div style={{ padding: '15px', background: 'rgba(188, 111, 241, 0.05)', borderRadius: '15px', border: '1px solid rgba(188, 111, 241, 0.2)', marginBottom: '10px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-purple)' }}>
+                                                <IconFlow size={14} />
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Decoración (OBLIGATORIO)</span>
                                             </div>
-                                        ));
-                                    })()}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                <TimeInput label="Inicio Decor" value={newEvent.decorStartTime} onChange={(val) => updateEvent('decorStartTime', val)} />
+                                                <TimeInput label="Fin Decor" value={newEvent.decorEndTime} onChange={(val) => updateEvent('decorEndTime', val)} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            ) : <div>Tarifa Manual</div>}
-                        </div>
 
-                        <div style={{ flex: 1 }}>
-                            <small style={{ color: '#888', marginBottom: '2px' }}>Valor Total (Calculado):</small>
-                            <input
-                                required
-                                placeholder="$ 0"
-                                type="text"
-                                value={formatInputNumber(newEvent.totalValue)}
-                                onChange={e => updateEvent('totalValue', parseInputNumber(e.target.value))}
-                                style={{ fontWeight: 'bold', color: '#00d4ff', fontSize: '1.4rem', height: '50px' }}
-                            />
-                        </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
+                                    <input
+                                        required
+                                        placeholder="Barrio"
+                                        value={newEvent.neighborhood || ''}
+                                        onChange={e => updateEvent('neighborhood', e.target.value)}
+                                        style={getAlertStyle(newEvent.neighborhood)}
+                                    />
+                                    <input
+                                        required
+                                        placeholder="Dirección Exacta"
+                                        value={newEvent.location}
+                                        onChange={e => updateEvent('location', e.target.value)}
+                                        style={getAlertStyle(newEvent.location)}
+                                    />
+                                </div>
+                            </>
+                        )}
                     </div>
 
-                    <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'flex-end', overflow: 'visible' }}>
-                        <div style={{ width: '40% !important', position: 'relative', minWidth: '120px' }}>
-                            <div style={{ position: 'relative', width: '100%' }}>
+                    {/* SECTION 2: EXTRAS */}
+                    <div className="form-section premium-card" style={{
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        borderRadius: '28px',
+                        padding: '25px',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        marginBottom: '20px',
+                        transition: 'all 0.3s ease'
+                    }}>
+                        <div
+                            onClick={() => toggleSection('s2')}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s2 ? '20px' : '0' }}
+                        >
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>2. Extras</h3>
+                            <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s2 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                        </div>
+
+                        {sectionState.s2 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '4px' }}>Adicionales Disponibles:</label>
+                                {getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).map(extra => {
+                                    const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]);
+                                    return (
+                                        <div
+                                            key={extra.id}
+                                            onClick={() => updateEvent('toggleExtra', extra.id)}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px',
+                                                background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
+                                                border: '1px solid', borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
+                                                borderRadius: '8px', cursor: 'pointer'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra?.name || 'Extra'}</span>
+                                                <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
+                                                    + ${extra.price.toLocaleString()}
+                                                </span>
+                                                {extra.isMakeup && isActive && (
+                                                    <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
+                                                        <small onClick={() => updateEvent('changeMakeupCount', Math.max(1, (extra.qty || 1) - 1))} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
+                                                        <span style={{ fontSize: '0.8rem' }}>{extra.qty}</span>
+                                                        <small onClick={() => updateEvent('changeMakeupCount', (extra.qty || 1) + 1)} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
+                                                    </div>
+                                                )}
+                                                <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* SECTION 3: CLIENT */}
+                    <div className="form-section premium-card" style={{
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        borderRadius: '28px',
+                        padding: '25px',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        marginBottom: '20px',
+                        transition: 'all 0.3s ease'
+                    }}>
+                        <div
+                            onClick={() => toggleSection('s3')}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '20px' : '0' }}
+                        >
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fff', letterSpacing: '0.5px' }}>3. Datos del Cliente</h3>
+                            <span style={{ fontSize: '1.2rem', color: 'var(--primary-cyan)', transition: 'transform 0.3s ease', transform: sectionState.s3 ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                        </div>
+
+                        {sectionState.s3 && (
+                            <>
                                 <input
-                                    key="input_money_icon_force"
                                     required
-                                    placeholder="0"
-                                    type="tel"
-                                    inputMode="numeric"
-                                    value={formatInputNumber(newEvent.deposit)}
-                                    onChange={e => updateEvent('deposit', parseInputNumber(e.target.value))}
-                                    style={{
-                                        paddingLeft: '12px !important',
-                                        paddingRight: '10px !important',
-                                        width: '100% !important',
-                                        fontSize: '1.1rem',
-                                        fontWeight: '900',
-                                        color: 'var(--primary-cyan)',
-                                        height: '42px',
-                                        margin: 0,
-                                        boxSizing: 'border-box'
-                                    }}
+                                    placeholder="Nombre Cliente"
+                                    value={newEvent.clientName}
+                                    onChange={e => updateEvent('clientName', e.target.value)}
+                                    style={{ width: '100%', marginBottom: '6px', ...getAlertStyle(newEvent.clientName) }}
+                                />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '6px' }}>
+                                    <input
+                                        placeholder="WhatsApp P."
+                                        value={newEvent.clientPhone}
+                                        onChange={e => updateEvent('clientPhone', e.target.value)}
+                                        type="tel"
+                                        style={getAlertStyle(newEvent.clientPhone)}
+                                    />
+                                    <input
+                                        placeholder="WhatsApp S."
+                                        value={newEvent.clientPhone2}
+                                        onChange={e => updateEvent('clientPhone2', e.target.value)}
+                                        type="tel"
+                                        style={getAlertStyle(newEvent.clientPhone2)}
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* SECTION 4: MISSION DETAILS */}
+                    {isEventMode && (
+                        <div className="form-section premium-card" style={{
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            backdropFilter: 'blur(20px)',
+                            WebkitBackdropFilter: 'blur(20px)',
+                            borderRadius: '28px',
+                            padding: '25px',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            marginBottom: '20px'
+                        }}>
+                            <h3 style={{ margin: '0 0 20px 0', fontSize: '1rem', fontWeight: '900', color: '#fff' }}>4. Detalles de la Misión</h3>
+                            <label style={{ fontSize: '0.75rem', color: '#666' }}>Indicaciones Especiales (Venue/Acceso)</label>
+                            <textarea
+                                placeholder="Ej: Ingreso por sótano, llevar mantel blanco, etc."
+                                value={newEvent.indications}
+                                onChange={e => updateEvent('indications', e.target.value)}
+                                style={{ width: '100%', minHeight: '60px', background: '#222', color: '#fff', border: '1px solid #333', borderRadius: '12px', padding: '10px', fontSize: '0.9rem', marginBottom: '10px' }}
+                            />
+                            <label style={{ fontSize: '0.75rem', color: '#666' }}>Explicación del Material (Inventario/Uso)</label>
+                            <textarea
+                                placeholder="Notas sobre el material asignado o uso específico..."
+                                value={newEvent.materialExplanation}
+                                onChange={e => updateEvent('materialExplanation', e.target.value)}
+                                style={{ width: '100%', minHeight: '60px', background: '#222', color: '#fff', border: '1px solid #333', borderRadius: '12px', padding: '10px', fontSize: '0.9rem' }}
+                            />
+                        </div>
+                    )}
+
+                    {/* SECTION 5: FINAL QUOTATION */}
+                    <div className="form-section premium-card" style={{
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        borderRadius: '28px',
+                        padding: '25px',
+                        border: '1px solid rgba(0, 242, 255, 0.3)',
+                        marginBottom: '20px',
+                        boxShadow: '0 0 30px rgba(0, 242, 255, 0.05)'
+                    }}>
+                        <h3 style={{ margin: '0 0 20px 0', fontSize: '1rem', fontWeight: '900', color: 'var(--primary-cyan)' }}>5. Cotización Final</h3>
+                        <div className="money-row">
+                            <div style={{ flex: 1, fontSize: '0.8rem', color: '#ccc', background: '#222', padding: '10px', borderRadius: '8px', marginRight: '10px' }}>
+                                {newEvent.packName !== 'Personalizado' ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white' }}>
+                                            <span>Paquete Base (4h):</span>
+                                            <strong>${(Number(currentConf.base) || 0).toLocaleString()}</strong>
+                                        </div>
+                                        {extrasKy > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', alignItems: 'center' }}>
+                                                <span>+ {extrasKy} Horas Extras (${(Number(newEvent.extraHourPrice) || 0).toLocaleString()} c/u):</span>
+                                                <strong>${(extrasKy * (Number(newEvent.extraHourPrice) || 0)).toLocaleString()}</strong>
+                                            </div>
+                                        )}
+                                        {(() => {
+                                            const activeExtras = getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).filter(
+                                                ex => newEvent.selectedExtras?.[ex.id]
+                                            );
+                                            if (activeExtras.length === 0) return null;
+                                            return activeExtras.map(ex => (
+                                                <div key={ex.id} style={{ marginBottom: '4px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#bc6ff1' }}>
+                                                        <span>+ {ex?.name || 'Extra'}:</span>
+                                                        <strong>${(Number(ex.price) || 0).toLocaleString()}</strong>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.65rem', color: '#999', paddingLeft: '10px', fontStyle: 'italic' }}>
+                                                        {ex.details}
+                                                    </div>
+                                                </div>
+                                            ));
+                                        })()}
+                                    </div>
+                                ) : <div>Tarifa Manual</div>}
+                            </div>
+
+                            <div style={{ flex: 1 }}>
+                                <small style={{ color: '#888', marginBottom: '2px' }}>Valor Total (Calculado):</small>
+                                <input
+                                    required
+                                    placeholder="$ 0"
+                                    type="text"
+                                    value={formatInputNumber(newEvent.totalValue)}
+                                    onChange={e => updateEvent('totalValue', parseInputNumber(e.target.value))}
+                                    style={{ fontWeight: 'bold', color: '#00d4ff', fontSize: '1.4rem', height: '50px' }}
                                 />
                             </div>
                         </div>
 
-                        <div style={{ flex: 1 }}>
-                            <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.4, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', display: 'block' }}>Canal</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
-                                {[
-                                    { id: 'Nequi', color: '#ff007a' },
-                                    { id: 'Davi', color: '#ff4d4d' },
-                                    { id: 'Efect', color: '#4dff88' }
-                                ].map(m => (
-                                    <button
-                                        key={m.id}
-                                        type="button"
-                                        onClick={() => updateEvent('paymentMethod', m.id.replace('Davi', 'Daviplata').replace('Efect', 'Efectivo'))}
+                        <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'flex-end', overflow: 'visible' }}>
+                            <div style={{ width: '40% !important', position: 'relative', minWidth: '120px' }}>
+                                <div style={{ position: 'relative', width: '100%' }}>
+                                    <input
+                                        key="input_money_icon_force"
+                                        required
+                                        placeholder="0"
+                                        type="tel"
+                                        inputMode="numeric"
+                                        value={formatInputNumber(newEvent.deposit)}
+                                        onChange={e => updateEvent('deposit', parseInputNumber(e.target.value))}
                                         style={{
-                                            padding: '12px 2px',
-                                            borderRadius: '8px',
-                                            border: '1px solid',
-                                            borderColor: newEvent.paymentMethod?.includes(m.id) ? m.color : 'rgba(255,255,255,0.1)',
-                                            background: newEvent.paymentMethod?.includes(m.id) ? `${m.color}22` : 'rgba(255,255,255,0.03)',
-                                            color: newEvent.paymentMethod?.includes(m.id) ? m.color : 'rgba(255,255,255,0.3)',
-                                            fontSize: '0.6rem',
-                                            fontWeight: '800',
-                                            transition: 'all 0.2s',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis'
+                                            paddingLeft: '12px !important',
+                                            paddingRight: '10px !important',
+                                            width: '100% !important',
+                                            fontSize: '1.1rem',
+                                            fontWeight: '900',
+                                            color: 'var(--primary-cyan)',
+                                            height: '42px',
+                                            margin: 0,
+                                            boxSizing: 'border-box'
                                         }}
-                                    >
-                                        {m.id.toUpperCase()}
-                                    </button>
-                                ))}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ flex: 1 }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.4, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', display: 'block' }}>Canal</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
+                                    {[
+                                        { id: 'Nequi', color: '#ff007a' },
+                                        { id: 'Davi', color: '#ff4d4d' },
+                                        { id: 'Efect', color: '#4dff88' }
+                                    ].map(m => (
+                                        <button
+                                            key={m.id}
+                                            type="button"
+                                            onClick={() => updateEvent('paymentMethod', m.id.replace('Davi', 'Daviplata').replace('Efect', 'Efectivo'))}
+                                            style={{
+                                                padding: '12px 2px',
+                                                borderRadius: '8px',
+                                                border: '1px solid',
+                                                borderColor: newEvent.paymentMethod?.includes(m.id) ? m.color : 'rgba(255,255,255,0.1)',
+                                                background: newEvent.paymentMethod?.includes(m.id) ? `${m.color}22` : 'rgba(255,255,255,0.03)',
+                                                color: newEvent.paymentMethod?.includes(m.id) ? m.color : 'rgba(255,255,255,0.3)',
+                                                fontSize: '0.6rem',
+                                                fontWeight: '800',
+                                                transition: 'all 0.2s',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
+                                            }}
+                                        >
+                                            {m.id.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="action-buttons-row" style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
-                    <button type="button" className="action-btn primary-btn" style={{ flex: 1, padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleCreateQuotation('SENT')}>
-                        <IconServices /> Cotizar
-                    </button>
-                    <button type="submit" className="action-btn primary-btn" style={{ flex: 1, padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                        <IconCheck /> {newEvent.id ? 'Actualizar' : 'Confirmar'}
-                    </button>
-                </div>
-            </form>
-        </div>
-    );
+                    <div className="action-buttons-row" style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
+                        <button type="button" className="action-btn primary-btn" style={{ flex: 1, padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => handleCreateQuotation('SENT')}>
+                            <IconServices /> {newEvent.id ? 'Guardar Cambios' : 'Cotizar'}
+                        </button>
+
+                        {!newEvent.id && (
+                            <button type="submit" className="action-btn primary-btn" style={{ flex: 1, padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                <IconCheck /> Confirmar
+                            </button>
+                        )}
+                    </div>
+                </form>
+            </div>
+        );
+    } catch (error) {
+        console.error("Critical error in CreateEventView:", error);
+        return (
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: '#fff' }}>
+                <h2 style={{ color: '#ff3860', fontSize: '1.5rem', marginBottom: '10px' }}>⚠️ Error de Datos</h2>
+                <p style={{ opacity: 0.7, marginBottom: '30px' }}>Esta cotización contiene información dañada o incompleta que impide su visualización.</p>
+                <button
+                    onClick={() => setView('quotations')}
+                    style={{ padding: '12px 24px', borderRadius: '14px', background: 'var(--brand-gradient)', border: 'none', color: '#000', fontWeight: '950', cursor: 'pointer' }}
+                >
+                    VOLVER A VENTAS
+                </button>
+            </div>
+        );
+    }
 };
 
 export default CreateEventView;
