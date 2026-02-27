@@ -748,15 +748,9 @@ const CreateEventView = ({
                                 {newEvent.packName !== 'Personalizado' ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white' }}>
-                                            <span>Paquete Base (4h):</span>
-                                            <strong>${(Number(currentConf.base) || 0).toLocaleString()}</strong>
+                                            <span>Paquete {newEvent.packName} ({Math.max(4, Math.round(duration * 10) / 10)}h):</span>
+                                            <strong>${((Number(currentConf.base) || 0) + (extrasKy * (Number(newEvent.extraHourPrice) || 0))).toLocaleString()}</strong>
                                         </div>
-                                        {extrasKy > 0 && (
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', alignItems: 'center' }}>
-                                                <span>+ {extrasKy} Horas Extras (${(Number(newEvent.extraHourPrice) || 0).toLocaleString()} c/u):</span>
-                                                <strong>${(extrasKy * (Number(newEvent.extraHourPrice) || 0)).toLocaleString()}</strong>
-                                            </div>
-                                        )}
                                         {(() => {
                                             const activeExtras = getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).filter(
                                                 ex => newEvent.selectedExtras?.[ex.id]
