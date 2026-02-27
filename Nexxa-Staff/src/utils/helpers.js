@@ -28,15 +28,37 @@ export const parseInputNumber = (val) => {
 export const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
 export const getHours = (start, end) => {
-  if (!start || !end || typeof start !== 'string' || typeof end !== 'string') return 0;
+  if (!start || !end) return 0;
+
+  const parse = (str) => {
+    if (typeof str !== 'string') return [0, 0];
+    // Extraer solo los números
+    const parts = str.match(/\d+/g);
+    if (!parts || parts.length < 1) return [0, 0];
+
+    let h = parseInt(parts[0], 10);
+    let m = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+
+    // Si contiene PM y no es 12, sumar 12
+    if (/PM/i.test(str) && h < 12) h += 12;
+    // Si contiene AM y es 12, a 0
+    if (/AM/i.test(str) && h === 12) h = 0;
+
+    return [h, m];
+  };
+
   try {
-    const [h1, m1] = start.split(':').map(Number);
-    const [h2, m2] = end.split(':').map(Number);
-    if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return 0;
+    const [h1, m1] = parse(start);
+    const [h2, m2] = parse(end);
+
     let diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+    // Si termina al día siguiente
     if (diffMinutes < 0) diffMinutes += 24 * 60;
+
     return diffMinutes / 60;
-  } catch (e) { return 0; }
+  } catch (e) {
+    return 0;
+  }
 };
 
 export const parseLocalStrDate = (dateStr) => {
