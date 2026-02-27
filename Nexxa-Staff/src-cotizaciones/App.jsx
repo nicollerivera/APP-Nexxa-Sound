@@ -37,9 +37,14 @@ function useLocalStorage(key, initialValue) {
 const TimeInput = ({ value, onChange, label }) => {
   const getDisplayTime = (val) => {
     if (!val) return { h: '08', m: '00', period: 'PM' };
-    let [hStr, mStr] = val.split(':');
-    let h = parseInt(hStr || 0);
-    let m = mStr || "00";
+    const timeStr = String(val);
+    let [hStr, mStr] = timeStr.includes(':') ? timeStr.split(':') : [timeStr, '00'];
+    let h = parseInt(hStr || 12, 10);
+    let m = parseInt(mStr || 0, 10);
+
+    if (isNaN(h)) h = 12;
+    if (isNaN(m)) m = 0;
+
     const period = h >= 12 ? 'PM' : 'AM';
     const h12 = h % 12 || 12;
     return {
@@ -382,15 +387,19 @@ function App() {
 
   const calculateDuration = () => {
     if (!eventStartTime || !eventEndTime) return 0;
-    const [startHStr, startMStr] = eventStartTime.includes(':') ? eventStartTime.split(':') : [eventStartTime, '0'];
-    const [endHStr, endMStr] = eventEndTime.includes(':') ? eventEndTime.split(':') : [eventEndTime, '0'];
+    const [startHStr, startMStr] = String(eventStartTime).includes(':') ? String(eventStartTime).split(':') : [String(eventStartTime), '0'];
+    const [endHStr, endMStr] = String(eventEndTime).includes(':') ? String(eventEndTime).split(':') : [String(eventEndTime), '0'];
 
-    const startH = parseInt(startHStr || '0', 10);
-    const startM = parseInt(startMStr || '0', 10);
+    let startH = parseInt(startHStr || '0', 10);
+    let startM = parseInt(startMStr || '0', 10);
+    if (isNaN(startH)) startH = 0;
+    if (isNaN(startM)) startM = 0;
     let startVal = (startH % 12) + (startAmPm === 'PM' ? 12 : 0) + (startM / 60);
 
-    const endH = parseInt(endHStr || '0', 10);
-    const endM = parseInt(endMStr || '0', 10);
+    let endH = parseInt(endHStr || '0', 10);
+    let endM = parseInt(endMStr || '0', 10);
+    if (isNaN(endH)) endH = 0;
+    if (isNaN(endM)) endM = 0;
     let endVal = (endH % 12) + (endAmPm === 'PM' ? 12 : 0) + (endM / 60);
 
     if (isNaN(startVal) || isNaN(endVal)) return 0;
@@ -478,9 +487,9 @@ function App() {
         const COST_FOAM = 13000;
         const COST_CANNON = 5000;
         const COST_BLOWOUT = 200;  // Pito
-        const COST_BRACELET = 500; // Manilla
-        const COST_MASK = 500;     // Antifaz
-        const COST_NECKLACE = 500; // Collar
+        const COST_BRACELET = 400; // Manilla
+        const COST_MASK = 400;     // Antifaz
+        const COST_NECKLACE = 400; // Collar
 
         const count = guestCount;
         let rawPrice = 0;
@@ -518,7 +527,13 @@ function App() {
   // Helper to format 24h time for URL
   const to24h = (time, ampm) => {
     if (!time) return '';
-    let [h, m] = time.split(':').map(Number);
+    const parts = time.includes(':') ? time.split(':') : [time, '00'];
+    let h = parseInt(parts[0] || 0, 10);
+    let m = parseInt(parts[1] || 0, 10);
+
+    if (isNaN(h)) h = 0;
+    if (isNaN(m)) m = 0;
+
     if (ampm === 'PM' && h !== 12) h += 12;
     if (ampm === 'AM' && h === 12) h = 0;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -889,7 +904,13 @@ function App() {
 
               <div className="form-group">
                 <label>Fecha del evento</label>
-                <input type="date" className="input-field" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+                <input
+                  type="date"
+                  className="input-field"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
               </div>
 
               <div className="form-group">
@@ -899,13 +920,24 @@ function App() {
                     label="Inicio"
                     value={(() => {
                       if (!eventStartTime) return '20:00';
-                      let [h, m] = eventStartTime.split(':').map(Number);
+                      const timeStr = String(eventStartTime);
+                      let [hStr, mStr] = timeStr.includes(':') ? timeStr.split(':') : [timeStr, '00'];
+                      let h = parseInt(hStr || 0, 10);
+                      let m = parseInt(mStr || 0, 10);
+                      if (isNaN(h)) h = 0;
+                      if (isNaN(m)) m = 0;
                       if (startAmPm === 'PM' && h !== 12) h += 12;
                       if (startAmPm === 'AM' && h === 12) h = 0;
-                      return `${String(h).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
+                      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                     })()}
                     onChange={(val) => {
-                      let [h, m] = val.split(':').map(Number);
+                      if (!val) return;
+                      const timeStr = String(val);
+                      let [hStr, mStr] = timeStr.includes(':') ? timeStr.split(':') : [timeStr, '00'];
+                      let h = parseInt(hStr || 0, 10);
+                      let m = parseInt(mStr || 0, 10);
+                      if (isNaN(h)) h = 0;
+                      if (isNaN(m)) m = 0;
                       const ampm = h >= 12 ? 'PM' : 'AM';
                       const h12 = h % 12 || 12;
                       setEventStartTime(`${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
@@ -916,13 +948,24 @@ function App() {
                     label="Fin"
                     value={(() => {
                       if (!eventEndTime) return '02:00';
-                      let [h, m] = eventEndTime.split(':').map(Number);
+                      const timeStr = String(eventEndTime);
+                      let [hStr, mStr] = timeStr.includes(':') ? timeStr.split(':') : [timeStr, '00'];
+                      let h = parseInt(hStr || 0, 10);
+                      let m = parseInt(mStr || 0, 10);
+                      if (isNaN(h)) h = 0;
+                      if (isNaN(m)) m = 0;
                       if (endAmPm === 'PM' && h !== 12) h += 12;
                       if (endAmPm === 'AM' && h === 12) h = 0;
-                      return `${String(h).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
+                      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                     })()}
                     onChange={(val) => {
-                      let [h, m] = val.split(':').map(Number);
+                      if (!val) return;
+                      const timeStr = String(val);
+                      let [hStr, mStr] = timeStr.includes(':') ? timeStr.split(':') : [timeStr, '00'];
+                      let h = parseInt(hStr || 0, 10);
+                      let m = parseInt(mStr || 0, 10);
+                      if (isNaN(h)) h = 0;
+                      if (isNaN(m)) m = 0;
                       const ampm = h >= 12 ? 'PM' : 'AM';
                       const h12 = h % 12 || 12;
                       setEventEndTime(`${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
@@ -1093,7 +1136,7 @@ function App() {
                   <div className="package-price-large">${packages.find(p => p.id === selectedPackageId)?.price.toLocaleString()}</div>
                   {Math.max(0, Math.ceil(eventDuration - 4)) > 0 && (
                     <div style={{ fontSize: '0.9rem', color: '#ddd', marginTop: '5px' }}>
-                      + {Math.ceil(eventDuration - 4)} Hora(s) Extra: ${(Math.ceil(eventDuration - 4) * (selectedPackageId === 'essential' ? 85000 : 155000)).toLocaleString()}
+                      + {Math.ceil(eventDuration - 4)} Hora(s) Extra: ${(Math.ceil(eventDuration - 4) * (selectedPackageId === 'essential' ? 85000 : 135000)).toLocaleString()}
                     </div>
                   )}
                 </div>

@@ -29,13 +29,18 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebas
 const TimeInput = ({ value, onChange, label }) => {
   const getDisplayTime = (val) => {
     if (!val) return { h: '08', m: '00', period: 'PM' };
-    let [hStr, mStr] = val.split(':');
-    let h = parseInt(hStr || 0);
-    let m = mStr || "00";
+    const timeStr = String(val);
+    let [hStr, mStr] = timeStr.includes(':') ? timeStr.split(':') : [timeStr, '00'];
+    let h = parseInt(hStr || 12, 10);
+    let m = parseInt(mStr || 0, 10);
+
+    if (isNaN(h)) h = 12;
+    if (isNaN(m)) m = 0;
+
     const period = h >= 12 ? 'PM' : 'AM';
     const h12 = h % 12 || 12;
     return {
-      h: String(h12),
+      h: String(h12).padStart(2, '0'),
       m: String(m).padStart(2, '0'),
       period
     };
@@ -1120,8 +1125,8 @@ function App() {
     const g = Math.max(10, Number(guests) || 10);
 
     // Costos Unitarios (Sync with Client App)
-    const C_FOAM = 12000;
-    const C_CANNON = 4500;
+    const C_FOAM = 13000;
+    const C_CANNON = 5000;
     const C_BLOWOUT = 200;
     const C_BRACELET = 400;
     const C_NECKLACE = 400;
@@ -1134,15 +1139,15 @@ function App() {
 
     // 2. Accesorios Essential
     const rawEssential = C_FOAM + (g * (C_BLOWOUT + C_BRACELET));
-    const priceEssential = Math.round(rawEssential / 1000) * 1000;
+    const priceEssential = Math.round(rawEssential / 5000) * 5000;
 
     // 3. Accesorios Memories
     const rawMemories = (2 * C_FOAM) + (2 * C_CANNON) + (g * (C_BLOWOUT + C_BRACELET));
-    const priceMemories = Math.round(rawMemories / 1000) * 1000;
+    const priceMemories = Math.round(rawMemories / 5000) * 5000;
 
     // 4. Accesorios Celebration
     const rawCelebration = (3 * C_FOAM) + (3 * C_CANNON) + (g * (C_BLOWOUT + C_BRACELET + C_NECKLACE + C_MASK));
-    const priceCelebration = Math.round(rawCelebration / 1000) * 1000;
+    const priceCelebration = Math.round(rawCelebration / 5000) * 5000;
 
     return [
       {
@@ -3422,10 +3427,14 @@ function App() {
           if (rawDate) newData.date = rawDate.split('\n')[0].trim();
 
           if (rawTime) {
-            const tMatch = rawTime.match(/(\d{1,2}:\d{2})\s?(AM|PM).*?(\d{1,2}:\d{2})\s?(AM|PM)/i);
+            const tMatch = rawTime.match(/(\d{1,2}(?::\d{2})?)\s?(AM|PM).*?(\d{1,2}(?::\d{2})?)\s?(AM|PM)/i);
             if (tMatch) {
               const parseTime = (t, ap) => {
-                let [h, m] = t.split(':').map(Number);
+                let [hStr, mStr] = t.split(':');
+                let h = parseInt(hStr || 0, 10);
+                let m = parseInt(mStr || 0, 10);
+                if (isNaN(h)) h = 0;
+                if (isNaN(m)) m = 0;
                 if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;
                 if (ap.toUpperCase() === 'AM' && h === 12) h = 0;
                 return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -3451,10 +3460,14 @@ function App() {
           if (rawIndications) newData.indications = rawIndications.trim();
 
           if (rawMaterials) {
-            const mMatch = rawMaterials.match(/(\d{1,2}:\d{2})\s?(AM|PM)/i);
+            const mMatch = rawMaterials.match(/(\d{1,2}(?::\d{2})?)\s?(AM|PM)/i);
             if (mMatch) {
               const parseTime = (t, ap) => {
-                let [h, m] = t.split(':').map(Number);
+                let [hStr, mStr] = t.split(':');
+                let h = parseInt(hStr || 0, 10);
+                let m = parseInt(mStr || 0, 10);
+                if (isNaN(h)) h = 0;
+                if (isNaN(m)) m = 0;
                 if (ap) {
                   if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;
                   if (ap.toUpperCase() === 'AM' && h === 12) h = 0;
@@ -3808,7 +3821,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
                     <div>
                       <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Fecha</label>
-                      <input required type="date" value={newEvent.date} onChange={e => updateEvent('date', e.target.value)} style={{ width: '100%' }} />
+                      <input required type="date" value={newEvent.date} onChange={e => updateEvent('date', e.target.value)} style={{ width: '100%' }} min={new Date().toISOString().split('T')[0]} />
                     </div>
                     <div>
                       <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Ocasión</label>
@@ -4064,7 +4077,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               </div>
               <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'flex-end', overflow: 'visible' }}>
                 <div style={{ width: '40% !important', position: 'relative', minWidth: '120px' }}>
-
+                  <label style={{ fontSize: '0.65rem', fontWeight: '900', color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', display: 'block' }}>Abono (30%)</label>
                   <div style={{ position: 'relative', width: '100%' }}>
 
                     <input

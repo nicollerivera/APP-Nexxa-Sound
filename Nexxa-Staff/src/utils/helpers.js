@@ -99,8 +99,8 @@ export const getDynamicExtras = (guests, userMakeupCount) => {
   const g = Math.max(10, Number(guests) || 10);
 
   // Costos Unitarios (Sync with Client App)
-  const C_FOAM = 12000;
-  const C_CANNON = 4500;
+  const C_FOAM = 13000;
+  const C_CANNON = 5000;
   const C_BLOWOUT = 200;
   const C_BRACELET = 400;
   const C_NECKLACE = 400;
@@ -113,15 +113,15 @@ export const getDynamicExtras = (guests, userMakeupCount) => {
 
   // 2. Accesorios Essential
   const rawEssential = C_FOAM + (g * (C_BLOWOUT + C_BRACELET));
-  const priceEssential = Math.round(rawEssential / 1000) * 1000;
+  const priceEssential = Math.round(rawEssential / 5000) * 5000;
 
   // 3. Accesorios Memories
   const rawMemories = (2 * C_FOAM) + (2 * C_CANNON) + (g * (C_BLOWOUT + C_BRACELET));
-  const priceMemories = Math.round(rawMemories / 1000) * 1000;
+  const priceMemories = Math.round(rawMemories / 5000) * 5000;
 
   // 4. Accesorios Celebration
   const rawCelebration = (3 * C_FOAM) + (3 * C_CANNON) + (g * (C_BLOWOUT + C_BRACELET + C_NECKLACE + C_MASK));
-  const priceCelebration = Math.round(rawCelebration / 1000) * 1000;
+  const priceCelebration = Math.round(rawCelebration / 5000) * 5000;
 
   return [
     {

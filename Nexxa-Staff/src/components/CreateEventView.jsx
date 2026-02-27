@@ -122,12 +122,18 @@ const CreateEventView = ({
             if (rawDate) newData.date = rawDate.split('\n')[0].trim();
 
             if (rawTime) {
-                const tMatch = rawTime.match(/(\d{1,2}:\d{2})\s?(AM|PM).*?(\d{1,2}:\d{2})\s?(AM|PM)/i);
+                const tMatch = rawTime.match(/(\d{1,2}(?::\d{2})?)\s?(AM|PM).*?(\d{1,2}(?::\d{2})?)\s?(AM|PM)/i);
                 if (tMatch) {
                     const parseTime = (t, ap) => {
-                        let [h, m] = t.split(':').map(Number);
-                        if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;
-                        if (ap.toUpperCase() === 'AM' && h === 12) h = 0;
+                        if (!t) return "00:00";
+                        const cleaned = t.replace(/[^0-9:]/g, '');
+                        let [hStr, mStr] = cleaned.includes(':') ? cleaned.split(':') : [cleaned, '00'];
+                        let h = parseInt(hStr, 10);
+                        let m = parseInt(mStr, 10);
+                        if (isNaN(h)) h = 0;
+                        if (isNaN(m)) m = 0;
+                        if (ap && ap.toUpperCase() === 'PM' && h !== 12) h += 12;
+                        if (ap && ap.toUpperCase() === 'AM' && h === 12) h = 0;
                         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                     }
                     newData.startTime = parseTime(tMatch[1], tMatch[2]);
@@ -151,10 +157,16 @@ const CreateEventView = ({
             if (rawIndications) newData.indications = rawIndications.trim();
 
             if (rawMaterials) {
-                const mMatch = rawMaterials.match(/(\d{1,2}:\d{2})\s?(AM|PM)/i);
+                const mMatch = rawMaterials.match(/(\d{1,2}(?::\d{2})?)\s?(AM|PM)/i);
                 if (mMatch) {
                     const parseTime = (t, ap) => {
-                        let [h, m] = t.split(':').map(Number);
+                        if (!t) return "00:00";
+                        const cleaned = t.replace(/[^0-9:]/g, '');
+                        let [hStr, mStr] = cleaned.includes(':') ? cleaned.split(':') : [cleaned, '00'];
+                        let h = parseInt(hStr, 10);
+                        let m = parseInt(mStr, 10);
+                        if (isNaN(h)) h = 0;
+                        if (isNaN(m)) m = 0;
                         if (ap) {
                             if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;
                             if (ap.toUpperCase() === 'AM' && h === 12) h = 0;
@@ -473,6 +485,7 @@ const CreateEventView = ({
                                             value={newEvent.date}
                                             onChange={e => updateEvent('date', e.target.value)}
                                             style={{ width: '100%', ...getAlertStyle(newEvent.date) }}
+                                            min={new Date().toISOString().split('T')[0]}
                                         />
                                     </div>
                                     <div>
@@ -780,6 +793,7 @@ const CreateEventView = ({
 
                         <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'flex-end', overflow: 'visible' }}>
                             <div style={{ width: '40% !important', position: 'relative', minWidth: '120px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: '900', color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', display: 'block' }}>Abono (30%)</label>
                                 <div style={{ position: 'relative', width: '100%' }}>
                                     <input
                                         key="input_money_icon_force"

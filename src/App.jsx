@@ -221,15 +221,19 @@ function App() {
 
   const calculateDuration = () => {
     if (!eventStartTime || !eventEndTime) return 0;
-    const [startHStr, startMStr] = eventStartTime.includes(':') ? eventStartTime.split(':') : [eventStartTime, '0'];
-    const [endHStr, endMStr] = eventEndTime.includes(':') ? eventEndTime.split(':') : [eventEndTime, '0'];
+    const [startHStr, startMStr] = String(eventStartTime).includes(':') ? String(eventStartTime).split(':') : [String(eventStartTime), '0'];
+    const [endHStr, endMStr] = String(eventEndTime).includes(':') ? String(eventEndTime).split(':') : [String(eventEndTime), '0'];
 
-    const startH = parseInt(startHStr || '0', 10);
-    const startM = parseInt(startMStr || '0', 10);
+    let startH = parseInt(startHStr || '0', 10);
+    let startM = parseInt(startMStr || '0', 10);
+    if (isNaN(startH)) startH = 0;
+    if (isNaN(startM)) startM = 0;
     let startVal = (startH % 12) + (startAmPm === 'PM' ? 12 : 0) + (startM / 60);
 
-    const endH = parseInt(endHStr || '0', 10);
-    const endM = parseInt(endMStr || '0', 10);
+    let endH = parseInt(endHStr || '0', 10);
+    let endM = parseInt(endMStr || '0', 10);
+    if (isNaN(endH)) endH = 0;
+    if (isNaN(endM)) endM = 0;
     let endVal = (endH % 12) + (endAmPm === 'PM' ? 12 : 0) + (endM / 60);
 
     if (isNaN(startVal) || isNaN(endVal)) return 0;
@@ -305,7 +309,7 @@ function App() {
             return {
               ...extra,
               price: basePrice * makeupCount,
-              desc: `Incluye ${makeupCount} maquillador(es) por 2 horas (Rec: 1 x 50 personas).`
+              desc: `Incluye ${makeupCount} maquillador(es) profesionales por 2 horas.`
             };
           }
           return extra;
@@ -317,9 +321,9 @@ function App() {
         const COST_FOAM = 13000;
         const COST_CANNON = 5000;
         const COST_BLOWOUT = 200;  // Pito
-        const COST_BRACELET = 500; // Manilla
-        const COST_MASK = 500;     // Antifaz
-        const COST_NECKLACE = 500; // Collar
+        const COST_BRACELET = 400; // Manilla
+        const COST_MASK = 400;     // Antifaz
+        const COST_NECKLACE = 400; // Collar
 
         const count = guestCount;
         let rawPrice = 0;
@@ -357,7 +361,14 @@ function App() {
   // Helper to format 24h time for URL
   const to24h = (time, ampm) => {
     if (!time) return '';
-    let [h, m] = time.split(':').map(Number);
+    // If user typed '8', treat as '8:00'
+    const parts = time.includes(':') ? time.split(':') : [time, '00'];
+    let h = parseInt(parts[0] || 0, 10);
+    let m = parseInt(parts[1] || 0, 10);
+
+    if (isNaN(h)) h = 0;
+    if (isNaN(m)) m = 0;
+
     if (ampm === 'PM' && h !== 12) h += 12;
     if (ampm === 'AM' && h === 12) h = 0;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -520,18 +531,20 @@ function App() {
       <AuroraBackground />
 
       {currentStep > 0 && (
-        <nav className="container navbar">
+        <nav className="container navbar navbar-row">
           <img
             src="/logo_disco_futurista.png"
             alt="NEXXA Sound Level Productions"
             className="brand-logo"
-            // Back button logic: Go back 1 step
             onClick={() => {
               handleLogoClick();
               setCurrentStep(prev => Math.max(0, prev - 1));
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
+          {currentStep === 1 && (
+            <span className="navbar-section-title">Selecciona tu Paquete</span>
+          )}
         </nav>
       )}
 
@@ -547,9 +560,6 @@ function App() {
                   className="landing-logo-img"
                   onClick={handleLogoClick}
                 />
-                <p className="landing-subtitle" style={{ fontSize: '1rem', letterSpacing: '2px', fontWeight: 'bold', marginTop: '5px', textTransform: 'uppercase', color: '#ccc' }}>
-                  DJ · Sonido · Iluminación · Experiencias
-                </p>
               </div>
 
               <div
@@ -600,12 +610,11 @@ function App() {
                   <li>⏱️ Cotización en 60 segundos</li>
                   <li>💰 Cotiza y negocia con un asesor al instante</li>
                   <li>🎧 DJ + sonido + luces en un solo lugar</li>
-                  <li>💬 Asesoría inmediata</li>
                 </ul>
               </div>
               <button
                 className="action-btn landing-btn"
-                style={{ width: '100%', maxWidth: '400px', padding: '18px', background: 'linear-gradient(90deg, #00d4ff 0%, #9d4edd 100%)', borderRadius: '30px', fontSize: '1.2rem', fontWeight: 'bold' }}
+                style={{ width: '100%', maxWidth: '400px', padding: '18px', background: 'linear-gradient(90deg, #00d4ff 0%, #9d4edd 100%)', borderRadius: '30px', fontSize: '1.2rem', fontWeight: 'bold', marginTop: '4px' }}
                 onClick={() => { setCurrentStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               >
                 COTIZAR MI EVENTO
@@ -617,7 +626,6 @@ function App() {
         {/* STEP 1: PACKAGE SELECTION (Moved from Step 2) */}
         {currentStep === 1 && (
           <section id="block-packages" className="packages-grid-container fade-in">
-            <h2 className="section-title">Selecciona tu Paquete</h2>
 
             <div
               className="carousel-3d-scene packages-scene"
@@ -648,8 +656,58 @@ function App() {
                     >
                       <div className={`package-card-3d ${selectedPackageId === pkg.id ? 'selected-3d' : ''} ${pkg.highlight ? 'recommended-card' : ''}`}>
                         <h3 className="package-name">{pkg.name}</h3>
-                        <div className="package-price-label">Desde</div>
+                        {pkg.id !== 'celebration' && <div className="package-price-label">Desde</div>}
                         <div className="package-price-value">${pkg.price.toLocaleString()}</div>
+
+                        {pkg.id === 'essential' && (
+                          <img
+                            src="/essential_cabinas.jpg"
+                            alt="Cabinas de sonido profesional en evento"
+                            style={{
+                              width: '100%',
+                              height: '130px',
+                              objectFit: 'contain',
+                              objectPosition: 'center',
+                              borderRadius: '12px',
+                              marginBottom: '8px',
+                              background: 'rgba(0,0,0,0.6)',
+                              boxShadow: '0 0 12px rgba(0, 212, 255, 0.3)'
+                            }}
+                          />
+                        )}
+
+                        {pkg.id === 'memories' && (
+                          <img
+                            src="/memories_foto.png"
+                            alt="Servicio de fotografía en evento"
+                            style={{
+                              width: '100%',
+                              height: '130px',
+                              objectFit: 'cover',
+                              objectPosition: 'center top',
+                              borderRadius: '12px',
+                              marginBottom: '8px',
+                              boxShadow: '0 0 12px rgba(157, 78, 221, 0.4)'
+                            }}
+                          />
+                        )}
+
+                        {pkg.id === 'celebration' && (
+                          <img
+                            src="/celebration_deco_l.png"
+                            alt="Decoración en L con globos colores Nexxa"
+                            style={{
+                              width: '100%',
+                              height: '140px',
+                              objectFit: 'contain',
+                              objectPosition: 'center',
+                              borderRadius: '12px',
+                              marginBottom: '8px',
+                              background: 'rgba(0,0,0,0.6)',
+                              boxShadow: '0 0 12px rgba(157, 78, 221, 0.5)'
+                            }}
+                          />
+                        )}
 
                         <ul className="features-list">
                           {pkg.features.map((feature, idx) => (
@@ -704,9 +762,11 @@ function App() {
               El precio final se ajusta según duración del evento, número de invitados y servicios adicionales.
             </p>
 
-            <button className="action-btn" style={{ margin: '20px auto', display: 'block', width: '90%', maxWidth: '400px', padding: '15px', background: 'var(--surface-color)', border: '1px solid var(--primary-color)', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer' }} onClick={handleValidationStep2}>
-              {isAdmin ? 'Siguiente (Modo Admin 🔓) 👉' : 'Siguiente: Tus Datos 👉'}
-            </button>
+            {isAdmin && (
+              <button className="action-btn" style={{ margin: '20px auto', display: 'block', width: '90%', maxWidth: '400px', padding: '15px', background: 'var(--surface-color)', border: '1px solid var(--primary-color)', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer' }} onClick={handleValidationStep2}>
+                Siguiente (Modo Admin 🔓) 👉
+              </button>
+            )}
           </section>
         )}
 
@@ -732,14 +792,33 @@ function App() {
 
               <div className="form-group">
                 <label>Fecha del evento</label>
-                <input type="date" className="input-field" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+                <input
+                  type="date"
+                  className="input-field"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
               </div>
 
               <div className="form-group">
                 <label>Franja horaria del evento</label>
                 <div className="time-inputs">
                   <div className="time-input-group">
-                    <input type="text" className="input-field time-text" placeholder="Inicio (08:00)" value={eventStartTime} onChange={(e) => formatTimeInput(e.target.value, setEventStartTime)} maxLength={5} />
+                    <input
+                      type="text"
+                      className="input-field time-text"
+                      placeholder="Inicio (08:00)"
+                      value={eventStartTime}
+                      onChange={(e) => formatTimeInput(e.target.value, setEventStartTime)}
+                      onBlur={(e) => {
+                        const val = e.target.value;
+                        if (val && !val.includes(':')) {
+                          setEventStartTime(`${val}:00`);
+                        }
+                      }}
+                      maxLength={5}
+                    />
                     <select className="input-field ampm-select" value={startAmPm} onChange={(e) => setStartAmPm(e.target.value)}>
                       <option value="AM">AM</option>
                       <option value="PM">PM</option>
@@ -747,7 +826,20 @@ function App() {
                   </div>
                   <span className="time-separator">a</span>
                   <div className="time-input-group">
-                    <input type="text" className="input-field time-text" placeholder="Fin (02:00)" value={eventEndTime} onChange={(e) => formatTimeInput(e.target.value, setEventEndTime)} maxLength={5} />
+                    <input
+                      type="text"
+                      className="input-field time-text"
+                      placeholder="Fin (02:00)"
+                      value={eventEndTime}
+                      onChange={(e) => formatTimeInput(e.target.value, setEventEndTime)}
+                      onBlur={(e) => {
+                        const val = e.target.value;
+                        if (val && !val.includes(':')) {
+                          setEventEndTime(`${val}:00`);
+                        }
+                      }}
+                      maxLength={5}
+                    />
                     <select className="input-field ampm-select" value={endAmPm} onChange={(e) => setEndAmPm(e.target.value)}>
                       <option value="AM">AM</option>
                       <option value="PM">PM</option>
@@ -842,7 +934,7 @@ function App() {
                             <button type="button" className="counter-btn" onClick={(e) => { e.stopPropagation(); setMakeupCount(c => Math.max(1, Number(c) - 1)); }}>-</button>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
                               <span className="counter-value">{makeupCount}</span>
-                              <span style={{ fontSize: '0.6rem', color: '#aaa' }}>Pers</span>
+                              <span style={{ fontSize: '0.6rem', color: '#aaa' }}>Artistas</span>
                             </div>
                             <button type="button" className="counter-btn" onClick={(e) => { e.stopPropagation(); setMakeupCount(c => Number(c) + 1); }}>+</button>
                           </div>
@@ -917,7 +1009,7 @@ function App() {
                   <div className="package-price-large">${packages.find(p => p.id === selectedPackageId)?.price.toLocaleString()}</div>
                   {Math.max(0, Math.ceil(eventDuration - 4)) > 0 && (
                     <div style={{ fontSize: '0.9rem', color: '#ddd', marginTop: '5px' }}>
-                      + {Math.ceil(eventDuration - 4)} Hora(s) Extra: ${(Math.ceil(eventDuration - 4) * (selectedPackageId === 'essential' ? 85000 : 155000)).toLocaleString()}
+                      + {Math.ceil(eventDuration - 4)} Hora(s) Extra: ${(Math.ceil(eventDuration - 4) * (selectedPackageId === 'essential' ? 85000 : 135000)).toLocaleString()}
                     </div>
                   )}
                 </div>
@@ -933,7 +1025,7 @@ function App() {
                   <div className="summary-extras-list">
                     {dynamicExtras.filter(e => activeExtras[e.id]).map(extra => (
                       <div className="summary-extra-row" key={extra.id}>
-                        <span>{extra.name} {extra.id === 'makeup' ? `(${makeupCount})` : ''}</span>
+                        <span className="summary-extra-name">{extra.name} {extra.id === 'makeup' ? `(${makeupCount})` : ''}</span>
                         <span style={{ fontWeight: 'bold' }}>${extra.price.toLocaleString()}</span>
                       </div>
                     ))}

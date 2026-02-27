@@ -286,8 +286,11 @@ const LogisticsView = ({ events, quotations = [], inventory = [], staffRates = {
 
     // Helpers
     const formatTimeDisplay = (timeStr) => {
-        if (!timeStr) return { time: '--:--', period: '' };
-        const [h, m] = timeStr.split(':').map(Number);
+        if (!timeStr || !timeStr.includes(':')) return { time: '--:--', period: '' };
+        let [hStr, mStr] = timeStr.split(':');
+        let h = parseInt(hStr);
+        let m = parseInt(mStr);
+        if (isNaN(h) || isNaN(m)) return { time: '--:--', period: '' };
         const period = h >= 12 ? 'PM' : 'AM';
         let h12 = h % 12;
         if (h12 === 0) h12 = 12;

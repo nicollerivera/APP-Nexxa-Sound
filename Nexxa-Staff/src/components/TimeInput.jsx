@@ -11,13 +11,26 @@ const TimeInput = ({ value, onChange, label }) => {
 
     // Helper: Parsear HH:MM a formato visual (12h)
     const parseTime = (val) => {
-        if (!val || typeof val !== 'string' || !val.includes(':')) {
+        // 1. Fallback si el valor no es string o es inválido
+        if (!val || typeof val !== 'string') {
             return { h: '12', m: '00', period: 'AM' };
         }
-        let [hStr, mStr] = val.split(':');
-        let h = parseInt(hStr || 0);
-        let m = parseInt(mStr || 0);
 
+        // 2. Limpiar el string: solo permitir dígitos y dos puntos
+        const cleaned = val.replace(/[^0-9:]/g, '');
+
+        // 3. Separar partes
+        let [hStr, mStr] = cleaned.includes(':') ? cleaned.split(':') : [cleaned, '00'];
+
+        // 4. Parsear a números con base decimal
+        let h = parseInt(hStr, 10);
+        let m = parseInt(mStr, 10);
+
+        // 5. Validar NaNs
+        if (isNaN(h)) h = 12;
+        if (isNaN(m)) m = 0;
+
+        // 6. Determinar AM/PM
         let period = 'AM';
         if (h >= 12) {
             period = 'PM';
@@ -26,6 +39,7 @@ const TimeInput = ({ value, onChange, label }) => {
             h = 12;
         }
 
+        // 7. Retornar strings formateados de 2 dígitos
         return {
             h: String(h).padStart(2, '0'),
             m: String(m).padStart(2, '0'),
@@ -82,11 +96,17 @@ const TimeInput = ({ value, onChange, label }) => {
             mVal = m;
         }
 
-        let hInt = parseInt(hVal);
-        let mInt = parseInt(mVal);
+        let hInt = parseInt(hVal, 10);
+        let mInt = parseInt(mVal, 10);
 
-        if (isNaN(hInt)) hInt = 12;
-        if (isNaN(mInt)) mInt = 0;
+        if (isNaN(hInt)) {
+            const current = parseTime(value);
+            hInt = parseInt(current.h, 10);
+        }
+        if (isNaN(mInt)) {
+            const current = parseTime(value);
+            mInt = parseInt(current.m, 10);
+        }
 
         // Reglas de negocio
         if (type === 'h') {

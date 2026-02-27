@@ -4,11 +4,11 @@ export const packages = [
     name: 'ESSENTIAL',
     price: 450000,
     features: [
-      '2 Cabinas de Sonido Potenciadas',
+      'Cabinas de sonido profesional',
       'DJ Crossover (Mezcla en vivo)',
       '4 Luces Rítmicas LED',
       'Cámara de Humo (Efectos)',
-      'Micrófono para Animación'
+      '2 Micrófonos Inalámbricos'
     ],
     highlight: false
   },
@@ -17,11 +17,11 @@ export const packages = [
     name: 'MEMORIES',
     price: 650000,
     features: [
-      '2 Cabinas de Sonido Potenciadas',
+      'Cabinas de sonido profesional',
       'DJ Crossover (Mezcla en vivo)',
       '4 Luces Rítmicas LED',
       'Cámara de Humo (Efectos)',
-      'Micrófono para Animación',
+      '2 Micrófonos Inalámbricos',
       '<strong>Servicio de Fotografía</strong>'
     ],
     highlight: true // Recommended
@@ -31,11 +31,11 @@ export const packages = [
     name: 'CELEBRATION',
     price: 850000,
     features: [
-      '2 Cabinas de Sonido Potenciadas',
+      'Cabinas de sonido profesional',
       'DJ Crossover (Mezcla en vivo)',
       '4 Luces Rítmicas LED',
       'Cámara de Humo (Efectos)',
-      'Micrófono para Animación',
+      '2 Micrófonos Inalámbricos',
       '<strong>Servicio de Fotografía</strong>',
       '<strong>Decoración con Globos</strong>'
     ],
