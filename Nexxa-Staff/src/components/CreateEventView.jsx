@@ -774,6 +774,10 @@ const CreateEventView = ({
                                                 </div>
                                             ));
                                         })()}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '10px', paddingTop: '10px' }}>
+                                            <span style={{ fontWeight: '900', fontSize: '0.85rem' }}>TOTAL COTIZACIÓN:</span>
+                                            <strong style={{ fontSize: '0.9rem', color: '#00d4ff' }}>${(Number(newEvent.totalValue) || 0).toLocaleString()}</strong>
+                                        </div>
                                     </div>
                                 ) : <div>Tarifa Manual</div>}
                             </div>
