@@ -451,15 +451,17 @@ const CreateEventView = ({
                         {sectionState.s1 && (
                             <>
                                 <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                                    <select style={{ flex: 1 }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
-                                        <option value="Essential">Essential ($450k)</option>
-                                        <option value="Memories">Memories ($650k)</option>
-                                        <option value="Celebration">Celebration ($850k)</option>
-                                        <option value="Personalizado">Personalizado</option>
+                                    <select style={{ flex: 1, color: 'white', background: '#222' }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
+                                        <option value="Essential" style={{ color: '#000' }}>Essential ($450k)</option>
+                                        <option value="Memories" style={{ color: '#000' }}>Memories ($650k)</option>
+                                        <option value="Celebration" style={{ color: '#000' }}>Celebration ($850k)</option>
+                                        <option value="Personalizado" style={{ color: '#000' }}>Personalizado</option>
                                     </select>
                                     <select
                                         style={{
                                             flex: 1,
+                                            color: 'white',
+                                            background: '#222',
                                             ...getAlertStyle(newEvent.leadSource)
                                         }}
                                         value={newEvent.leadSource || ''}
