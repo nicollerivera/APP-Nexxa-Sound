@@ -7,12 +7,12 @@ export const PRICING = {
     'Memories': {
         base: 650000,
         extraDJ: 85000,
-        extraPhoto: 35000 // Total combined extra rate: $120k
+        extraPhoto: 50000 // Total combined extra rate: $135k
     },
     'Celebration': {
         base: 850000,
         extraDJ: 85000,
-        extraPhoto: 35000 // Total combined extra rate: $120k
+        extraPhoto: 50000 // Total combined extra rate: $135k
     },
     'Personalizado': {
         base: 0,

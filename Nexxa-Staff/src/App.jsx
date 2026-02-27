@@ -1099,8 +1099,8 @@ function App() {
   // --- TARIFAS EXACTAS APP NEXXA ---
   const PRICING = {
     'Essential': { base: 450000, extraDJ: 85000, extraPhoto: 0 },
-    'Memories': { base: 650000, extraDJ: 85000, extraPhoto: 35000 },
-    'Celebration': { base: 850000, extraDJ: 85000, extraPhoto: 35000 },
+    'Memories': { base: 650000, extraDJ: 85000, extraPhoto: 50000 },
+    'Celebration': { base: 850000, extraDJ: 85000, extraPhoto: 50000 },
     'Personalizado': { base: 0, extraDJ: 0, extraPhoto: 0 }
   };
 
