@@ -29,7 +29,7 @@ const CreateEventView = ({
 }) => {
     const [sectionState, setSectionState] = useState({ s1: true, s2: false, s3: false });
 
-    console.log("CreateEventView Loaded - Fix V4 Applied");
+    console.log("CreateEventView Loaded - Fix V5 (Dynamic Hours) Applied");
 
     const toggleSection = (key) => setSectionState(prev => ({ ...prev, [key]: !prev[key] }));
 
@@ -748,7 +748,7 @@ const CreateEventView = ({
                                 {newEvent.packName !== 'Personalizado' ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white' }}>
-                                            <span>Paquete {newEvent.packName} ({Math.max(4, Math.round(duration * 10) / 10)}h):</span>
+                                            <span style={{ fontWeight: 'bold' }}>Paquete {newEvent.packName} (Total {Math.max(4, Math.round(duration * 10) / 10)}h):</span>
                                             <strong>${((Number(currentConf.base) || 0) + (extrasKy * (Number(newEvent.extraHourPrice) || 0))).toLocaleString()}</strong>
                                         </div>
                                         {(() => {
