@@ -60,18 +60,18 @@ export const extras = [
     id: 'acc_essential',
     name: 'Accesorios Essential',
     desc: 'Incluye 1 Espuma, 50 Manillas Neón, 25 Pitos Espantasuegras.',
-    price: 80000
+    price: 38000
   },
   {
     id: 'acc_memories',
     name: 'Accesorios Memories',
-    desc: 'Incluye 2 Espumas, 50 Manillas Neón, 50 Pitos Espantasuegras, 2 Cañones.',
-    price: 160000
+    desc: 'Incluye 2 Espumas, 50 Manillas Neón, 50 Pitos Espantasuegras, 50 Collares Hawaianos.',
+    price: 76000
   },
   {
     id: 'acc_celebration',
     name: 'Accesorios Celebration',
     desc: 'Incluye 3 Espumas, 25 Manillas Neón, 50 Pitos Espantasuegras, 50 Collares Hawaianos, 50 Antifaces, 3 cañones.',
-    price: 280000
+    price: 114000
   }
 ];

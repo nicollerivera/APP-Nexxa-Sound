@@ -65,7 +65,7 @@ export const extras = [
   {
     id: 'acc_memories',
     name: 'Accesorios Memories',
-    desc: 'Incluye 2 Espumas, 50 Manillas Neón, 50 Pitos Espantasuegras, 2 Cañones.',
+    desc: 'Incluye 2 Espumas, 50 Manillas Neón, 50 Pitos Espantasuegras, 50 Collares Hawaianos.',
     price: 160000
   },
   {

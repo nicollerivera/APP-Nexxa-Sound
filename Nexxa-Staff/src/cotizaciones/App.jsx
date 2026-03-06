@@ -4,7 +4,8 @@ import './App.css';
 import './ValueProps.css';
 import { packages, extras } from './data';
 import { db } from './firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, onSnapshot } from 'firebase/firestore';
+
 
 // Custom hook for local storage persistence
 function useLocalStorage(key, initialValue) {
@@ -34,7 +35,35 @@ function useLocalStorage(key, initialValue) {
 }
 
 function App() {
+  // --- DYNAMIC CONFIGURATION ---
+  const [catalog, setCatalog] = useState(null);
+  const [appRules, setAppRules] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Subscribe to Rules
+    const unsubRules = onSnapshot(doc(db, 'app_config', 'pricing_rules'), (snap) => {
+      if (snap.exists()) setAppRules(snap.data());
+    });
+    // Subscribe to Catalog
+    const unsubCatalog = onSnapshot(doc(db, 'app_config', 'catalog'), (snap) => {
+      if (snap.exists()) {
+        setCatalog(snap.data());
+        setIsReady(true);
+      }
+    });
+
+    return () => {
+      unsubRules();
+      unsubCatalog();
+    };
+  }, []);
+
+  const packagesList = catalog?.packages || packages;
+  const extrasList = catalog?.extras || extras;
+
   const packagesContainerRef = useRef(null);
+
 
   // STATE MANAGEMENT (v6 keys to ensure clean start)
   const [selectedPackageId, setSelectedPackageId] = useLocalStorage('nexxa_pkg_v6', null);
@@ -244,10 +273,14 @@ function App() {
   const eventDuration = useMemo(() => calculateDuration(), [eventStartTime, eventEndTime, startAmPm, endAmPm]);
 
   const computedPackages = useMemo(() => {
-    const extraHours = Math.max(0, Math.ceil(eventDuration - 4));
-    return packages.map(pkg => {
-      let extraHourPrice = 135000; // DJ (85k) + Photo (50k)
-      if (pkg.id === 'essential') extraHourPrice = 85000;
+    const pkgs = catalog?.packages || packages;
+    const baseHours = appRules?.baseHours || 4;
+    const extraHours = Math.max(0, Math.ceil(eventDuration - baseHours));
+
+    return pkgs.map(pkg => {
+      const djRate = pkg.extraDJ || 85000;
+      const photoRate = pkg.extraPhoto || 0;
+      const extraHourPrice = djRate + photoRate;
       const additionalCost = extraHours * extraHourPrice;
       return {
         ...pkg,
@@ -255,7 +288,7 @@ function App() {
         extraHoursInfo: extraHours > 0 ? `Incluye ${extraHours}h extra(s)` : null
       };
     });
-  }, [eventDuration]);
+  }, [eventDuration, catalog, appRules]);
 
   // Enable horizontal scrolling with mouse wheel (Moved here to avoid ReferenceError)
   useEffect(() => {
@@ -300,12 +333,13 @@ function App() {
   }, [currentStep, computedPackages]);
 
   const dynamicExtras = useMemo(() => {
-    return extras
+    const extList = catalog?.extras || extras;
+    return extList
       .filter(e => e.id !== 'extra_hour')
       .map(extra => {
         if (!['acc_essential', 'acc_memories', 'acc_celebration'].includes(extra.id)) {
           if (extra.id === 'makeup') {
-            const basePrice = 120000;
+            const basePrice = extra.price || 120000;
             return {
               ...extra,
               price: basePrice * makeupCount,
@@ -333,30 +367,31 @@ function App() {
           rawPrice = COST_FOAM + (count * (COST_BLOWOUT + COST_BRACELET));
           newDesc = `Pack para ${count} personas: 1 Espuma, ${count} Manillas Neón, ${count} Pitos.`;
         } else if (extra.id === 'acc_memories') {
-          // 2 Espumas + 2 Cañones + (Pito + Manilla) * Guests
-          rawPrice = (2 * COST_FOAM) + (2 * COST_CANNON) + (count * (COST_BLOWOUT + COST_BRACELET));
-          newDesc = `Pack para ${count} personas: 2 Espumas, 2 Cañones, ${count} Manillas Neón, ${count} Pitos.`;
+          // 2 Espumas + Collares + (Pito + Manilla) * Guests
+          rawPrice = (2 * COST_FOAM) + (count * COST_NECKLACE) + (count * (COST_BLOWOUT + COST_BRACELET));
+          newDesc = `Pack para ${count} personas: 2 Espumas, ${count} Collares Hawaianos, ${count} Manillas Neón, ${count} Pitos.`;
         } else if (extra.id === 'acc_celebration') {
           // 3 Espumas + 3 Cañones + (Pito + Manilla + Antifaz + Collar) * Guests
           rawPrice = (3 * COST_FOAM) + (3 * COST_CANNON) + (count * (COST_BLOWOUT + COST_BRACELET + COST_MASK + COST_NECKLACE));
           newDesc = `Pack para ${count} personas: 3 Espumas, 3 Cañones, ${count} Manillas, ${count} Pitos, ${count} Collares, ${count} Antifaces.`;
         }
 
-        newPrice = Math.round(rawPrice / 5000) * 5000;
-
+        newPrice = rawPrice;
         return { ...extra, price: newPrice, desc: newDesc };
       });
-  }, [guestCount, makeupCount]);
+  }, [guestCount, makeupCount, catalog]);
 
-  const selectedComputedPackage = computedPackages.find(p => p.id === selectedPackageId);
+  const selectedPackage = useMemo(() => {
+    return computedPackages.find(p => p.id === selectedPackageId) || computedPackages[0];
+  }, [selectedPackageId, computedPackages]);
 
   const totalPrice = useMemo(() => {
-    let total = selectedComputedPackage ? selectedComputedPackage.computedPrice : 0;
+    let total = selectedPackage ? selectedPackage.computedPrice : 0;
     dynamicExtras.forEach(extra => {
       if (activeExtras[extra.id]) total += extra.price;
     });
     return total;
-  }, [selectedComputedPackage, activeExtras, dynamicExtras]);
+  }, [selectedPackage, activeExtras, dynamicExtras]);
 
   // Helper to format 24h time for URL
   const to24h = (time, ampm) => {
@@ -385,7 +420,7 @@ function App() {
       `📍 Ubicación: ${eventNeighborhood}, ${eventAddress}\n` +
       `🎉 Ocasión: ${eventOccasion}\n` +
       `👥 Invitados: ${guestCount}\n` +
-      `📦 Paquete: ${selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado'}\n` +
+      `📦 Paquete: ${selectedPackage ? selectedPackage.name : 'Personalizado'}\n` +
       `➕ Extras: ${activeIds.length ? activeIds.join(', ') : 'Ninguno'}\n\n` +
       `💰 Total Estimado: $${totalPrice.toLocaleString()}\n` +
       `(El valor puede ajustarse según las necesidades reales del evento)\n\n` +
@@ -444,12 +479,12 @@ function App() {
         balance: totalPrice
       },
       logistics: {
-        packName: selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado',
+        packName: selectedPackage ? selectedPackage.name : 'Personalizado',
         selectedExtras: selectedExtrasObj,
         makeupCount: makeupCount,
         // New required fields for Staff App
         rolesSchedule: roles,
-        materials: `Paquete ${selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado'} + ${activeIds.length} extras`
+        materials: `Paquete ${selectedPackage ? selectedPackage.name : 'Personalizado'} + ${activeIds.length} extras`
       }
     };
 
@@ -505,6 +540,16 @@ function App() {
       alert("Por favor completa todos los campos del evento para continuar.");
       return;
     }
+
+    // VALIDACIÓN DE FECHA (No permitir fechas pasadas)
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    if (eventDate < today) {
+      alert("⚠️ LA FECHA ES INVÁLIDA\n\nNo puedes seleccionar una fecha anterior a hoy. Por favor, selecciona la fecha correcta de tu evento.");
+      return;
+    }
+
     setCurrentStep(3);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -525,8 +570,11 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  if (!isReady) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: '#fff' }}>Cargando catálogo...</div>;
+
   return (
     <div className="app-container">
+
       <AuroraBackground />
 
       {/* PANTALLA DE ÉXITO */}
@@ -821,7 +869,7 @@ function App() {
                   className="input-field"
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
                 />
               </div>
 

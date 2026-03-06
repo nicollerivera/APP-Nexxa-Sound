@@ -1139,15 +1139,15 @@ function App() {
 
     // 2. Accesorios Essential
     const rawEssential = C_FOAM + (g * (C_BLOWOUT + C_BRACELET));
-    const priceEssential = Math.round(rawEssential / 5000) * 5000;
+    const priceEssential = rawEssential;
 
     // 3. Accesorios Memories
-    const rawMemories = (2 * C_FOAM) + (2 * C_CANNON) + (g * (C_BLOWOUT + C_BRACELET));
-    const priceMemories = Math.round(rawMemories / 5000) * 5000;
+    const rawMemories = (2 * C_FOAM) + (g * C_NECKLACE) + (g * (C_BLOWOUT + C_BRACELET));
+    const priceMemories = rawMemories;
 
     // 4. Accesorios Celebration
     const rawCelebration = (3 * C_FOAM) + (3 * C_CANNON) + (g * (C_BLOWOUT + C_BRACELET + C_NECKLACE + C_MASK));
-    const priceCelebration = Math.round(rawCelebration / 5000) * 5000;
+    const priceCelebration = rawCelebration;
 
     return [
       {
@@ -1171,7 +1171,7 @@ function App() {
         name: 'Accesorios Memories',
         price: priceMemories,
         area: 'Decor',
-        details: `2 Espumas, 2 Cañones + (${g} Pitos, ${g} Manillas)`
+        details: `2 Espumas + (${g} Collares, ${g} Pitos, ${g} Manillas)`
       },
       {
         id: 'acc_celebration',

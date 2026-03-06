@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import TimeInput from './TimeInput';
-import { PRICING } from '../utils/constants';
+
 import {
     getDynamicExtras,
     getHours,
@@ -25,8 +25,11 @@ const CreateEventView = ({
     handleCreateEvent,
     handleCreateQuotation,
     view,
-    setView
+    setView,
+    catalog,
+    appConfig
 }) => {
+
     const [sectionState, setSectionState] = useState({ s1: true, s2: false, s3: false });
 
     console.log("CreateEventView Loaded - Fix V5 (Dynamic Hours) Applied");
@@ -294,43 +297,55 @@ const CreateEventView = ({
         const start = updated.startTime;
         const end = updated.endTime;
         const guests = Number(updated.guestCount) || 10;
+        const total = Number(newEvent.totalValue) || 0;
+        const dep = Number(newEvent.deposit) || 0;
+
+        // Auto-Precio si no hay manual
+        if (!total && catalog) {
+            const pkg = catalog.packages.find(p => p.name === newEvent.packName);
+            if (pkg) {
+                // Update newEvent totalValue if needed
+            }
+        }
         const selExtras = updated.selectedExtras || {};
         const pDuration = Number(updated.photoDuration) || 0;
 
         const currentExtrasList = getDynamicExtras(guests, updated.makeupCount);
 
-        if (PRICING[pack] && start && end && pack !== 'Personalizado') {
-            const conf = PRICING[pack];
-            const duration = getHours(start, end);
-            const extraEventHours = Math.max(0, Math.ceil(duration - 4));
-            const basePrice = conf.base;
-            const djExtraPrice = conf.extraDJ || 0;
-            const photoExtraPrice = conf.extraPhoto || 0;
+        if (catalog && pack && start && end && pack !== 'Personalizado') {
+            const conf = catalog.packages.find(p => p.name === pack);
+            if (conf) {
+                const duration = getHours(start, end);
+                const extraEventHours = Math.max(0, Math.ceil(duration - appConfig.baseHours));
+                const basePrice = conf.price;
+                const djExtraPrice = conf.extraDJ || 0;
+                const photoExtraPrice = conf.extraPhoto || 0;
 
-            let totalExtrasValue = 0;
-            totalExtrasValue += extraEventHours * djExtraPrice;
+                let totalExtrasValue = 0;
+                totalExtrasValue += extraEventHours * djExtraPrice;
 
-            const hasPhoto = (pack === 'Memories' || pack === 'Celebration');
-            if (hasPhoto) {
-                if (pDuration > 0) {
-                    const extraPhotoHours = Math.max(0, Math.ceil(pDuration - 4));
-                    totalExtrasValue += extraPhotoHours * photoExtraPrice;
-                } else {
-                    totalExtrasValue += extraEventHours * photoExtraPrice;
+                const hasPhoto = (pack === 'Memories' || pack === 'Celebration');
+                if (hasPhoto) {
+                    if (pDuration > 0) {
+                        const extraPhotoHours = Math.max(0, Math.ceil(pDuration - appConfig.baseHours));
+                        totalExtrasValue += extraPhotoHours * photoExtraPrice;
+                    } else {
+                        totalExtrasValue += extraEventHours * photoExtraPrice;
+                    }
                 }
-            }
 
-            let calculatedTotal = basePrice + totalExtrasValue;
-            currentExtrasList.forEach(ex => {
-                if (selExtras[ex.id]) calculatedTotal += ex.price;
-            });
+                let calculatedTotal = basePrice + totalExtrasValue;
+                currentExtrasList.forEach(ex => {
+                    if (selExtras[ex.id]) calculatedTotal += ex.price;
+                });
 
-            updated.totalValue = calculatedTotal;
+                updated.totalValue = calculatedTotal;
 
-            if (pDuration > 0 && hasPhoto) {
-                updated.extraHourPrice = djExtraPrice;
-            } else {
-                updated.extraHourPrice = djExtraPrice + (hasPhoto ? photoExtraPrice : 0);
+                if (pDuration > 0 && hasPhoto) {
+                    updated.extraHourPrice = djExtraPrice;
+                } else {
+                    updated.extraHourPrice = djExtraPrice + (hasPhoto ? photoExtraPrice : 0);
+                }
             }
 
         } else if (pack === 'Personalizado') {
@@ -342,7 +357,7 @@ const CreateEventView = ({
         }
 
         if (updated.totalValue > 0) {
-            updated.deposit = updated.totalValue * 0.3;
+            updated.deposit = updated.totalValue * appConfig.depositPercentage;
         }
 
         setNewEvent(updated);
@@ -351,22 +366,25 @@ const CreateEventView = ({
     // Logic: Constant Sync for Extra Hour Price
     useEffect(() => {
         try {
-            if (newEvent?.packName && PRICING[newEvent.packName]) {
-                const correctRate = (PRICING[newEvent.packName].extraDJ || 0) + (PRICING[newEvent.packName].extraPhoto || 0) || 85000;
-                if (Number(newEvent.extraHourPrice) !== correctRate && !newEvent.id) {
-                    // Only auto-correct for NEW/DRAFT events
-                    setNewEvent(prev => ({ ...prev, extraHourPrice: correctRate }));
+            if (newEvent?.packName && catalog) {
+                const pkg = catalog.packages.find(p => p.name === newEvent.packName);
+                if (pkg) {
+                    const correctRate = (pkg.extraDJ || 0) + (pkg.extraPhoto || 0) || appConfig.defaultExtraHourPrice;
+                    if (Number(newEvent.extraHourPrice) !== correctRate && !newEvent.id) {
+                        // Only auto-correct for NEW/DRAFT events
+                        setNewEvent(prev => ({ ...prev, extraHourPrice: correctRate }));
+                    }
                 }
             }
         } catch (error) {
             console.error("Error in pricing sync effect:", error);
         }
-    }, [newEvent.packName, newEvent.id, setNewEvent]);
+    }, [newEvent.packName, newEvent.id, setNewEvent, catalog, appConfig]);
 
     try {
-        const currentConf = PRICING[newEvent.packName] || {};
+        const currentConf = catalog?.packages.find(p => p.name === newEvent.packName) || {};
         const duration = newEvent.startTime && newEvent.endTime ? getHours(newEvent.startTime, newEvent.endTime) : 0;
-        const extrasKy = Math.max(0, Math.ceil(duration - 4));
+        const extrasKy = Math.max(0, Math.ceil(duration - appConfig.baseHours));
         const isEventMode = newEvent.id?.startsWith('EVT');
 
         return (
@@ -404,7 +422,7 @@ const CreateEventView = ({
                         <button
                             onClick={() => {
                                 if (window.confirm('¿Descartar cambios y limpiar formulario?')) {
-                                    const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
+                                    const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: appConfig.defaultExtraHourPrice, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
                                     setNewEvent(emptyState);
                                     localStorage.removeItem('nexxa_draft_event');
                                 }
@@ -451,12 +469,24 @@ const CreateEventView = ({
                         {sectionState.s1 && (
                             <>
                                 <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                                    <select style={{ flex: 1, color: 'white', background: '#222' }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
-                                        <option value="Essential" style={{ color: '#000' }}>Essential ($450k)</option>
-                                        <option value="Memories" style={{ color: '#000' }}>Memories ($650k)</option>
-                                        <option value="Celebration" style={{ color: '#000' }}>Celebration ($850k)</option>
-                                        <option value="Personalizado" style={{ color: '#000' }}>Personalizado</option>
-                                    </select>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5 }}>PLAN SELECCIONADO</label>
+                                        <select
+                                            value={newEvent.packName}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                const pkg = catalog?.packages.find(p => p.name === val);
+                                                const basePrice = pkg?.price || 0;
+                                                const extraPrice = pkg?.extraHourPrice || pkg?.extraDJ || appConfig.defaultExtraHourPrice;
+                                                setNewEvent({ ...newEvent, packName: val, totalValue: basePrice, extraHourPrice: extraPrice });
+                                            }}
+                                            style={{ width: '100%', padding: '15px', borderRadius: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontWeight: '900', fontSize: '1.2rem', appearance: 'none' }}
+                                        >
+                                            {catalog?.packages.map(pkg => (
+                                                <option key={pkg.id} value={pkg.name} style={{ background: '#000' }}>{pkg.name.toUpperCase()}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     <select
                                         style={{
                                             flex: 1,
@@ -533,9 +563,9 @@ const CreateEventView = ({
                                 )}
 
                                 {duration > 0 && (
-                                    <div style={{ marginBottom: '10px', padding: '4px 8px', background: duration < 4 ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: duration < 4 ? '#ff4d4d' : '#00d4ff', border: duration < 4 ? '1px solid #ff4d4d' : 'none' }}>
+                                    <div style={{ marginBottom: '10px', padding: '4px 8px', background: duration < appConfig.baseHours ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: duration < appConfig.baseHours ? '#ff4d4d' : '#00d4ff', border: duration < appConfig.baseHours ? '1px solid #ff4d4d' : 'none' }}>
                                         ⏳ <strong>{(Number(duration) || 0).toFixed(1)}h</strong> (DJ/Sonido)
-                                        {duration < 4 && <span> ⚠️ Mínimo 4 Horas requeridas</span>}
+                                        {duration < appConfig.baseHours && <span> ⚠️ Mínimo {appConfig.baseHours} Horas requeridas</span>}
                                         {extrasKy > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extrasKy}h extra)</span>}
                                     </div>
                                 )}
@@ -556,9 +586,9 @@ const CreateEventView = ({
                                                 <TimeInput label="Fin Foto" value={newEvent.photoEndTime} onChange={(val) => updateEvent('photoEndTime', val)} />
                                             </div>
                                             {newEvent.photoDuration > 0 && (
-                                                <div style={{ marginTop: '10px', padding: '5px 10px', background: newEvent.photoDuration < 4 ? 'rgba(255,0,0,0.1)' : 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: newEvent.photoDuration < 4 ? '#ff4d4d' : '#facc15' }}>
+                                                <div style={{ marginTop: '10px', padding: '5px 10px', background: newEvent.photoDuration < appConfig.baseHours ? 'rgba(255,0,0,0.1)' : 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: newEvent.photoDuration < appConfig.baseHours ? '#ff4d4d' : '#facc15' }}>
                                                     📸 <strong>{newEvent.photoDuration}h</strong> Fotografía
-                                                    {newEvent.photoDuration < 4 && <span> ⚠️ Mínimo 4h</span>}
+                                                    {newEvent.photoDuration < appConfig.baseHours && <span> ⚠️ Mínimo {appConfig.baseHours}h</span>}
                                                 </div>
                                             )}
                                         </div>
@@ -750,8 +780,8 @@ const CreateEventView = ({
                                 {newEvent.packName !== 'Personalizado' ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white' }}>
-                                            <span>Paquete {newEvent.packName} (4h Base):</span>
-                                            <strong>${(Number(currentConf.base) || 0).toLocaleString()}</strong>
+                                            <span>Paquete {newEvent.packName} ({appConfig.baseHours}h Base):</span>
+                                            <strong>${(Number(currentConf.price) || 0).toLocaleString()}</strong>
                                         </div>
                                         {extrasKy > 0 && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15' }}>

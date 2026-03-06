@@ -499,16 +499,16 @@ function App() {
           rawPrice = COST_FOAM + (count * (COST_BLOWOUT + COST_BRACELET));
           newDesc = `Pack para ${count} personas: 1 Espuma, ${count} Manillas Neón, ${count} Pitos.`;
         } else if (extra.id === 'acc_memories') {
-          // 2 Espumas + 2 Cañones + (Pito + Manilla) * Guests
-          rawPrice = (2 * COST_FOAM) + (2 * COST_CANNON) + (count * (COST_BLOWOUT + COST_BRACELET));
-          newDesc = `Pack para ${count} personas: 2 Espumas, 2 Cañones, ${count} Manillas Neón, ${count} Pitos.`;
+          // 2 Espumas + Collares + (Pito + Manilla) * Guests
+          rawPrice = (2 * COST_FOAM) + (count * COST_NECKLACE) + (count * (COST_BLOWOUT + COST_BRACELET));
+          newDesc = `Pack para ${count} personas: 2 Espumas, ${count} Collares Hawaianos, ${count} Manillas Neón, ${count} Pitos.`;
         } else if (extra.id === 'acc_celebration') {
           // 3 Espumas + 3 Cañones + (Pito + Manilla + Antifaz + Collar) * Guests
           rawPrice = (3 * COST_FOAM) + (3 * COST_CANNON) + (count * (COST_BLOWOUT + COST_BRACELET + COST_MASK + COST_NECKLACE));
           newDesc = `Pack para ${count} personas: 3 Espumas, 3 Cañones, ${count} Manillas, ${count} Pitos, ${count} Collares, ${count} Antifaces.`;
         }
 
-        newPrice = Math.round(rawPrice / 5000) * 5000;
+        newPrice = rawPrice;
 
         return { ...extra, price: newPrice, desc: newDesc };
       });
@@ -668,6 +668,16 @@ function App() {
       alert("Por favor completa todos los campos del evento para continuar.");
       return;
     }
+
+    // VALIDACIÓN DE FECHA (No permitir fechas pasadas)
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    if (eventDate < today) {
+      alert("⚠️ LA FECHA ES INVÁLIDA\n\nNo puedes seleccionar una fecha anterior a hoy. Por favor, selecciona la fecha correcta de tu evento.");
+      return;
+    }
+
     setCurrentStep(3);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -909,7 +919,7 @@ function App() {
                   className="input-field"
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
                 />
               </div>
 

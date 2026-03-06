@@ -63,6 +63,9 @@ import {
   serverTimestamp, query, where, orderBy, getDocs, getDoc
 } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { configService } from './services/configService';
+import ConfigManagerView from './components/ConfigManagerView';
+
 
 // --- HELPERS MOVED TO utils/helpers.js ---
 // --- ICONS MOVED TO components/Icons.jsx ---
@@ -77,15 +80,20 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebas
 
 
 function App() {
+  // --- 0. DYNAMIC CONFIGURATION STATE ---
+  const [catalog, setCatalog] = useState(null);
+  const [isConfigLoaded, setIsConfigLoaded] = useState(false);
+
 
   // --- 1. ESTADO: MOTOR DEL NEGOCIO (AJUSTES) ---
   const [appConfig, setAppConfig] = useState({
     // 1. PRECIOS Y REGLAS
-    djBase: 35000,
-    djHour: 13000,
-    logisticsBase: 25000,
-    logisticsHour: 10000,
-    photoHour: 13000,
+    roles: [
+      { id: 'dj', name: 'DJ', base: 35000, hourly: 13000, extra: 15000, edition: 0 },
+      { id: 'foto', name: 'Fotografía', base: 0, hourly: 13000, extra: 15000, edition: 0 },
+      { id: 'decor', name: 'Decoración', base: 0, hourly: 20000, extra: 15000, edition: 0 },
+      { id: 'logistica', name: 'Logística / Equipo', base: 25000, hourly: 10000, extra: 15000, edition: 0 }
+    ],
     neonArtist: 120000,
     minEventDuration: 4, // horas
     maxDiscount: 10, // %
@@ -135,19 +143,13 @@ function App() {
     };
   });
 
-  // --- 3. UI & NAVIGATION STATE (PERSISTENT MEMORY) ---
-  const [view, setView] = useState(() => {
-    return localStorage.getItem('nexxa_last_view') || 'logistics';
-  });
+  // --- 3. UI & NAVIGATION STATE ---
+  const [view, setView] = useState('quotations');
   const [eventSubTab, setEventSubTab] = useState(() => {
     return localStorage.getItem('nexxa_last_subtab') || 'list';
   });
 
   // --- PERSISTENCE EFFECTS ---
-  React.useEffect(() => {
-    localStorage.setItem('nexxa_last_view', view);
-  }, [view]);
-
   React.useEffect(() => {
     localStorage.setItem('nexxa_last_subtab', eventSubTab);
   }, [eventSubTab]);
@@ -489,6 +491,67 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // --- 8. SYNC DYNAMIC APP CONFIGURATION ---
+  React.useEffect(() => {
+    // 1. Subscribe to pricing rules
+    const unsubRules = configService.subscribeToRules((data) => {
+      if (data) {
+        setAppConfig(data);
+      } else {
+        // First time seeding if not found
+        console.log("Seeding pricing rules for the first time...");
+        const initialRules = {
+          roles: [
+            { id: 'dj', name: 'DJ', base: 35000, hourly: 13000, extra: 15000, edition: 0 },
+            { id: 'foto', name: 'Fotografía', base: 0, hourly: 13000, extra: 15000, edition: 0 },
+            { id: 'decor', name: 'Decoración', base: 0, hourly: 20000, extra: 15000, edition: 0 },
+            { id: 'logistica', name: 'Logística / Equipo', base: 25000, hourly: 10000, extra: 15000, edition: 0 }
+          ], neonArtist: 120000, minEventDuration: 4, maxDiscount: 10,
+          bufferTime: 2, overlapPenalty: 50000, minDeposit: 50, overtimePolicy: 'ALWAYS_CHARGE',
+          msgQuote: '¡Hola {cliente}! 🎧 Adjunto tu cotización personalizada para tu evento en {fecha}.',
+          msgAdvisory: '{cliente}, para tu evento de {invitados} pax en {zona}, te sugerimos lo siguiente...',
+          msgConfirm: '¡Excelente! Hemos recibido tu abono de {monto}. Tu fecha {fecha} está 100% confirmada. 🔒',
+          msgPost: '¡Gracias por confiar en Nexxa! Esperamos que hayas disfrutado tu experiencia. ⭐',
+          initialCash: 0, expenseCategorias: ['Transporte', 'Alimentación', 'Nómina', 'Mantenimiento', 'Equipos', 'Marketing'],
+          defaultPayment: 'Nequi', notifyEvent: true, notifyConflict: true, notifyPayment: true,
+          baseHours: 4, depositPercentage: 0.3, defaultExtraHourPrice: 85000
+        };
+        configService.updateRules(initialRules);
+      }
+    });
+
+    // 2. Subscribe to catalog
+    const unsubCatalog = configService.subscribeToCatalog((data) => {
+      if (data) {
+        setCatalog(data);
+        setIsConfigLoaded(true);
+      } else {
+        // First time seeding if not found
+        console.log("Seeding catalog for the first time...");
+        const initialCatalog = {
+          packages: [
+            { id: 'Essential', name: 'ESSENTIAL', price: 450000, extraDJ: 85000, extraPhoto: 0, features: ["2 Cabinas de Sonido", "DJ Crossover", "4 Luces LED", "Cámara de Humo", "Micrófono Animation"], highlight: false },
+            { id: 'Memories', name: 'MEMORIES', price: 650000, extraDJ: 85000, extraPhoto: 50000, features: ["2 Cabinas de Sonido", "DJ Crossover", "4 Luces LED", "Cámara de Humo", "Micrófono", "<strong>Fotografía</strong>"], highlight: true },
+            { id: 'Celebration', name: 'CELEBRATION', price: 850000, extraDJ: 85000, extraPhoto: 50000, features: ["2 Cabinas de Sonido", "DJ Crossover", "4 Luces LED", "Cámara de Humo", "Micrófono", "<strong>Fotografía</strong>", "<strong>Decoración</strong>"], highlight: false },
+            { id: 'Personalizado', name: 'PERSONALIZADO', price: 0, extraDJ: 85000, extraPhoto: 0, features: ["Configuración Manual"], highlight: false }
+          ],
+          extras: [
+            { id: 'makeup', name: 'Maquillaje Neón', desc: 'Pinturas y maquillador x 2 hrs.', price: 120000, isMakeup: true },
+            { id: 'acc_essential', name: 'Accesorios Essential', desc: '1 Espuma, 50 Manillas, 25 Pitos.', price: 38000, isAddon: true },
+            { id: 'acc_memories', name: 'Accesorios Memories', desc: '2 Espumas, 50 Manillas, 50 Pitos, 50 Collares.', price: 76000, isAddon: true },
+            { id: 'acc_celebration', name: 'Accesorios Celebration', desc: '3 Espumas, 25 Manillas, 50 Pitos, 50 Collares, 50 Antifaces, 3 cañones.', price: 114000, isAddon: true }
+          ]
+        };
+        configService.updateCatalog(initialCatalog);
+      }
+    });
+
+    return () => {
+      unsubRules();
+      unsubCatalog();
+    };
+  }, []);
+
 
 
 
@@ -581,6 +644,7 @@ function App() {
       const u = { name: 'Sharon', id: 'admin_1' };
       setUser(u);
       setUserRole('admin');
+      setView('quotations');
       localStorage.setItem('nexxa_user', JSON.stringify(u));
       localStorage.setItem('nexxa_role', 'admin');
       localStorage.setItem('nexxa_login_time', Date.now());
@@ -588,6 +652,7 @@ function App() {
       const u = { name: loginUser.trim(), id: `sales_${Date.now()}` };
       setUser(u);
       setUserRole('sales');
+      setView('quotations');
       localStorage.setItem('nexxa_user', JSON.stringify(u));
       localStorage.setItem('nexxa_role', 'sales');
       localStorage.setItem('nexxa_login_time', Date.now());
@@ -634,15 +699,24 @@ function App() {
   };
 
 
-  // --- ESTADO: IDENTIDAD OPERATIVA (PERFIL) ---
-  const [userProfile, setUserProfile] = useState({
-    businessName: 'Nexxa Sound',
-    nit: '',
-    fiscalAddress: '',
-    whatsapp: '3204863127',
-    email: 'contacto@nexxasound.com',
-    city: 'Bogotá D.C.',
-    signature: 'Atte: El equipo de Nexxa Sound ðŸŽ§'
+  const [userProfile, setUserProfile] = useState(() => {
+    const saved = localStorage.getItem('nexxa_profile');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Error parsing saved profile");
+      }
+    }
+    return {
+      businessName: 'Nexxa Sound',
+      nit: '',
+      fiscalAddress: '',
+      whatsapp: '3204863127',
+      email: 'contacto@nexxasound.com',
+      city: 'Bogotá D.C.',
+      signature: 'Atte: El equipo de Nexxa Sound 🎧'
+    };
   });
 
 
@@ -1096,13 +1170,6 @@ function App() {
   }, [quotations]);
 
   // --- EDIT & STATUS HANDLERS ---
-  // --- TARIFAS EXACTAS APP NEXXA ---
-  const PRICING = {
-    'Essential': { base: 450000, extraDJ: 85000, extraPhoto: 0 },
-    'Memories': { base: 650000, extraDJ: 85000, extraPhoto: 50000 },
-    'Celebration': { base: 850000, extraDJ: 85000, extraPhoto: 50000 },
-    'Personalizado': { base: 0, extraDJ: 0, extraPhoto: 0 }
-  };
 
 
 
@@ -1158,51 +1225,51 @@ function App() {
     }
 
     // 1. DEFINIR ITEMS (Calculated based on Package + Extras?)
-    // Note: Currently simple package mapping.
     let defaultItems = [];
-    if (newEvent.packName === 'Essential') {
-      defaultItems = [
-        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÃPODES', qty: 2, checked: false, area: 'DJ' },
-        { name: 'PC PORTÃTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'LUCES LED X4 + SOPORTE TRÃPODE', qty: 1, checked: false, area: 'DJ' },
-        { name: 'MÃQUINA HUMO + CONTROL + LÃQUIDO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÃSTICA' }
-      ];
-    } else if (newEvent.packName === 'Memories') {
-      defaultItems = [
-        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÃPODES', qty: 2, checked: false, area: 'DJ' },
-        { name: 'BAJOS 18" ACTIVOS', qty: 2, checked: false, area: 'DJ' },
-        { name: 'ESTRUCTURA PORTERÃA LUCES', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CABEZA MÃ“VIL BEAM / SPOT', qty: 2, checked: false, area: 'DJ' },
-        { name: 'PAR LED RGBW', qty: 6, checked: false, area: 'DJ' },
-        { name: 'CÃMARA', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'MICRO SD', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'PC PORTÃTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'MÃQUINA HUMO + CONTROL + LÃQUIDO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÃSTICA' }
-      ];
-    } else if (newEvent.packName === 'Celebration') {
-      defaultItems = [
-        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÃPODES', qty: 4, checked: false, area: 'DJ' },
-        { name: 'BAJOS 18" ACTIVOS', qty: 2, checked: false, area: 'DJ' },
-        { name: 'CABINA RETORNO DJ', qty: 1, checked: false, area: 'DJ' },
-        { name: 'ESTRUCTURA PORTERÃA LUCES 4M', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CABEZA MÃ“VIL BEAM / SPOT', qty: 4, checked: false, area: 'DJ' },
-        { name: 'PAR LED RGBW', qty: 8, checked: false, area: 'DJ' },
-        { name: 'CÃMARA', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'MICRO SD', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'BOMBAS', qty: 150, checked: false, area: 'DECOR' },
-        { name: 'INFLADOR', qty: 1, checked: false, area: 'DECOR' },
-        { name: 'PC PORTÃTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'MÃQUINA HUMO + CONTROL + LÃQUIDO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÃSTICA' }
-      ];
+    const pkgData = catalog?.packages.find(p => p.name === newEvent.packName);
+
+    if (pkgData && pkgData.defaultItems) {
+      defaultItems = pkgData.defaultItems.map(item => ({ ...item, checked: false }));
     } else {
-      defaultItems = [
-        { name: 'KIT SONIDO BÃSICO NEXXA', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ILUMINACIÃ“N BÃSICO NEXXA', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CABLEADO Y EXTENSIONES AC', qty: 1, checked: false, area: 'LOGÃSTICA' }
-      ];
+      // FALLBACKS IF NO DYNAMIC DATA
+      if (newEvent.packName === 'Essential') {
+        defaultItems = [
+          { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 2, checked: false, area: 'DJ' },
+          { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
+          { name: 'LUCES LED X4 + SOPORTE TRÍPODE', qty: 1, checked: false, area: 'DJ' },
+          { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
+          { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
+        ];
+      } else if (newEvent.packName === 'Memories') {
+        defaultItems = [
+          { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 2, checked: false, area: 'DJ' },
+          { name: 'BAJOS 18" ACTIVOS', qty: 2, checked: false, area: 'DJ' },
+          { name: 'ESTRUCTURA PORTERÍA LUCES', qty: 1, checked: false, area: 'DJ' },
+          { name: 'CABEZA MÓVIL BEAM / SPOT', qty: 2, checked: false, area: 'DJ' },
+          { name: 'PAR LED RGBW', qty: 6, checked: false, area: 'DJ' },
+          { name: 'CÁMARA', qty: 1, checked: false, area: 'PHOTO' },
+          { name: 'MICRO SD', qty: 1, checked: false, area: 'PHOTO' },
+          { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
+          { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
+          { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
+        ];
+      } else if (newEvent.packName === 'Celebration') {
+        defaultItems = [
+          { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 4, checked: false, area: 'DJ' },
+          { name: 'BAJOS 18" ACTIVOS', qty: 2, checked: false, area: 'DJ' },
+          { name: 'CABINA RETORNO DJ', qty: 1, checked: false, area: 'DJ' },
+          { name: 'ESTRUCTURA PORTERÍA LUCES 4M', qty: 1, checked: false, area: 'DJ' },
+          { name: 'CABEZA MÓVIL BEAM / SPOT', qty: 4, checked: false, area: 'DJ' },
+          { name: 'PAR LED RGBW', qty: 8, checked: false, area: 'DJ' },
+          { name: 'CÁMARA', qty: 1, checked: false, area: 'PHOTO' },
+          { name: 'MICRO SD', qty: 1, checked: false, area: 'PHOTO' },
+          { name: 'BOMBAS', qty: 150, checked: false, area: 'DECOR' },
+          { name: 'INFLADOR', qty: 1, checked: false, area: 'DECOR' },
+          { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
+          { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
+          { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
+        ];
+      }
     }
 
     // 1.1 AÃ‘ADIR MATERIALES DE EXTRAS SELECCIONADOS
@@ -1403,7 +1470,20 @@ function App() {
     const getRate = (search) => {
       const norm = (s) => String(s || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
       const sNorm = norm(search);
-      // Special short-circuits for common names
+
+      if (appConfig?.roles && Array.isArray(appConfig.roles)) {
+        const found = appConfig.roles.find(r => {
+          const kn = norm(r.name);
+          if (kn === sNorm) return true;
+          if (sNorm === 'FOTO' && (kn === 'FOTOGRAFO' || kn === 'FOTOGRAFIA')) return true;
+          if (sNorm === 'DECOR' && (kn === 'DECORADOR' || kn === 'DECORACION')) return true;
+          if (sNorm === 'LOGISTICA' && (kn === 'LOGISTICA' || kn === 'COORDINADOR' || kn === 'EQUIPO')) return true;
+          if (sNorm === 'DJ' && (kn.includes('DJ') || kn.includes('OPERADOR'))) return true;
+          return false;
+        });
+        if (found) return found;
+      }
+
       const key = Object.keys(staffRates || {}).find(k => {
         const kn = norm(k);
         if (kn === sNorm) return true;
@@ -1423,7 +1503,7 @@ function App() {
     // FOTO
     const rFoto = getRate('FOTO');
     const pDur = evt.eventDetails?.photoStartTime ? getHours(evt.eventDetails.photoStartTime, evt.eventDetails.photoEndTime) : 0;
-    const photoPay = (rFoto.base ?? 0) + (pDur * (rFoto.hourly ?? 13000)) + ((eks.FOTO || 0) * (rFoto.extra ?? 15000));
+    const photoPay = (rFoto.base ?? 0) + (pDur * (rFoto.hourly ?? 13000)) + ((eks.FOTO || 0) * (rFoto.extra ?? 15000)) + (rFoto.edition ?? 0);
 
     // DECOR
     const rDecor = getRate('DECOR');
@@ -3577,44 +3657,82 @@ function App() {
 
   // --- VIEW: PERFIL (IDENTIDAD) ---
   function renderProfile() {
+    const CompactTextInput = ({ label, value, onChange }) => (
+      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '8px 12px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <label style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.5, letterSpacing: '1px', textTransform: 'uppercase' }}>{label}</label>
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.9rem', fontWeight: '700', width: '100%', outline: 'none', padding: 0, margin: 0 }} />
+      </div>
+    );
+
     return (
       <div className="fade-in container" style={{ paddingBottom: '140px' }}>
-        <header className="main-header" style={{ padding: '30px 0 20px 0' }}>
-          <button onClick={() => setView('settings')} className="nav-btn" style={{ background: 'transparent', border: 'none', paddingLeft: 0, fontWeight: '900', fontSize: '0.8rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '10px' }}>
+        <header className="main-header" style={{ padding: '20px 0 15px 0' }}>
+          <button onClick={() => setView('settings')} className="nav-btn" style={{ background: 'transparent', border: 'none', paddingLeft: 0, fontWeight: '900', fontSize: '0.8rem', color: 'var(--primary-cyan)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '6px' }}>
             <IconArrowLeft size={14} /> CENTRO DE CONTROL
           </button>
-          <h2 style={{ fontSize: '2rem', fontWeight: '900', margin: 0 }}>Identidad <span style={{ opacity: 0.3 }}>Operativa</span></h2>
-          <p style={{ margin: '5px 0 0 0', fontSize: '0.85rem', opacity: 0.4, fontWeight: '600' }}>AsÃ­ te ven tus clientes.</p>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: '900', margin: 0 }}>Identidad <span style={{ opacity: 0.3 }}>Operativa</span></h2>
+          <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', opacity: 0.4, fontWeight: '600' }}>Así te ven tus clientes.</p>
         </header>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <section>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '15px', color: 'var(--primary-purple)' }}>DATOS DE CONTACTO</h3>
-            <div style={{ display: 'grid', gap: '15px' }}>
-              <TextInput label="Nombre Comercial" value={userProfile.businessName} onChange={(val) => setUserProfile({ ...userProfile, businessName: val })} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <TextInput label="NIT / Documento" value={userProfile.nit} onChange={(val) => setUserProfile({ ...userProfile, nit: val })} />
-                <TextInput label="DirecciÃ³n Fiscal" value={userProfile.fiscalAddress} onChange={(val) => setUserProfile({ ...userProfile, fiscalAddress: val })} />
+            <h3 style={{ fontSize: '0.8rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px', color: 'var(--primary-purple)' }}>DATOS DE CONTACTO</h3>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              <CompactTextInput label="Nombre Comercial" value={userProfile.businessName} onChange={(val) => setUserProfile({ ...userProfile, businessName: val })} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <CompactTextInput label="NIT / Documento" value={userProfile.nit} onChange={(val) => setUserProfile({ ...userProfile, nit: val })} />
+                <CompactTextInput label="Dirección Fiscal" value={userProfile.fiscalAddress} onChange={(val) => setUserProfile({ ...userProfile, fiscalAddress: val })} />
               </div>
-              <TextInput label="WhatsApp Principal" value={userProfile.whatsapp} onChange={(val) => setUserProfile({ ...userProfile, whatsapp: val })} />
-              <TextInput label="Correo electrónico" value={userProfile.email} onChange={(val) => setUserProfile({ ...userProfile, email: val })} />
-              <TextInput label="Ciudad / Zona" value={userProfile.city} onChange={(val) => setUserProfile({ ...userProfile, city: val })} />
+              <CompactTextInput label="WhatsApp Principal" value={userProfile.whatsapp} onChange={(val) => setUserProfile({ ...userProfile, whatsapp: val })} />
+              <CompactTextInput label="Correo electrónico" value={userProfile.email} onChange={(val) => setUserProfile({ ...userProfile, email: val })} />
+              <CompactTextInput label="Ciudad / Zona" value={userProfile.city} onChange={(val) => setUserProfile({ ...userProfile, city: val })} />
             </div>
           </section>
 
           <section>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '15px', color: 'var(--primary-cyan)' }}>FIRMA AUTOMÃTICA</h3>
-            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '15px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <h3 style={{ fontSize: '0.8rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px', color: 'var(--primary-cyan)' }}>FIRMA AUTOMÁTICA</h3>
+            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.05)' }}>
               <textarea
                 value={userProfile.signature}
                 onChange={(e) => setUserProfile({ ...userProfile, signature: e.target.value })}
-                rows={3}
-                style={{ width: '100%', background: 'transparent', border: 'none', color: '#fff', fontSize: '0.9rem', fontFamily: 'sans-serif', resize: 'none', outline: 'none' }}
+                rows={2}
+                style={{ width: '100%', background: 'transparent', border: 'none', color: '#fff', fontSize: '0.8rem', fontFamily: 'sans-serif', resize: 'vertical', outline: 'none', padding: 0, margin: 0 }}
               />
             </div>
           </section>
 
-          <button onClick={() => { alert('Perfil actualizado.'); setView('settings'); }} className="primary-btn" style={{ marginTop: '10px', width: '100%', padding: '20px', fontSize: '1rem' }}>GUARDAR PERFIL</button>
+          {(userRole === 'admin' || userRole === 'sales') && (
+            <section style={{ marginTop: '10px' }}>
+              <h3 style={{ fontSize: '0.8rem', fontWeight: '950', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px', color: 'var(--primary-cyan)' }}>CONTROL DE APP</h3>
+              <div
+                onClick={() => setView('config')}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '14px',
+                  background: 'var(--brand-gradient)',
+                  border: 'none',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 6px 15px rgba(0,212,255,0.2)'
+                }}
+              >
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                    <IconSettings size={18} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontWeight: '900', fontSize: '0.9rem', color: '#fff', lineHeight: 1.1 }}>Variables Globales y Tarifas</span>
+                    <small style={{ opacity: 0.9, fontWeight: '700', color: '#fff', fontSize: '0.65rem' }}>Control maestro de paquetes y precios</small>
+                  </div>
+                </div>
+                <IconArrowRight size={14} style={{ color: '#fff' }} />
+              </div>
+            </section>
+          )}
+
+          <button onClick={() => { localStorage.setItem('nexxa_profile', JSON.stringify(userProfile)); alert('Perfil actualizado.'); setView('settings'); }} className="primary-btn" style={{ marginTop: '0', width: '100%', padding: '12px', fontSize: '0.85rem', fontWeight: '900', borderRadius: '12px' }}>GUARDAR PERFIL</button>
         </div>
       </div>
     );
@@ -4304,7 +4422,7 @@ function App() {
   console.log("DEBUG NEXXA - userData:", userData);
 
   if (!user) return renderLogin();
-  if (!events || !quotations) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>Cargando informaciÃ³n...</div>;
+  if (!events || !quotations || !isConfigLoaded) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>Cargando información maestra...</div>;
 
   // TRY-CATCH WRAPPER for main render
   try {
@@ -4337,6 +4455,8 @@ function App() {
               handleCreateQuotation={handleCreateQuotation}
               view={view}
               setView={setView}
+              catalog={catalog}
+              appConfig={appConfig}
             />
           )}
           {view === 'inventory' && (
@@ -4369,7 +4489,13 @@ function App() {
           {view === 'roles' && (
             <RolesView setView={setView} />
           )}
-          {view === 'config' && renderConfig()}
+          {view === 'config' && (
+            <ConfigManagerView
+              setView={setView}
+              appConfig={appConfig}
+              catalog={catalog}
+            />
+          )}
           {view === 'profile' && renderProfile()}
           {view === 'quotations' && (() => {
             try {
@@ -4500,8 +4626,8 @@ function App() {
                         <IconSettings size={22} />
                       </div>
                       <div>
-                        <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Ajustes</span>
-                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Variables globales y tarifas</small>
+                        <span style={{ fontWeight: '900', fontSize: '1.1rem', display: 'block' }}>Variables Globales y Tarifas</span>
+                        <small style={{ opacity: 0.4, fontWeight: '700' }}>Control maestro de paquetes y precios</small>
                       </div>
                     </div>
                     <IconArrowRight size={18} style={{ opacity: 0.3 }} />

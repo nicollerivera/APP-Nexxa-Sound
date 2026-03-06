@@ -4,7 +4,7 @@ import './App.css';
 import './ValueProps.css';
 import { packages, extras } from './data';
 import { db } from './firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, onSnapshot } from 'firebase/firestore';
 
 // Custom hook for local storage persistence
 function useLocalStorage(key, initialValue) {
@@ -34,6 +34,33 @@ function useLocalStorage(key, initialValue) {
 }
 
 function App() {
+  // --- DYNAMIC CONFIGURATION ---
+  const [catalog, setCatalog] = useState(null);
+  const [appRules, setAppRules] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Subscribe to Rules
+    const unsubRules = onSnapshot(doc(db, 'app_config', 'pricing_rules'), (snap) => {
+      if (snap.exists()) setAppRules(snap.data());
+    });
+    // Subscribe to Catalog
+    const unsubCatalog = onSnapshot(doc(db, 'app_config', 'catalog'), (snap) => {
+      if (snap.exists()) {
+        setCatalog(snap.data());
+        setIsReady(true);
+      }
+    });
+
+    return () => {
+      unsubRules();
+      unsubCatalog();
+    };
+  }, []);
+
+  const packagesList = catalog?.packages || packages;
+  const extrasList = catalog?.extras || extras;
+
   const packagesContainerRef = useRef(null);
 
   // STATE MANAGEMENT (v6 keys to ensure clean start)
@@ -244,10 +271,11 @@ function App() {
   const eventDuration = useMemo(() => calculateDuration(), [eventStartTime, eventEndTime, startAmPm, endAmPm]);
 
   const computedPackages = useMemo(() => {
-    const extraHours = Math.max(0, Math.ceil(eventDuration - 4));
-    return packages.map(pkg => {
-      let extraHourPrice = 135000; // DJ (85k) + Photo (50k)
-      if (pkg.id === 'essential') extraHourPrice = 85000;
+    const rules = appRules || { baseHours: 4, djHour: 85000, photoHour: 50000 };
+    const extraHours = Math.max(0, Math.ceil(eventDuration - rules.baseHours));
+
+    return packagesList.map(pkg => {
+      let extraHourPrice = pkg.extraHourOverride || (rules.djHour + (pkg.id !== 'essential' ? rules.photoHour : 0));
       const additionalCost = extraHours * extraHourPrice;
       return {
         ...pkg,
@@ -255,7 +283,7 @@ function App() {
         extraHoursInfo: extraHours > 0 ? `Incluye ${extraHours}h extra(s)` : null
       };
     });
-  }, [eventDuration]);
+  }, [eventDuration, packagesList, appRules]);
 
   // Enable horizontal scrolling with mouse wheel (Moved here to avoid ReferenceError)
   useEffect(() => {
@@ -300,12 +328,12 @@ function App() {
   }, [currentStep, computedPackages]);
 
   const dynamicExtras = useMemo(() => {
-    return extras
+    return extrasList
       .filter(e => e.id !== 'extra_hour')
       .map(extra => {
         if (!['acc_essential', 'acc_memories', 'acc_celebration'].includes(extra.id)) {
           if (extra.id === 'makeup') {
-            const basePrice = 120000;
+            const basePrice = extra.price || 120000;
             return {
               ...extra,
               price: basePrice * makeupCount,
@@ -318,35 +346,32 @@ function App() {
         let newPrice = extra.price;
         let newDesc = extra.desc;
 
-        const COST_FOAM = 13000;
-        const COST_CANNON = 5000;
-        const COST_BLOWOUT = 200;  // Pito
-        const COST_BRACELET = 400; // Manilla
-        const COST_MASK = 400;     // Antifaz
-        const COST_NECKLACE = 400; // Collar
-
         const count = guestCount;
         let rawPrice = 0;
 
+        // Note: These costs could also be dynamic, but for now we keep the logic
+        const COST_FOAM = 13000;
+        const COST_CANNON = 5000;
+        const COST_BLOWOUT = 200;
+        const COST_BRACELET = 400;
+        const COST_MASK = 400;
+        const COST_NECKLACE = 400;
+
         if (extra.id === 'acc_essential') {
-          // 1 Espuma + (Pito + Manilla) * Guests
           rawPrice = COST_FOAM + (count * (COST_BLOWOUT + COST_BRACELET));
           newDesc = `Pack para ${count} personas: 1 Espuma, ${count} Manillas Neón, ${count} Pitos.`;
         } else if (extra.id === 'acc_memories') {
-          // 2 Espumas + 2 Cañones + (Pito + Manilla) * Guests
-          rawPrice = (2 * COST_FOAM) + (2 * COST_CANNON) + (count * (COST_BLOWOUT + COST_BRACELET));
-          newDesc = `Pack para ${count} personas: 2 Espumas, 2 Cañones, ${count} Manillas Neón, ${count} Pitos.`;
+          rawPrice = (2 * COST_FOAM) + (count * COST_NECKLACE) + (count * (COST_BLOWOUT + COST_BRACELET));
+          newDesc = `Pack para ${count} personas: 2 Espuma(s), ${count} Collares Hawaianos, ${count} Manillas Neón, ${count} Pitos.`;
         } else if (extra.id === 'acc_celebration') {
-          // 3 Espumas + 3 Cañones + (Pito + Manilla + Antifaz + Collar) * Guests
           rawPrice = (3 * COST_FOAM) + (3 * COST_CANNON) + (count * (COST_BLOWOUT + COST_BRACELET + COST_MASK + COST_NECKLACE));
-          newDesc = `Pack para ${count} personas: 3 Espumas, 3 Cañones, ${count} Manillas, ${count} Pitos, ${count} Collares, ${count} Antifaces.`;
+          newDesc = `Pack para ${count} personas: 3 Espuma(s), 3 Cañon(es), ${count} Manillas, ${count} Pitos, ${count} Collares, ${count} Antifaces.`;
         }
 
-        newPrice = Math.round(rawPrice / 5000) * 5000;
-
+        newPrice = rawPrice;
         return { ...extra, price: newPrice, desc: newDesc };
       });
-  }, [guestCount, makeupCount]);
+  }, [guestCount, makeupCount, extrasList]);
 
   const selectedComputedPackage = computedPackages.find(p => p.id === selectedPackageId);
 
@@ -506,6 +531,16 @@ function App() {
       alert("Por favor completa todos los campos del evento para continuar.");
       return;
     }
+
+    // VALIDACIÓN DE FECHA (No permitir fechas pasadas)
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    if (eventDate < today) {
+      alert("⚠️ LA FECHA ES INVÁLIDA\n\nNo puedes seleccionar una fecha anterior a hoy. Por favor, selecciona la fecha correcta de tu evento.");
+      return;
+    }
+
     setCurrentStep(3);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -525,6 +560,16 @@ function App() {
     setCurrentStep(2);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (!isReady) {
+    return (
+      <div style={{ height: '100vh', background: '#000', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#fff', fontFamily: 'Inter, sans-serif' }}>
+        <img src="/logo_disco_futurista.png" alt="Loading..." style={{ width: '80px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }} />
+        <h2 style={{ fontWeight: '300', letterSpacing: '2px', opacity: 0.8 }}>PREPARANDO TU FIESTA...</h2>
+        <style>{`@keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -797,7 +842,7 @@ function App() {
                   className="input-field"
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
                 />
               </div>
 
