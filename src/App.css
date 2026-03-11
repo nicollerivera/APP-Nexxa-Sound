@@ -1025,7 +1025,7 @@ input:checked+.slider:before {
 .package-price-value {
   font-size: 1.6rem;
   font-weight: 800;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   color: white;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
@@ -1145,7 +1145,7 @@ input:checked+.slider:before {
 .packages-scene {
   width: 100%;
   max-width: 900px;
-  height: 600px;
+  height: 450px;
   margin: 10px auto 20px;
   position: relative;
   display: flex;
@@ -1166,11 +1166,10 @@ input:checked+.slider:before {
   align-items: center;
 }
 
-/* Base item style */
 .package-item-focus {
   position: absolute;
   width: 290px;
-  height: 570px;
+  height: max-content; /* Auto adjust to content */
   transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
   opacity: 0;
   pointer-events: none;
@@ -1195,7 +1194,7 @@ input:checked+.slider:before {
   z-index: 5;
   pointer-events: auto;
   /* Allow clicking to nav */
-  filter: blur(1px);
+  filter: blur(0px);
 }
 
 /* Right Item */
@@ -1204,7 +1203,7 @@ input:checked+.slider:before {
   opacity: 0.6;
   z-index: 5;
   pointer-events: auto;
-  filter: blur(1px);
+  filter: blur(0px);
 }
 
 /* Hidden items (if more than 3) */
@@ -1268,23 +1267,25 @@ input:checked+.slider:before {
 }
 
 .package-card-3d .features-list {
-  list-style: disc;
-  /* Bullets back */
-  padding-left: 20px;
-  /* Space for bullets */
+  list-style: none;
+  /* Bullets handled by ::before */
+  padding-left: 0px;
+  /* Reset padding */
   width: 100%;
   flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: block;
   text-align: left;
 }
 
 .package-card-3d .features-list li {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #eee;
   padding: 0;
-  line-height: 1.2;
+  margin-bottom: 8px;
+  line-height: 1.3;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 /* Selected State */
@@ -1318,13 +1319,12 @@ input:checked+.slider:before {
 /* Mobile Adjustments */
 @media (max-width: 600px) {
   .packages-scene {
-    height: 600px;
+    height: 450px;
     margin: 6px auto 10px;
   }
 
   .package-item-focus {
     width: 280px;
-    height: 560px;
   }
 
   .package-item-focus.left {
@@ -1337,7 +1337,7 @@ input:checked+.slider:before {
 
   .package-card-3d .package-name {
     font-size: 1.25rem;
-    margin-bottom: 6px;
+    margin-bottom: 2px;
   }
 
   .package-card-3d .features-list li {
