@@ -793,6 +793,15 @@ function App() {
         {currentStep === 2 && (
           <section id="block-extras" className="customization fade-in">
             <h2 className="section-title">Personaliza tu Experiencia</h2>
+            
+            <div className="form-group guest-group" style={{ marginBottom: '30px', padding: '0 20px' }}>
+              <label style={{ color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem' }}>¿Cuántos invitados esperas?</label>
+              <div className="guest-input-wrapper" style={{ marginTop: '10px' }}>
+                <input type="range" min="10" max="300" step="5" value={guestCount} onChange={(e) => setGuestCount(Number(e.target.value))} className="guest-slider" />
+                <span className="guest-number">{guestCount}</span>
+              </div>
+            </div>
+
             <div className="extras-list">
               {dynamicExtras.map((extra) => {
                 const isActive = !!activeExtras[extra.id];
@@ -975,13 +984,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="form-group guest-group">
-                <label>Cantidad de invitados</label>
-                <div className="guest-input-wrapper">
-                  <input type="range" min="10" max="300" step="5" value={guestCount} onChange={(e) => setGuestCount(Number(e.target.value))} className="guest-slider" />
-                  <span className="guest-number">{guestCount}</span>
-                </div>
-              </div>
+
 
               <button className="action-btn" style={{ marginTop: '20px', width: '100%', padding: '15px', background: 'var(--brand-gradient)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 5px 15px rgba(157, 78, 221, 0.4)' }} onClick={handleValidationStep1}>
                 {isAdmin ? 'Ver Resumen (Modo Admin 🔓) 👇' : 'Ver Resumen de Cotización 👇'}
