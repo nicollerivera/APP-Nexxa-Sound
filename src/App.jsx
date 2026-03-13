@@ -701,56 +701,30 @@ function App() {
                     >
                       <div className={`package-card-3d ${selectedPackageId === pkg.id ? 'selected-3d' : ''} ${pkg.highlight ? 'recommended-card' : ''}`}>
                         <h3 className="package-name">{pkg.name}</h3>
-                        {pkg.id !== 'celebration' && <div className="package-price-label">Desde</div>}
-                        <div className="package-price-value">${pkg.price.toLocaleString()}</div>
+                        <div className="package-price-row">
+                          {pkg.id !== 'celebration' && <span className="package-price-label">Desde</span>}
+                          <span className="package-price-value">${pkg.price.toLocaleString()}</span>
+                        </div>
 
-                        {pkg.id === 'essential' && (
+                        {pkg.imageUrl && (
                           <img
-                            src="/essential_cabinas.jpg"
-                            alt="Cabinas de sonido profesional en evento"
-                            style={{
-                              width: '100%',
-                              height: '130px',
-                              objectFit: 'contain',
-                              objectPosition: 'center',
-                              borderRadius: '12px',
-                              marginBottom: '8px',
-                              background: 'rgba(0,0,0,0.6)',
-                              boxShadow: '0 0 12px rgba(0, 212, 255, 0.3)'
-                            }}
-                          />
-                        )}
-
-                        {pkg.id === 'memories' && (
-                          <img
-                            src="/memories_foto.png"
-                            alt="Servicio de fotografía en evento"
-                            style={{
-                              width: '100%',
-                              height: '130px',
-                              objectFit: 'cover',
-                              objectPosition: 'center top',
-                              borderRadius: '12px',
-                              marginBottom: '8px',
-                              boxShadow: '0 0 12px rgba(157, 78, 221, 0.4)'
-                            }}
-                          />
-                        )}
-
-                        {pkg.id === 'celebration' && (
-                          <img
-                            src="/celebration_deco_l.png"
-                            alt="Decoración en L con globos colores Nexxa"
+                            src={pkg.imageUrl}
+                            alt={pkg.name}
                             style={{
                               width: '100%',
                               height: '140px',
-                              objectFit: 'contain',
+                              objectFit: 'cover',
                               objectPosition: 'center',
-                              borderRadius: '12px',
-                              marginBottom: '8px',
-                              background: 'rgba(0,0,0,0.6)',
-                              boxShadow: '0 0 12px rgba(157, 78, 221, 0.5)'
+                              borderRadius: '16px',
+                              marginBottom: '15px',
+                              background: 'rgba(0,0,0,0.4)',
+                              boxShadow: pkg.highlight 
+                                ? '0 8px 32px rgba(157, 78, 221, 0.3)' 
+                                : '0 8px 32px rgba(0, 212, 255, 0.2)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              transition: 'transform 0.3s ease'
                             }}
+                            className="package-card-image"
                           />
                         )}
 
@@ -946,7 +920,7 @@ function App() {
                   >
 
                     {/* Header: Title + Switch */}
-                    <div className="extra-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div className="extra-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: extra.imageUrl ? '10px' : '0' }}>
                       <span style={{ fontWeight: 'bold', fontSize: '1.1rem', flex: 1 }}>
                         {extra.name}
                       </span>
@@ -960,6 +934,22 @@ function App() {
                         <span className="slider"></span>
                       </div>
                     </div>
+
+                    {extra.imageUrl && (
+                      <div className="extra-image-container" style={{ width: '100%', height: '100px', overflow: 'hidden', borderRadius: '12px', marginBottom: '10px' }}>
+                        <img 
+                          src={extra.imageUrl} 
+                          alt={extra.name} 
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover', 
+                            filter: isActive ? 'brightness(1.1)' : 'brightness(0.7) grayscale(0.5)',
+                            transition: 'all 0.4s ease'
+                          }} 
+                        />
+                      </div>
+                    )}
 
                     {/* Body: Desc, Price, Counter */}
                     <div className="extra-body" style={{ marginTop: '5px' }}>

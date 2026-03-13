@@ -1555,3 +1555,54 @@ input:checked+.slider:before {
   box-shadow: 0 8px 25px rgba(37, 211, 102, 0.6);
   transform: translateY(-2px);
 }
+
+/* Package Card Image Adjustments */
+.package-card-image {
+  transform-origin: center center;
+  filter: brightness(0.9) contrast(1.1);
+  transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+}
+
+.package-item-focus.active .package-card-image {
+  filter: brightness(1.1) contrast(1.1);
+  transform: scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.3);
+}
+
+.package-card-3d:hover .package-card-image {
+  transform: scale(1.05) translateY(-5px);
+  filter: brightness(1.1) contrast(1.15);
+  box-shadow: 0 15px 45px rgba(157, 78, 221, 0.4);
+}
+
+.package-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  align-self: center;
+}
+
+.package-price-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.package-price-value {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: white;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .package-price-value {
+    font-size: 1.6rem;
+  }
+}
+
