@@ -515,6 +515,9 @@ function App() {
       const newState = !isAdmin;
       setIsAdmin(newState);
       alert(newState ? "👑 MODO ADMIN ACTIVADO: Validación desactivada" : "🔒 MODO ADMIN DESACTIVADO");
+      // Reset selections when toggling admin to avoid state pollution
+      setSelectedPackageId(null);
+      setActiveExtras({});
       setClickCount(0);
     }
   };
@@ -666,7 +669,13 @@ function App() {
               <button
                 className="action-btn landing-btn"
                 style={{ width: '100%', maxWidth: '400px', padding: '18px', background: 'linear-gradient(90deg, #00d4ff 0%, #9d4edd 100%)', borderRadius: '30px', fontSize: '1.2rem', fontWeight: 'bold', marginTop: '4px' }}
-                onClick={() => { setCurrentStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onClick={() => { 
+                  // Clear previous selections to ensure user explicitly picks new ones
+                  setSelectedPackageId(null);
+                  setActiveExtras({});
+                  setCurrentStep(1); 
+                  window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                }}
               >
                 COTIZAR MI EVENTO
               </button>
