@@ -891,8 +891,8 @@ function App() {
             </div>
 
             <div style={{ textAlign: 'center', marginTop: '25px', marginBottom: '25px' }}>
-              <button className="action-btn" style={{ width: '90%', maxWidth: '400px', fontSize: '1.2rem' }} onClick={() => { setCurrentStep(3); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                Continuar a Detalles del Evento
+              <button className="action-btn" style={{ width: '90%', maxWidth: '280px', fontSize: '1.2rem' }} onClick={() => { setCurrentStep(3); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                Continuar
               </button>
             </div>
           </section>
