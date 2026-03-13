@@ -999,8 +999,8 @@ function App() {
 
 
 
-              <button className="action-btn" style={{ marginTop: '20px', width: '100%', padding: '15px', background: 'var(--brand-gradient)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 5px 15px rgba(157, 78, 221, 0.4)' }} onClick={handleValidationStep1}>
-                {isAdmin ? 'Ver Resumen (Modo Admin 🔓) 👇' : 'Ver Resumen de Cotización 👇'}
+              <button className="action-btn" style={{ marginTop: '20px', width: '90%', maxWidth: '280px', display: 'block', margin: '20px auto', padding: '15px', background: 'var(--brand-gradient)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 5px 15px rgba(157, 78, 221, 0.4)' }} onClick={handleValidationStep1}>
+                {isAdmin ? 'Continuar 🔓' : 'Continuar'}
               </button>
             </div>
           </section>
