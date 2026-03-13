@@ -16,14 +16,21 @@
 
 .navbar-section-title {
   flex: 1;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--primary-cyan);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   text-align: center;
   padding-right: 52px;
   /* compensa el ancho del logo para centrado óptico */
+}
+
+@media(max-width: 480px) {
+  .navbar-section-title {
+    font-size: 0.9rem;
+    padding-right: 40px; /* Logo is smaller on mobile nav usually or needs tighter offset */
+  }
 }
 
 /* Brand Logo - Navbar */

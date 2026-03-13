@@ -590,6 +590,12 @@ function App() {
           {currentStep === 1 && (
             <span className="navbar-section-title">Selecciona tu Paquete</span>
           )}
+          {currentStep === 2 && (
+            <span className="navbar-section-title" style={{ fontSize: '0.95rem' }}>Personaliza tu Experiencia</span>
+          )}
+          {currentStep === 3 && (
+            <span className="navbar-section-title" style={{ fontSize: '0.95rem' }}>Detalles del Evento</span>
+          )}
         </nav>
       )}
 
@@ -792,7 +798,6 @@ function App() {
         {/* STEP 2: EXTRAS */}
         {currentStep === 2 && (
           <section id="block-extras" className="customization fade-in">
-            <h2 className="section-title">Personaliza tu Experiencia</h2>
             
             <div className="form-group guest-group" style={{ marginBottom: '20px', padding: '0 20px' }}>
               <label style={{ color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem' }}>¿Cuántos invitados esperas?</label>
@@ -887,7 +892,6 @@ function App() {
         {/* STEP 3: CLIENT DETAILS (Event Intake) */}
         {currentStep === 3 && (
           <section id="block-details" className="event-intake fade-in">
-            <h2 className="section-title">Cuéntanos acerca de tu evento</h2>
             <div className="intake-form">
               <div className="form-group">
                 <label>Nombre del cliente</label>
