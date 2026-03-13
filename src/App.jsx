@@ -794,7 +794,7 @@ function App() {
           <section id="block-extras" className="customization fade-in">
             <h2 className="section-title">Personaliza tu Experiencia</h2>
             
-            <div className="form-group guest-group" style={{ marginBottom: '30px', padding: '0 20px' }}>
+            <div className="form-group guest-group" style={{ marginBottom: '20px', padding: '0 20px' }}>
               <label style={{ color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem' }}>¿Cuántos invitados esperas?</label>
               <div className="guest-input-wrapper" style={{ marginTop: '10px' }}>
                 <input type="range" min="10" max="300" step="5" value={guestCount} onChange={(e) => setGuestCount(Number(e.target.value))} className="guest-slider" />
@@ -876,7 +876,7 @@ function App() {
               })}
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: '40px', marginBottom: '40px' }}>
+            <div style={{ textAlign: 'center', marginTop: '25px', marginBottom: '25px' }}>
               <button className="action-btn" style={{ width: '90%', maxWidth: '400px', fontSize: '1.2rem' }} onClick={() => { setCurrentStep(3); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                 Continuar a Detalles del Evento
               </button>
