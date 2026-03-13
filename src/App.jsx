@@ -520,9 +520,9 @@ function App() {
   };
 
   const handleValidationStep1 = () => {
-    // Check Client Details -> Go to Step 3 (Extras)
+    // Check Client Details -> Go to Step 4 (Summary)
     if (isAdmin) {
-      setCurrentStep(3);
+      setCurrentStep(4);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -541,7 +541,7 @@ function App() {
       return;
     }
 
-    setCurrentStep(3);
+    setCurrentStep(4);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -789,8 +789,94 @@ function App() {
           </section>
         )}
 
-        {/* STEP 2: CLIENT DETAILS (Moved from Step 1) */}
+        {/* STEP 2: EXTRAS */}
         {currentStep === 2 && (
+          <section id="block-extras" className="customization fade-in">
+            <h2 className="section-title">Personaliza tu Experiencia</h2>
+            <div className="extras-list">
+              {dynamicExtras.map((extra) => {
+                const isActive = !!activeExtras[extra.id];
+                return (
+                  <div
+                    key={extra.id}
+                    className={`extra-item ${isActive ? 'selected-extra' : ''}`}
+                    style={{ flexDirection: 'column', alignItems: 'stretch', cursor: 'pointer' }}
+                    onClick={() => toggleExtra(extra.id)}
+                  >
+
+                    {/* Header: Title + Switch */}
+                    <div className="extra-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: extra.imageUrl ? '10px' : '0' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.1rem', flex: 1 }}>
+                        {extra.name}
+                      </span>
+                      {/* Switch: purely visual, state controlled by parent click */}
+                      <div className="switch" style={{ pointerEvents: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={isActive}
+                          readOnly
+                        />
+                        <span className="slider"></span>
+                      </div>
+                    </div>
+
+                    {extra.imageUrl && (
+                      <div className="extra-image-container" style={{ width: '100%', height: '100px', overflow: 'hidden', borderRadius: '12px', marginBottom: '10px' }}>
+                        <img 
+                          src={extra.imageUrl} 
+                          alt={extra.name} 
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover', 
+                            filter: isActive ? 'brightness(1.1)' : 'brightness(0.7) grayscale(0.5)',
+                            transition: 'all 0.4s ease'
+                          }} 
+                        />
+                      </div>
+                    )}
+
+                    {/* Body: Desc, Price, Counter */}
+                    <div className="extra-body" style={{ marginTop: '5px' }}>
+                      {extra.desc && <p className="extra-desc" style={{ margin: '5px 0', fontSize: '0.9rem', color: '#ccc' }}>{extra.desc}</p>}
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                        <span className="extra-price" style={{ color: isActive ? 'var(--primary-cyan)' : 'var(--text-secondary)', fontWeight: 'bold', transition: '0.3s' }}>
+                          + ${extra.price.toLocaleString()}
+                        </span>
+
+                        {extra.id === 'makeup' && (
+                          <div
+                            className="makeup-counter fade-in-fast"
+                            onClick={(e) => e.stopPropagation()} // Prevent row toggle when interacting with counter
+                            style={{ cursor: 'default', pointerEvents: 'auto' }}
+                          >
+                            <button type="button" className="counter-btn" onClick={(e) => { e.stopPropagation(); setMakeupCount(c => Math.max(1, Number(c) - 1)); }}>-</button>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
+                              <span className="counter-value">{makeupCount}</span>
+                              <span style={{ fontSize: '0.6rem', color: '#aaa' }}>Artistas</span>
+                            </div>
+                            <button type="button" className="counter-btn" onClick={(e) => { e.stopPropagation(); setMakeupCount(c => Number(c) + 1); }}>+</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '40px', marginBottom: '40px' }}>
+              <button className="action-btn" style={{ width: '90%', maxWidth: '400px', fontSize: '1.2rem' }} onClick={() => { setCurrentStep(3); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                Continuar a Detalles del Evento
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* STEP 3: CLIENT DETAILS (Event Intake) */}
+        {currentStep === 3 && (
           <section id="block-details" className="event-intake fade-in">
             <h2 className="section-title">Cuéntanos acerca de tu evento</h2>
             <div className="intake-form">
@@ -898,93 +984,7 @@ function App() {
               </div>
 
               <button className="action-btn" style={{ marginTop: '20px', width: '100%', padding: '15px', background: 'var(--brand-gradient)', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 5px 15px rgba(157, 78, 221, 0.4)' }} onClick={handleValidationStep1}>
-                {isAdmin ? 'Confirmar y Personalizar (Modo Admin 🔓) 👇' : 'Confirmar y Personalizar Extras 👇'}
-              </button>
-            </div>
-          </section>
-        )}
-
-        {/* STEP 3: EXTRAS */}
-        {currentStep === 3 && (
-          <section id="block-extras" className="customization fade-in">
-            <h2 className="section-title">Personaliza tu Experiencia</h2>
-            <div className="extras-list">
-              {dynamicExtras.map((extra) => {
-                const isActive = !!activeExtras[extra.id];
-                return (
-                  <div
-                    key={extra.id}
-                    className={`extra-item ${isActive ? 'selected-extra' : ''}`}
-                    style={{ flexDirection: 'column', alignItems: 'stretch', cursor: 'pointer' }}
-                    onClick={() => toggleExtra(extra.id)}
-                  >
-
-                    {/* Header: Title + Switch */}
-                    <div className="extra-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: extra.imageUrl ? '10px' : '0' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '1.1rem', flex: 1 }}>
-                        {extra.name}
-                      </span>
-                      {/* Switch: purely visual, state controlled by parent click */}
-                      <div className="switch" style={{ pointerEvents: 'none' }}>
-                        <input
-                          type="checkbox"
-                          checked={isActive}
-                          readOnly
-                        />
-                        <span className="slider"></span>
-                      </div>
-                    </div>
-
-                    {extra.imageUrl && (
-                      <div className="extra-image-container" style={{ width: '100%', height: '100px', overflow: 'hidden', borderRadius: '12px', marginBottom: '10px' }}>
-                        <img 
-                          src={extra.imageUrl} 
-                          alt={extra.name} 
-                          style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            objectFit: 'cover', 
-                            filter: isActive ? 'brightness(1.1)' : 'brightness(0.7) grayscale(0.5)',
-                            transition: 'all 0.4s ease'
-                          }} 
-                        />
-                      </div>
-                    )}
-
-                    {/* Body: Desc, Price, Counter */}
-                    <div className="extra-body" style={{ marginTop: '5px' }}>
-                      {extra.desc && <p className="extra-desc" style={{ margin: '5px 0', fontSize: '0.9rem', color: '#ccc' }}>{extra.desc}</p>}
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                        <span className="extra-price" style={{ color: isActive ? 'var(--primary-cyan)' : 'var(--text-secondary)', fontWeight: 'bold', transition: '0.3s' }}>
-                          + ${extra.price.toLocaleString()}
-                        </span>
-
-                        {extra.id === 'makeup' && (
-                          <div
-                            className="makeup-counter fade-in-fast"
-                            onClick={(e) => e.stopPropagation()} // Prevent row toggle when interacting with counter
-                            style={{ cursor: 'default', pointerEvents: 'auto' }}
-                          >
-                            <button type="button" className="counter-btn" onClick={(e) => { e.stopPropagation(); setMakeupCount(c => Math.max(1, Number(c) - 1)); }}>-</button>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
-                              <span className="counter-value">{makeupCount}</span>
-                              <span style={{ fontSize: '0.6rem', color: '#aaa' }}>Artistas</span>
-                            </div>
-                            <button type="button" className="counter-btn" onClick={(e) => { e.stopPropagation(); setMakeupCount(c => Number(c) + 1); }}>+</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: '40px', marginBottom: '40px' }}>
-              <button className="action-btn" style={{ width: '90%', maxWidth: '400px', fontSize: '1.2rem' }} onClick={() => { setCurrentStep(4); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                Continuar al Resumen
+                {isAdmin ? 'Ver Resumen (Modo Admin 🔓) 👇' : 'Ver Resumen de Cotización 👇'}
               </button>
             </div>
           </section>
