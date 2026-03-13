@@ -1145,7 +1145,7 @@ input:checked+.slider:before {
   width: 100%;
   max-width: 900px;
   height: 450px;
-  margin: 10px auto 20px;
+  margin: 50px auto 30px;
   position: relative;
   display: flex;
   justify-content: center;
@@ -1319,7 +1319,7 @@ input:checked+.slider:before {
   .packages-scene {
     height: auto;
     min-height: 480px;
-    margin: 0 auto;
+    margin: 40px auto 30px;
   }
 
   .package-item-focus {
