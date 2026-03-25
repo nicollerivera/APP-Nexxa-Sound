@@ -447,7 +447,7 @@ const CreateEventView = ({
                         <button
                             onClick={() => {
                                 if (window.confirm('¿Descartar cambios y limpiar formulario?')) {
-                                    const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'SONIDO ESSENTIAL ($450k)', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: appConfig.defaultExtraHourPrice, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
+                                    const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'SONIDO ESSENTIAL ($450k)', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: (appConfig?.defaultExtraHourPrice || 85000), indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
                                     setNewEvent(emptyState);
                                     localStorage.removeItem('nexxa_draft_event');
                                 }
@@ -502,7 +502,7 @@ const CreateEventView = ({
                                                 const val = e.target.value;
                                                 const pkg = catalog?.packages.find(p => p.name === val);
                                                 const basePrice = pkg?.price || 0;
-                                                const extraPrice = pkg?.extraHourPrice || pkg?.extraDJ || appConfig.defaultExtraHourPrice;
+                                                const extraPrice = pkg?.extraHourPrice || pkg?.extraDJ || (appConfig?.defaultExtraHourPrice || 85000);
                                                 setNewEvent({ ...newEvent, packName: val, totalValue: basePrice, extraHourPrice: extraPrice });
                                             }}
                                             style={{ width: '100%', padding: '15px', borderRadius: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontWeight: '900', fontSize: '1.2rem', appearance: 'none' }}
