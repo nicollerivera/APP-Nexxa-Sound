@@ -617,7 +617,12 @@ export const generateQuotationPDF = async (quo, getDynamicExtras) => {
             .filter(ex => quo.logistics.selectedExtras && quo.logistics.selectedExtras[ex.id]);
 
         if (activeExtras.length > 0) {
-            const extrasText = activeExtras.map(ex => `• ${ex.name} (${ex.details})`).join('\n');
+            const extrasText = activeExtras.map(ex => {
+                const config = quo.logistics.selectedExtras[ex.id];
+                const qtyText = (config.qty > 1) ? ` (x${config.qty})` : '';
+                const timeText = (config.startTime && config.startTime !== '08:00') ? ` [${formatT(config.startTime)} - ${formatT(config.endTime)}]` : '';
+                return `• ${ex.name}${qtyText}${timeText}: ${ex.details}`;
+            }).join('\n');
             scopeData.push(['Complementos incluidos:', extrasText]);
         } else {
             scopeData.push(['Complementos incluidos:', 'Ninguno seleccionado']);

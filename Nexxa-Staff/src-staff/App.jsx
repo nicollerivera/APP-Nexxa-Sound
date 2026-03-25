@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 import QuotationsView from './components/QuotationsView';
+import CatalogManagerView from './components/CatalogManagerView';
+import LogisticsCalendarView from './components/LogisticsCalendarView';
 
 // --- IMPORTS MOVED ---
 import { formatPeso, months, getHours, parseFirestoreDate, parseLocalStrDate, getTodayStr, getTomorrowStr, subtractMinutes, formatInputNumber, parseInputNumber } from './utils/helpers';
@@ -14,6 +16,24 @@ import {
 } from './components/Icons';
 import * as pdfService from './services/pdfService';
 import { db, auth } from './firebase';
+
+// Auxiliares dinámicos para el catálogo de Stitch
+const needsPhoto = (name, selectedExtras = {}) => {
+    const p = (name || '').toUpperCase();
+    return p.includes('ONIX') || p.includes('SILVER') || p.includes('MULTII') || p.includes('ELITE') || p.includes('KAIZEN') || p.includes('DIAMOND') || selectedExtras?.extra_photo;
+};
+const needsDecor = (name, selectedExtras = {}) => {
+    const p = (name || '').toUpperCase();
+    return p.includes('MULTII') || p.includes('ELITE') || p.includes('KAIZEN') || p.includes('DIAMOND') || selectedExtras?.extra_decor;
+};
+const needsCam360 = (name, selectedExtras = {}) => {
+    const p = (name || '').toUpperCase();
+    return p.includes('ONIX') || p.includes('SILVER') || p.includes('MULTII') || p.includes('ELITE') || p.includes('KAIZEN') || p.includes('DIAMOND') || selectedExtras?.extra_cam360;
+};
+const needsAV = (name, selectedExtras = {}) => {
+    const p = (name || '').toUpperCase();
+    return p.includes('KAIZEN') || p.includes('DIAMOND') || selectedExtras?.extra_av;
+};
 import {
   collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, addDoc,
   serverTimestamp, query, where, orderBy, getDocs, getDoc
@@ -24,30 +44,42 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebas
 // --- ICONS MOVED TO components/Icons.jsx ---
 
 
+// --- TIME INTERVAL GENERATOR ---
+const generateTimeOptions = () => {
+  const times = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      times.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    }
+  }
+  return times;
+};
+
+const getDisplayTimeUI = (val) => {
+  if (!val) return { h: '08', m: '00', period: 'PM', full: '08:00 PM' };
+  const timeStr = String(val);
+  let [hStr, mStr] = timeStr.includes(':') ? timeStr.split(':') : [timeStr, '00'];
+  let h = parseInt(hStr || 12, 10);
+  const m = String(parseInt(mStr || 0, 10)).padStart(2, '0');
+  if (isNaN(h)) h = 12;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return {
+    h: String(h12).padStart(2, '0'),
+    m,
+    period,
+    full: `${String(h12).padStart(2, '0')}:${m} ${period}`
+  };
+};
+
+const COMMON_TIME_OPTIONS = generateTimeOptions();
+
+
 // --- TIME COMPONENT ---
 // --- TIME COMPONENT (NATIVE) ---
 const TimeInput = ({ value, onChange, label }) => {
-  const getDisplayTime = (val) => {
-    if (!val) return { h: '08', m: '00', period: 'PM' };
-    const timeStr = String(val);
-    let [hStr, mStr] = timeStr.includes(':') ? timeStr.split(':') : [timeStr, '00'];
-    let h = parseInt(hStr || 12, 10);
-    let m = parseInt(mStr || 0, 10);
-
-    if (isNaN(h)) h = 12;
-    if (isNaN(m)) m = 0;
-
-    const period = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    return {
-      h: String(h12).padStart(2, '0'),
-      m: String(m).padStart(2, '0'),
-      period
-    };
-  };
-
-  const { h, m, period } = getDisplayTime(value);
-  const isAM = period === 'AM';
+  const display = getDisplayTimeUI(value);
+  const isAM = display.period === 'AM';
 
   return (
     <div className="time-input-premium" style={{
@@ -114,7 +146,7 @@ const TimeInput = ({ value, onChange, label }) => {
             fontFamily: 'system-ui',
             letterSpacing: '-2px'
           }}>
-            {h}
+            {display.h}
           </span>
         </div>
 
@@ -134,7 +166,7 @@ const TimeInput = ({ value, onChange, label }) => {
             fontFamily: 'system-ui',
             letterSpacing: '-2px'
           }}>
-            {m}
+            {display.m}
           </span>
         </div>
       </div>
@@ -155,11 +187,10 @@ const TimeInput = ({ value, onChange, label }) => {
         boxShadow: isAM ? '0 5px 15px rgba(0, 242, 255, 0.4)' : '0 5px 15px rgba(188, 111, 241, 0.4)',
         transition: 'all 0.3s ease'
       }}>
-        {period}
+        {display.period}
       </div>
 
-      <input
-        type="time"
+      <select
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         style={{
@@ -170,9 +201,16 @@ const TimeInput = ({ value, onChange, label }) => {
           height: '100%',
           opacity: 0,
           cursor: 'pointer',
-          zIndex: 10
+          zIndex: 10,
+          background: '#111',
+          color: '#fff'
         }}
-      />
+      >
+        <option value="" disabled style={{ background: '#111', color: '#fff' }}>Seleccionar hora</option>
+        {COMMON_TIME_OPTIONS.map(t => (
+          <option key={t} value={t} style={{ background: '#111', color: '#fff' }}>{getDisplayTimeUI(t).full}</option>
+        ))}
+      </select>
 
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -185,6 +223,51 @@ const TimeInput = ({ value, onChange, label }) => {
             transform: scale(0.96) translateY(0);
         }
     `}} />
+    </div>
+  );
+};
+
+// --- MINI TIME INPUT (FOR EXTRAS) ---
+const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label }) => {
+  return (
+    <div style={{ marginTop: '12px', marginLeft: '2px' }}>
+      <span style={{ 
+        fontSize: '0.65rem', color: '#8b9bb4', fontWeight: '900', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px', display: 'inline-block', fontFamily: 'monospace'
+      }}>{label}</span>
+      <div style={{
+        position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10, 10, 15, 0.7)',
+        border: '1px solid rgba(255,255,255,0.03)', borderRadius: '50px', padding: '14px 28px', gap: '24px', width: 'fit-content', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)'
+      }}>
+        <div style={{ position: 'relative', cursor: 'pointer' }}>
+          <span style={{ color: '#fff', fontWeight: '900', fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
+            {getDisplayTimeUI(startVal).full}
+          </span>
+          <select 
+            value={startVal || ''} 
+            onChange={(e) => onStartChange(e.target.value)}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', background: '#111', color: '#fff' }}
+          >
+            <option value="" disabled style={{ background: '#111', color: '#fff' }}>Hora</option>
+            {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t} style={{ background: '#111', color: '#fff' }}>{getDisplayTimeUI(t).full}</option>)}
+          </select>
+        </div>
+
+        <div style={{ width: '24px', height: '1px', background: 'rgba(255,255,255,0.08)' }}></div>
+
+        <div style={{ position: 'relative', cursor: 'pointer' }}>
+          <span style={{ color: '#fff', fontWeight: '900', fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
+            {getDisplayTimeUI(endVal).full}
+          </span>
+          <select 
+            value={endVal || ''} 
+            onChange={(e) => onEndChange(e.target.value)}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', background: '#111', color: '#fff' }}
+          >
+             <option value="" disabled style={{ background: '#111', color: '#fff' }}>Hora</option>
+             {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t} style={{ background: '#111', color: '#fff' }}>{getDisplayTimeUI(t).full}</option>)}
+          </select>
+        </div>
+      </div>
     </div>
   );
 };
@@ -209,9 +292,10 @@ function App() {
 
         // Map Pack ID to Name
         let finalPack = 'Personalizado';
-        if (pPack.toLowerCase().includes('essential')) finalPack = 'Essential';
-        if (pPack.toLowerCase().includes('memories')) finalPack = 'Memories';
-        if (pPack.toLowerCase().includes('celebration')) finalPack = 'Celebration';
+        if (pPack.toUpperCase().includes('ESSENTIAL')) finalPack = 'SONIDO ESSENTIAL';
+        if (pPack.toUpperCase().includes('ONIX') || pPack.toUpperCase().includes('SILVER')) finalPack = 'ONIX';
+        if (pPack.toUpperCase().includes('MULTII') || pPack.toUpperCase().includes('ELITE')) finalPack = 'MULTII';
+        if (pPack.toUpperCase().includes('KAIZEN') || pPack.toUpperCase().includes('DIAMOND')) finalPack = 'KAIZEN';
 
         // Map Extras (comma separated ids)
         const extrasObj = {};
@@ -225,6 +309,8 @@ function App() {
           });
         }
 
+        const pGuest = params.get('pax') || params.get('guests') || '10';
+
         const preFilledEvent = {
           clientName: pClient,
           clientPhone: pPhone,
@@ -234,8 +320,9 @@ function App() {
           location: pLoc,
           packName: finalPack,
           managerName: '',
+          guestCount: pGuest,
           deposit: '',
-          totalValue: '', // Recalculate implicitly or manual? Let's leave empty for auto-calc trigger
+          totalValue: '',
           selectedExtras: extrasObj
         };
 
@@ -317,31 +404,49 @@ function App() {
   // 1.5 SYNC QUOTATIONS
   React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
-      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
-      if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
-        console.error("⚠️ onSnapshot quotations: snapshot.docs no es un array");
-        return;
-      }
+      if (!snapshot || !snapshot.docs) return;
 
-      const liveQuo = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      const liveQuo = snapshot.docs.map(doc => {
+        const d = doc.data();
+        if (!d) return null;
+        return {
+          id: doc.id,
+          status: d.status || 'SENT',
+          createdAt: d.createdAt || null,
+          client: {
+            name: (d.client?.name || d.clientName || 'Sin Nombre').trim(),
+            phone: d.client?.phone || '',
+            phone2: d.client?.phone2 || ''
+          },
+          eventDetails: {
+            date: d.eventDetails?.date || '',
+            occasion: d.eventDetails?.occasion || '',
+            startTime: d.eventDetails?.startTime || '',
+            endTime: d.eventDetails?.endTime || '',
+            location: d.eventDetails?.location || '',
+            neighborhood: d.eventDetails?.neighborhood || '',
+            guestCount: Number(d.eventDetails?.guestCount) || 10,
+            photoStartTime: d.eventDetails?.photoStartTime || '',
+            photoEndTime: d.eventDetails?.photoEndTime || '',
+            cam360StartTime: d.eventDetails?.cam360StartTime || '',
+            cam360EndTime: d.eventDetails?.cam360EndTime || '',
+            avStartTime: d.eventDetails?.avStartTime || '',
+            avEndTime: d.eventDetails?.avEndTime || ''
+          },
+          financials: {
+            totalValue: Number(d.financials?.totalValue || d.totalValue) || 0,
+            deposit: Number(d.financials?.deposit || d.deposit) || 0,
+            extraHourPrice: Number(d.financials?.extraHourPrice) || 85000
+          },
+          logistics: {
+            packName: d.logistics?.packName || d.packName || 'Essential',
+            selectedExtras: d.logistics?.selectedExtras || d.selectedExtras || {},
+            makeupCount: Number(d.logistics?.makeupCount) || 1
+          }
+        };
+      }).filter(q => q && (q.client.name !== 'Sin Nombre' || q.id));
 
-      // AUDITORÍA: Detectar cotizaciones sin client.name
-      liveQuo.forEach(quo => {
-        if (!quo.client || (!quo.client.name && !quo.clientName)) {
-          console.error("🔴 COTIZACIÓN SIN NOMBRE DETECTADA:", {
-            id: quo.id,
-            client: quo.client,
-            clientName: quo.clientName
-          });
-        }
-      });
-
-      // FILTRO DE SEGURIDAD: Eliminar cotizaciones sin nombre
-      const validQuotations = liveQuo.filter(quo => {
-        return quo && (quo.client?.name || quo.clientName);
-      });
-
-      setQuotations(validQuotations.sort((a, b) => {
+      setQuotations(liveQuo.sort((a, b) => {
         if (!a || !b) return 0;
         // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
         if (a.status === 'SENT' && b.status !== 'SENT') return -1;
@@ -947,7 +1052,7 @@ function App() {
 
       alert('✅ Cotización Guardada y Enviada.');
       setView('quotations');
-      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '' });
+      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', color: '#00f2ff' });
       localStorage.removeItem('nexxa_draft_event');
     } catch (err) {
       console.error(err);
@@ -1013,9 +1118,9 @@ function App() {
       const createItem = (name, qty, area) => ({ name, qty, area, status: 'PENDING', deliveredTime: null, returnedTime: null });
 
       const djItems = [
-        createItem('CABINAS ACTIVAS 15 Pulgadas + TRÍPODES', packName === 'Celebration' ? 4 : 2, 'DJ'),
+        createItem('CABINAS ACTIVAS 15 Pulgadas + TRÍPODES', needsDecor(packName) ? 4 : 2, 'DJ'),
         createItem('PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 a 1', 1, 'DJ'),
-        createItem('LUCES LED x4 + SOPORTE TRÍPODE', packName === 'Celebration' ? 2 : 1, 'DJ'),
+        createItem('LUCES LED x4 + SOPORTE TRÍPODE', needsDecor(packName) ? 2 : 1, 'DJ'),
         createItem('MÁQUINA HUMO + CONTROL + LÍQUIDO', 1, 'DJ'),
         createItem('KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', 1, 'DJ'),
         createItem('MAQUILLAJE NEON (PINTURAS, PINCEL, MAQUILLADOR, 2H)', 1, 'DJ')
@@ -1023,9 +1128,8 @@ function App() {
       const photoItems = [createItem('CÁMARA', 1, 'PHOTO'), createItem('MICRO SD', 1, 'PHOTO')];
       const decorItems = [createItem('BOMBAS', 150, 'DECOR'), createItem('INFLADOR', 1, 'DECOR')];
 
-      if (packName === 'Essential') defaultItems = [...djItems];
-      else if (packName === 'Memories') defaultItems = [...djItems, ...photoItems];
-      else if (packName === 'Celebration') defaultItems = [...djItems, ...photoItems, ...decorItems];
+      if (needsDecor(packName)) defaultItems = [...djItems, ...photoItems, ...decorItems];
+      else if (needsPhoto(packName)) defaultItems = [...djItems, ...photoItems];
       else defaultItems = [...djItems];
 
       eventObj.logistics.items = defaultItems;
@@ -1114,74 +1218,193 @@ function App() {
   // --- EDIT & STATUS HANDLERS ---
   // --- TARIFAS EXACTAS APP NEXXA ---
   const PRICING = {
-    'Essential': { base: 450000, extraDJ: 85000, extraPhoto: 0 },
-    'Memories': { base: 650000, extraDJ: 85000, extraPhoto: 35000 },
-    'Celebration': { base: 850000, extraDJ: 85000, extraPhoto: 35000 },
+    'Essential': { base: 1050000, extraDJ: 85000, extraPhoto: 50000 },
+    'Onix': { base: 1420000, extraDJ: 85000, extraPhoto: 50000 },
+    'Multii': { base: 1700000, extraDJ: 85000, extraPhoto: 50000 },
+    'Kaizen': { base: 1940000, extraDJ: 85000, extraPhoto: 50000 },
     'Personalizado': { base: 0, extraDJ: 0, extraPhoto: 0 }
   };
 
+  // ==========================================
+  // CONFIGURACIÓN MAESTRA (STITCH SYNC)
+  // ==========================================
+  const STITCH_DATA = {
+    protocols: {
+      'ESSENTIAL': { price: 1050000, roles: ['dj'] },
+      'ONIX':      { price: 1420000, roles: ['dj', 'foto'] },
+      'MULTII':    { price: 1700000, roles: ['dj', 'foto', 'cam360'] },
+      'KAIZEN':    { price: 1940000, roles: ['dj', 'foto', 'cam360', 'makeup'] }
+    },
+    extras: {
+      audiovisuales: 1050000,
+      photo: 230000,
+      cam360: 250000,
+      makeup: 150000,
+      decor_onix: 140000,
+      decor_multii: 170000,
+      decor_kaizen: 250000,
+      acc_essential: 111000,
+      acc_memories: 444000,
+      acc_celebration: 777000
+    },
+    hourlyRates: {
+      dj: 85000,
+      photo: 50000,
+      cam360: 125000
+    }
+  };
+
+  const PRICING_DYNAMIC = new Proxy({}, {
+    get: (target, name) => {
+      if (!name) return { base: 0, roles: [] };
+      const n = name.toUpperCase();
+      const match = Object.entries(STITCH_DATA.protocols).find(([id]) => n.includes(id));
+      return match ? { base: match[1].price, roles: match[1].roles } : { base: 0, roles: [] };
+    }
+  });
+
   // --- DATA DINÁMICA DE EXTRAS ---
-  const getDynamicExtras = (guests, userMakeupCount) => {
+  const getDynamicExtras = (evt) => {
+    const guests = evt?.guestCount;
+    const userMakeupCount = evt?.makeupCount;
     const g = Math.max(10, Number(guests) || 10);
-
-    // Costos Unitarios (Sync with Client App)
-    const C_FOAM = 13000;
-    const C_CANNON = 5000;
-    const C_BLOWOUT = 200;
-    const C_BRACELET = 400;
-    const C_NECKLACE = 400;
-    const C_MASK = 400;
-
-    // 1. Maquillaje (1 por cada 50 invitados O manual)
     const recommendedMakeup = Math.ceil(g / 50);
     const qty = (typeof userMakeupCount === 'number') ? userMakeupCount : recommendedMakeup;
-    const makeupPrice = qty * 120000;
 
-    // 2. Accesorios Essential
-    const rawEssential = C_FOAM + (g * (C_BLOWOUT + C_BRACELET));
-    const priceEssential = rawEssential;
+    // Determine specific guest count for accessories (defaults to global guest count, minimum 10)
+    let rawAccGuests = evt?.accGuests;
+    if (rawAccGuests === undefined) {
+        rawAccGuests = Math.max(10, Number(guests) || 10);
+    }
+    const accNum = Math.max(0, Number(rawAccGuests) || 0);
+    const accMultiplier = Math.ceil(accNum / 10);
 
-    // 3. Accesorios Memories
-    const rawMemories = (2 * C_FOAM) + (g * C_NECKLACE) + (g * (C_BLOWOUT + C_BRACELET));
-    const priceMemories = rawMemories;
+    const photoDur = getHours(evt?.photoStartTime || '20:00', evt?.photoEndTime || evt?.photoStartTime || '20:00');
+    const camDur = getHours(evt?.camStartTime || '20:00', evt?.camEndTime || evt?.camStartTime || '20:00');
 
-    // 4. Accesorios Celebration
-    const rawCelebration = (3 * C_FOAM) + (3 * C_CANNON) + (g * (C_BLOWOUT + C_BRACELET + C_NECKLACE + C_MASK));
-    const priceCelebration = rawCelebration;
+    const extraPhotoCost = STITCH_DATA.extras.photo + (Math.max(0, Math.ceil(photoDur - 4)) * STITCH_DATA.hourlyRates.photo);
+    const extraCamCost = STITCH_DATA.extras.cam360 + (Math.max(0, Math.ceil(camDur - 2)) * STITCH_DATA.hourlyRates.cam360);
 
     return [
       {
         id: 'extra_makeup',
-        name: `Maquillaje Neón`,
-        price: makeupPrice,
+        name: `Maquillaje Neón (2h)`,
+        price: STITCH_DATA.extras.makeup,
+        displayPrice: STITCH_DATA.extras.makeup,
         qty: qty,
         isMakeup: true,
-        area: 'Photo',
-        details: `${qty} Artista(s) (1 por c/50 invitados)`
+        area: 'Style',
+        details: `${qty} Artista(s) para retoque y aplicación.`
       },
       {
         id: 'acc_essential',
-        name: 'Accesorios Essential',
-        price: priceEssential,
-        area: 'Decor',
-        details: `1 Espuma + (${g} Pitos, ${g} Manillas)`
+        name: 'Accesorios 111 (Base)',
+        price: (STITCH_DATA.extras.acc_essential || 0) * accMultiplier,
+        displayPrice: (STITCH_DATA.extras.acc_essential || 0) * accMultiplier,
+        qty: accNum,
+        isAcc: true,
+        area: 'Logística',
+        details: `${accNum} pax | Kit de animación básico.`
       },
       {
         id: 'acc_memories',
-        name: 'Accesorios Memories',
-        price: priceMemories,
-        area: 'Decor',
-        details: `2 Espumas + (${g} Collares, ${g} Pitos, ${g} Manillas)`
+        name: 'Accesorios 444 (Pro)',
+        price: (STITCH_DATA.extras.acc_memories || 0) * accMultiplier,
+        displayPrice: (STITCH_DATA.extras.acc_memories || 0) * accMultiplier,
+        qty: accNum,
+        isAcc: true,
+        area: 'Logística',
+        details: `${accNum} pax | Kit de animación mejorado.`
       },
       {
         id: 'acc_celebration',
-        name: 'Accesorios Celebration',
-        price: priceCelebration,
-        area: 'Decor',
-        details: `3 Espumas, 3 Cañones + (${g} de: Pitos, Manillas, Collares, Antifaces)`
+        name: 'Accesorios 777 (Premium)',
+        price: (STITCH_DATA.extras.acc_celebration || 0) * accMultiplier,
+        displayPrice: (STITCH_DATA.extras.acc_celebration || 0) * accMultiplier,
+        qty: accNum,
+        isAcc: true,
+        area: 'Logística',
+        details: `${accNum} pax | Kit de animación full.`
+      },
+      {
+        id: 'extra_decor_onix',
+        name: 'Decoración Ónix',
+        price: STITCH_DATA.extras.decor_onix,
+        displayPrice: STITCH_DATA.extras.decor_onix,
+        area: 'Decoración',
+        details: 'Ambientación nivel entrada'
+      },
+      {
+        id: 'extra_decor_multii',
+        name: 'Decoración Multii',
+        price: STITCH_DATA.extras.decor_multii,
+        displayPrice: STITCH_DATA.extras.decor_multii,
+        area: 'Decoración',
+        details: 'Ambientación nivel intermedio'
+      },
+      {
+        id: 'extra_decor_kaizen',
+        name: 'Decoración Kaizen',
+        price: STITCH_DATA.extras.decor_kaizen,
+        displayPrice: STITCH_DATA.extras.decor_kaizen,
+        area: 'Decoración',
+        details: 'Ambientación máxima gama'
+      },
+      {
+        id: 'extra_cam360',
+        name: 'Cámara 360°',
+        price: STITCH_DATA.extras.cam360,
+        displayPrice: extraCamCost,
+        area: 'Video',
+        details: 'Plataforma con videos ilimitados'
+      },
+      {
+        id: 'extra_photo',
+        name: 'Fotografía Social',
+        price: STITCH_DATA.extras.photo,
+        displayPrice: extraPhotoCost,
+        area: 'Photo',
+        details: 'Registro fotográfico del evento'
       }
     ];
   };
+
+  // --- DYNAMIC PRICING CALCULATOR (Staff Sync) ---
+  const currentConf = PRICING_DYNAMIC[newEvent.packName] || {};
+  const djDur = getHours(newEvent.startTime || '20:00', newEvent.endTime || newEvent.startTime || '20:00');
+  const photoDur = getHours(newEvent.photoStartTime || '20:00', newEvent.photoEndTime || newEvent.photoStartTime || '20:00');
+  const camDur = getHours(newEvent.camStartTime || '20:00', newEvent.camEndTime || newEvent.camStartTime || '20:00');
+  const decorDur = getHours(newEvent.decorStartTime || '19:00', newEvent.decorEndTime || newEvent.decorStartTime || '19:00');
+  const avDur = getHours(newEvent.avStartTime || '20:00', newEvent.avEndTime || newEvent.avStartTime || '20:00');
+
+  const extraDJ = Math.max(0, Math.ceil(djDur - 4));
+  const extraPhoto = Math.max(0, Math.ceil(photoDur - 4));
+  const extraCam = Math.max(0, Math.ceil(camDur - 2));
+
+  const extrasDJPrice = extraDJ * STITCH_DATA.hourlyRates.dj;
+  const extrasPhotoPrice = extraPhoto * STITCH_DATA.hourlyRates.photo;
+  const extrasCamPrice = extraCam * STITCH_DATA.hourlyRates.cam360;
+
+  const activeExtrasArr = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id]);
+  const otherExtrasPrice = activeExtrasArr.reduce((acc, ex) => acc + (Number(ex.price) || 0), 0);
+
+  const computedTotal = (Number(currentConf.base) || 0) + 
+                        (isNaN(extrasDJPrice) ? 0 : extrasDJPrice) + 
+                        (isNaN(extrasPhotoPrice) ? 0 : extrasPhotoPrice) + 
+                        (isNaN(extrasCamPrice) ? 0 : extrasCamPrice) + 
+                        (isNaN(otherExtrasPrice) ? 0 : otherExtrasPrice);
+
+  // Auto-update totalValue and dependent prices in the form seamlessly
+  useEffect(() => {
+    if (!newEvent.id && computedTotal > 0 && Number(newEvent.totalValue) !== computedTotal) {
+        setNewEvent(prev => ({ 
+           ...prev, 
+           totalValue: computedTotal,
+           deposit: computedTotal * 0.3
+        }));
+    }
+  }, [computedTotal, newEvent.id, newEvent.totalValue]);
+
 
   // --- EDIT & STATUS HANDLERS ---
   const handleCreateEvent = async (e, status = 'CONFIRMED') => {
@@ -1193,23 +1416,41 @@ function App() {
         return alert('Para procesar, necesitas al menos: Cliente, Fecha y Valor Total.');
       }
 
-      // Mandatory Roles based on Package
-      if (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') {
+      // Mandatory Roles based on Package and Extras
+      if (needsPhoto(newEvent.packName, newEvent.selectedExtras)) {
         if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
-          return alert(`⚠️ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÍA.`);
+          return alert(`⚠️ SE REQUIERE HORARIO DE FOTOGRAFÍA.`);
         }
         const photoDur = getHours(newEvent.photoStartTime, newEvent.photoEndTime);
         if (photoDur <= 0) {
           return alert('⚠️ EL HORARIO DE FOTOGRAFÍA NO PUEDE SER DE 0 HORAS.');
         }
       }
-      if (newEvent.packName === 'Celebration') {
+      if (needsDecor(newEvent.packName, newEvent.selectedExtras)) {
         if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
-          return alert('⚠️ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
+          return alert(`⚠️ SE REQUIERE HORARIO DE DECORACIÓN.`);
         }
         const decorDur = getHours(newEvent.decorStartTime, newEvent.decorEndTime);
         if (decorDur <= 0) {
           return alert('⚠️ EL HORARIO DE DECORACIÓN NO PUEDE SER DE 0 HORAS.');
+        }
+      }
+      if (needsCam360(newEvent.packName, newEvent.selectedExtras)) {
+        if (!newEvent.camStartTime || !newEvent.camEndTime) {
+          return alert(`⚠️ SE REQUIERE HORARIO DE CÁMARA 360.`);
+        }
+        const camDur = getHours(newEvent.camStartTime, newEvent.camEndTime);
+        if (camDur <= 0) {
+          return alert('⚠️ EL HORARIO DE CÁMARA 360 NO PUEDE SER DE 0 HORAS.');
+        }
+      }
+      if (needsAV(newEvent.packName, newEvent.selectedExtras)) {
+        if (!newEvent.avStartTime || !newEvent.avEndTime) {
+          return alert(`⚠️ SE REQUIERE HORARIO AUDIOVISUAL.`);
+        }
+        const avDur = getHours(newEvent.avStartTime, newEvent.avEndTime);
+        if (avDur <= 0) {
+          return alert('⚠️ EL HORARIO AUDIOVISUAL NO PUEDE SER DE 0 HORAS.');
         }
       }
 
@@ -1231,8 +1472,8 @@ function App() {
 
     // 1. DEFINIR ITEMS (Calculated based on Package + Extras?)
     // Note: Currently simple package mapping.
-    let defaultItems = [];
-    if (newEvent.packName === 'Essential') {
+    const p = (newEvent.packName || '').toUpperCase();
+    if (p.includes('ESSENTIAL')) {
       defaultItems = [
         { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 2, checked: false, area: 'DJ' },
         { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
@@ -1240,34 +1481,33 @@ function App() {
         { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
         { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
       ];
-    } else if (newEvent.packName === 'Memories') {
+    } else if (p.includes('ONIX')) {
       defaultItems = [
-        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 2, checked: false, area: 'DJ' },
-        { name: 'BAJOS 18" ACTIVOS', qty: 2, checked: false, area: 'DJ' },
-        { name: 'ESTRUCTURA PORTERÍA LUCES', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CABEZA MÓVIL BEAM / SPOT', qty: 2, checked: false, area: 'DJ' },
-        { name: 'PAR LED RGBW', qty: 6, checked: false, area: 'DJ' },
-        { name: 'CÁMARA', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'MICRO SD', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
+        { name: 'SISTEMA AUDIO NEXXA PRO', qty: 1, checked: false, area: 'DJ' },
+        { name: 'SISTEMA ILUMINACIÓN ONIX', qty: 1, checked: false, area: 'DJ' },
+        { name: 'CÁMARA FOTOGRAFÍA PRO', qty: 1, checked: false, area: 'PHOTO' },
+        { name: 'MICRO SD 32GB', qty: 1, checked: false, area: 'PHOTO' },
+        { name: 'KIT DECORACIÓN ÓNIX', qty: 1, checked: false, area: 'DECOR' },
+        { name: 'KIT ENERGIA COMPLETO', qty: 1, checked: false, area: 'LOGÍSTICA' }
       ];
-    } else if (newEvent.packName === 'Celebration') {
+    } else if (p.includes('MULTII')) {
       defaultItems = [
-        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 4, checked: false, area: 'DJ' },
-        { name: 'BAJOS 18" ACTIVOS', qty: 2, checked: false, area: 'DJ' },
-        { name: 'CABINA RETORNO DJ', qty: 1, checked: false, area: 'DJ' },
-        { name: 'ESTRUCTURA PORTERÍA LUCES 4M', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CABEZA MÓVIL BEAM / SPOT', qty: 4, checked: false, area: 'DJ' },
-        { name: 'PAR LED RGBW', qty: 8, checked: false, area: 'DJ' },
-        { name: 'CÁMARA', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'MICRO SD', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'BOMBAS', qty: 150, checked: false, area: 'DECOR' },
-        { name: 'INFLADOR', qty: 1, checked: false, area: 'DECOR' },
-        { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
+        { name: 'SISTEMA AUDIO NEXXA XL', qty: 1, checked: false, area: 'DJ' },
+        { name: 'SISTEMA ILUMINACIÓN STITCH PRO', qty: 1, checked: false, area: 'DJ' },
+        { name: 'CÁMARA FOTOGRAFÍA PRO', qty: 1, checked: false, area: 'PHOTO' },
+        { name: 'PLATAFORMA CÁMARA 360', qty: 1, checked: false, area: 'VIDEO' },
+        { name: 'KIT DECORACIÓN MULTII (MOCO DE GORILA)', qty: 1, checked: false, area: 'DECOR' },
+        { name: 'KIT ENERGIA COMPLETO', qty: 1, checked: false, area: 'LOGÍSTICA' }
+      ];
+    } else if (p.includes('KAIZEN')) {
+      defaultItems = [
+        { name: 'FULL STACK SONIDO KAIZEN', qty: 1, checked: false, area: 'DJ' },
+        { name: 'SISTEMA ILUMINACIÓN STITCH MASTER', qty: 1, checked: false, area: 'DJ' },
+        { name: 'CÁMARA FOTOGRAFÍA MASTER', qty: 1, checked: false, area: 'PHOTO' },
+        { name: 'PLATAFORMA CÁMARA 360 XL', qty: 1, checked: false, area: 'VIDEO' },
+        { name: 'DECORACIÓN KAIZEN COMPLETA', qty: 1, checked: false, area: 'DECOR' },
+        { name: 'KIT MAQUILLAJE NEÓN UV', qty: 1, checked: false, area: 'STYLE' },
+        { name: 'KIT ENERGIA FULL PRO', qty: 1, checked: false, area: 'LOGÍSTICA' }
       ];
     } else {
       defaultItems = [
@@ -1278,7 +1518,7 @@ function App() {
     }
 
     // 1.1 AÑADIR MATERIALES DE EXTRAS SELECCIONADOS
-    const dynamicExtras = getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount);
+    const dynamicExtras = getDynamicExtras(newEvent);
     dynamicExtras.forEach(ex => {
       if (newEvent.selectedExtras && newEvent.selectedExtras[ex.id]) {
         // Solo añadir si no existe ya para evitar duplicados en ediciones
@@ -1387,7 +1627,11 @@ function App() {
           staffPaid: false
         },
         selectedExtras: newEvent.selectedExtras || {}, // Save checkboxes
-        makeupCount: newEvent.makeupCount // Save manual makeup override
+        makeupCount: newEvent.makeupCount, // Save manual makeup override
+        camStartTime: newEvent.camStartTime || '',
+        camEndTime: newEvent.camEndTime || '',
+        avStartTime: newEvent.avStartTime || '',
+        avEndTime: newEvent.avEndTime || ''
       }
     };
 
@@ -1397,7 +1641,7 @@ function App() {
       alert(status === 'DRAFT' ? '📝 Borrador Guardado' : (newEvent.id ? '✅ Evento Actualizado' : '✅ Evento Creado'));
 
       setView('events');
-      const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '' };
+      const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', camStartTime: '', camEndTime: '', avStartTime: '', avEndTime: '', color: '#00f2ff' };
       setNewEvent(emptyState);
       localStorage.removeItem('nexxa_draft_event'); // Clear transient draft
     } catch (err) {
@@ -1436,7 +1680,11 @@ function App() {
       photoStartTime: evt.eventDetails.photoStartTime || '',
       photoEndTime: evt.eventDetails.photoEndTime || '',
       decorStartTime: evt.eventDetails.decorStartTime || '',
-      decorEndTime: evt.eventDetails.decorEndTime || ''
+      decorEndTime: evt.eventDetails.decorEndTime || '',
+      camStartTime: evt.eventDetails.camStartTime || '',
+      camEndTime: evt.eventDetails.camEndTime || '',
+      avStartTime: evt.eventDetails.avStartTime || '',
+      avEndTime: evt.eventDetails.avEndTime || ''
     };
     setNewEvent(formState);
     setView('create');
@@ -3430,13 +3678,14 @@ function App() {
             const tMatch = rawTime.match(/(\d{1,2}(?::\d{2})?)\s?(AM|PM).*?(\d{1,2}(?::\d{2})?)\s?(AM|PM)/i);
             if (tMatch) {
               const parseTime = (t, ap) => {
-                let [hStr, mStr] = t.split(':');
+                if (!t) return '20:00';
+                const [hStr, mStr] = t.includes(':') ? t.split(':') : [t, '00'];
                 let h = parseInt(hStr || 0, 10);
                 let m = parseInt(mStr || 0, 10);
-                if (isNaN(h)) h = 0;
+                if (isNaN(h)) h = 20;
                 if (isNaN(m)) m = 0;
-                if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;
-                if (ap.toUpperCase() === 'AM' && h === 12) h = 0;
+                if (ap && ap.toUpperCase() === 'PM' && h !== 12) h += 12;
+                if (ap && ap.toUpperCase() === 'AM' && h === 12) h = 0;
                 return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
               }
               newData.startTime = parseTime(tMatch[1], tMatch[2]);
@@ -3572,79 +3821,7 @@ function App() {
           updated.photoDuration = parseFloat(autoDur.toFixed(1));
         }
 
-        // Auto-Calc Logic
-        const pack = updated.packName;
-        const start = updated.startTime;
-        const end = updated.endTime;
-        const guests = Number(updated.guestCount) || 10;
-        const selExtras = updated.selectedExtras || {};
-        const pDuration = Number(updated.photoDuration) || 0;
-
-        const currentExtrasList = getDynamicExtras(guests, updated.makeupCount);
-
-        if (PRICING[pack] && start && end && pack !== 'Personalizado') {
-          const conf = PRICING[pack];
-
-          // Duration Calc
-          const duration = getHours(start, end);
-          const extraEventHours = Math.max(0, Math.ceil(duration - 4));
-
-          // Pricing Components
-          const basePrice = conf.base;
-          const djExtraPrice = conf.extraDJ || 0;
-          const photoExtraPrice = conf.extraPhoto || 0;
-
-          let totalExtrasValue = 0;
-
-          // 1. DJ / Event Extra Hours
-          totalExtrasValue += extraEventHours * djExtraPrice;
-
-          // 2. Photo Extra Hours
-          const hasPhoto = (pack === 'Memories' || pack === 'Celebration');
-          if (hasPhoto) {
-            if (pDuration > 0) {
-              const extraPhotoHours = Math.max(0, Math.ceil(pDuration - 4));
-              totalExtrasValue += extraPhotoHours * photoExtraPrice;
-            } else {
-              totalExtrasValue += extraEventHours * photoExtraPrice;
-            }
-          }
-
-          let calculatedTotal = basePrice + totalExtrasValue;
-
-          // Sumar Extras Seleccionados
-          currentExtrasList.forEach(ex => {
-            if (selExtras[ex.id]) calculatedTotal += ex.price;
-          });
-
-          // Debug Alert Verify Fix (Remove later)
-          if (pDuration > 8 && totalExtrasValue === 0 && !alertShown) {
-            // Safe guard to check why logic might fail
-            console.warn("Pricing logic mismatch", { pDuration, totalExtrasValue, photoExtraPrice });
-          }
-
-          updated.totalValue = calculatedTotal;
-
-          // Update Extra Hour Price Display
-          if (pDuration > 0 && hasPhoto) {
-            updated.extraHourPrice = djExtraPrice;
-          } else {
-            updated.extraHourPrice = djExtraPrice + (hasPhoto ? photoExtraPrice : 0);
-          }
-
-        } else if (pack === 'Personalizado') {
-          if (!updated.totalValue && !newEvent.id) {
-            let sum = 0;
-            currentExtrasList.forEach(ex => { if (selExtras[ex.id]) sum += ex.price; });
-            updated.totalValue = sum;
-          }
-        }
-
-        // Auto-calc Deposit (ALWAYS SYNC 30%)
-        if (updated.totalValue > 0) {
-          updated.deposit = updated.totalValue * 0.3;
-        }
-
+        // Clean state update: auto-calc is inherently handled by the global computedTotal watcher.
         setNewEvent(updated);
       };
 
@@ -3652,18 +3829,6 @@ function App() {
       // const [alertShown, setAlertShown] = useState(false);
 
       // --- LOGIC: Constant Sync for Extra Hour Price ---
-      // This ensures that even if loaded from a quote, the UI always shows the correct rate for the package.
-      if (newEvent.packName && PRICING[newEvent.packName]) {
-        const correctRate = (PRICING[newEvent.packName].extraDJ || 0) + (PRICING[newEvent.packName].extraPhoto || 0) || 85000;
-        if (Number(newEvent.extraHourPrice) !== correctRate && !newEvent.id) {
-          // Only auto-correct for NEW/DRAFT events, respect saved IDs if they have special pricing
-          setNewEvent(prev => ({ ...prev, extraHourPrice: correctRate }));
-        }
-      }
-
-      const currentConf = PRICING[newEvent.packName] || {};
-      const duration = newEvent.startTime && newEvent.endTime ? getHours(newEvent.startTime, newEvent.endTime) : 0;
-      const extrasKy = Math.max(0, Math.ceil(duration - 4));
       const isEventMode = newEvent.id?.startsWith('EVT');
 
       return (
@@ -3700,7 +3865,7 @@ function App() {
                     const hours = newEvent.startTime && newEvent.endTime ? getHours(newEvent.startTime, newEvent.endTime).toFixed(1) : '0';
 
                     // Calculate dynamic details for extras
-                    const dynamicExtras = getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount);
+                    const dynamicExtras = getDynamicExtras(newEvent);
 
                     // Construct Message (Premium Format + Details)
                     const extrasList = [];
@@ -3800,9 +3965,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   {/* Row 0: Package & Lead Source */}
                   <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
                     <select style={{ flex: 1 }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
-                      <option value="Essential">Essential ($450k)</option>
-                      <option value="Memories">Memories ($650k)</option>
-                      <option value="Celebration">Celebration ($850k)</option>
+                      <option value="SONIDO ESSENTIAL">SONIDO ESSENTIAL ($450k)</option>
+                      <option value="ONIX">ONIX ($1.22M)</option>
+                      <option value="MULTII">MULTII ($1.44M)</option>
+                      <option value="KAIZEN">KAIZEN ($1.94M)</option>
                       <option value="Personalizado">Personalizado</option>
                     </select>
                     <select style={{ flex: 1 }} value={newEvent.leadSource || ''} onChange={e => updateEvent('leadSource', e.target.value)}>
@@ -3855,20 +4021,20 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     </div>
                   )}
 
-                  {duration > 0 && (
+                  {djDur > 0 && (
                     <div style={{ marginBottom: '10px', padding: '4px 8px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: '#00d4ff' }}>
-                      ⏱ <strong>{duration.toFixed(1)}h</strong> (DJ/Sonido)
-                      {extrasKy > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extrasKy}h extra)</span>}
+                      ⏱ <strong>{djDur.toFixed(1)}h</strong> (DJ/Sonido)
+                      {extraDJ > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extraDJ}h extra)</span>}
                     </div>
                   )}
 
                   {/* SECCIÓN 2.1: ASIGNACIÓN OPERATIVA (Visibilidad Global) */}
                   <div style={{ marginTop: '15px' }}>
-                    {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
+                    {(needsPhoto(newEvent.packName, newEvent.selectedExtras) || needsDecor(newEvent.packName, newEvent.selectedExtras) || needsCam360(newEvent.packName, newEvent.selectedExtras) || needsAV(newEvent.packName, newEvent.selectedExtras)) && (
                       <h4 style={{ fontSize: '0.8rem', color: 'var(--primary-cyan)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>1.1 Asignación Operativa</h4>
                     )}
                     {/* SEPARATE SCHEDULING FOR PHOTOGRAPHY */}
-                    {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
+                    {needsPhoto(newEvent.packName, newEvent.selectedExtras) && (
                       <div style={{ padding: '15px', background: 'rgba(255, 150, 0, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 150, 0, 0.2)', marginBottom: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#facc15' }}>
                           <IconCalendar size={14} />
@@ -3878,9 +4044,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                           <TimeInput label="Inicio Foto" value={newEvent.photoStartTime} onChange={(val) => updateEvent('photoStartTime', val)} />
                           <TimeInput label="Fin Foto" value={newEvent.photoEndTime} onChange={(val) => updateEvent('photoEndTime', val)} />
                         </div>
-                        {newEvent.photoDuration > 0 && (
+                        {photoDur > 0 && (
                           <div style={{ marginTop: '10px', padding: '5px 10px', background: 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: '#facc15' }}>
-                            📸 <strong>{newEvent.photoDuration}h</strong> Fotografía
+                            📸 <strong>{photoDur.toFixed(1)}h</strong> Fotografía
                           </div>
                         )}
                         <p style={{ margin: '8px 0 0 0', fontSize: '0.65rem', opacity: 0.6, color: '#fff' }}>
@@ -3889,15 +4055,46 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       </div>
                     )}
                     {/* SEPARATE SCHEDULING FOR DECORATION */}
-                    {(newEvent.packName === 'Celebration') && (
+                    {needsDecor(newEvent.packName, newEvent.selectedExtras) && (
                       <div style={{ padding: '15px', background: 'rgba(188, 111, 241, 0.05)', borderRadius: '15px', border: '1px solid rgba(188, 111, 241, 0.2)', marginBottom: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-purple)' }}>
                           <IconFlow size={14} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Decoración (OBLIGATORIO)</span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Decoración</span>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                           <TimeInput label="Inicio Decor" value={newEvent.decorStartTime} onChange={(val) => updateEvent('decorStartTime', val)} />
                           <TimeInput label="Fin Decor" value={newEvent.decorEndTime} onChange={(val) => updateEvent('decorEndTime', val)} />
+                        </div>
+                      </div>
+                    )}
+                    {/* SEPARATE SCHEDULING FOR CAMERA 360 */}
+                    {needsCam360(newEvent.packName, newEvent.selectedExtras) && (
+                      <div style={{ padding: '15px', background: 'rgba(0, 242, 255, 0.05)', borderRadius: '15px', border: '1px solid rgba(0, 242, 255, 0.2)', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-cyan)' }}>
+                          <IconCamera size={14} />
+                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Cámara 360°</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <TimeInput label="Inicio 360" value={newEvent.camStartTime} onChange={(val) => updateEvent('camStartTime', val)} />
+                          <TimeInput label="Fin 360" value={newEvent.camEndTime} onChange={(val) => updateEvent('camEndTime', val)} />
+                        </div>
+                        {camDur > 0 && (
+                          <div style={{ marginTop: '10px', padding: '5px 10px', background: 'rgba(0, 242, 255, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: 'var(--primary-cyan)' }}>
+                            📹 <strong>{camDur.toFixed(1)}h</strong> Cámara 360°
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* SEPARATE SCHEDULING FOR AUDIOVISUAL */}
+                    {needsAV(newEvent.packName, newEvent.selectedExtras) && (
+                      <div style={{ padding: '15px', background: 'rgba(255, 56, 96, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 56, 96, 0.2)', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#ff3860' }}>
+                          <IconBox size={14} />
+                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Audiovisual / Pantalla</span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <TimeInput label="Inicio AV" value={newEvent.avStartTime} onChange={(val) => updateEvent('avStartTime', val)} />
+                          <TimeInput label="Fin AV" value={newEvent.avEndTime} onChange={(val) => updateEvent('avEndTime', val)} />
                         </div>
                       </div>
                     )}
@@ -3927,36 +4124,94 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   {/* EXTRAS LIST */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '4px' }}>Adicionales Disponibles:</label>
-                    {getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).map(extra => {
+                    {getDynamicExtras(newEvent).map(extra => {
                       const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]);
                       return (
-                        <div
-                          key={extra.id}
-                          onClick={() => updateEvent('toggleExtra', extra.id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px',
-                            background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
-                            border: '1px solid', borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
-                            borderRadius: '8px', cursor: 'pointer'
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra?.name || 'Extra'}</span>
-                            <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>
+                        <div key={extra.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div
+                            onClick={() => updateEvent('toggleExtra', extra.id)}
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px',
+                              background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
+                              border: '1px solid', borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
+                              borderRadius: '8px', cursor: 'pointer'
+                            }}
+                          >
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra?.name || 'Extra'}</span>
+                              <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
+                                + ${(extra.displayPrice || extra.price).toLocaleString()}
+                              </span>
+                              {extra.isMakeup && isActive && (
+                                <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
+                                  <small onClick={() => updateEvent('changeMakeupCount', Math.max(1, (extra.qty || 1) - 1))} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
+                                  <span style={{ fontSize: '0.8rem' }}>{extra.qty}</span>
+                                  <small onClick={() => updateEvent('changeMakeupCount', (extra.qty || 1) + 1)} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
+                                </div>
+                              )}
+                              {extra.isAcc && isActive && (
+                                <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
+                                  <input 
+                                    type="number" 
+                                    min="1" 
+                                    value={extra.qty || ''} 
+                                    onChange={(e) => updateEvent('accGuests', Math.max(1, parseInt(e.target.value) || 1))} 
+                                    style={{ width: '35px', background: 'transparent', border: 'none', color: '#fff', fontSize: '0.8rem', textAlign: 'center', outline: 'none' }}
+                                  />
+                                  <span style={{ fontSize: '0.6rem', color: '#888', marginRight: '4px', cursor: 'default' }}>Inv.</span>
+                                </div>
+                              )}
+                              <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
-                              + ${extra.price.toLocaleString()}
-                            </span>
-                            {extra.isMakeup && isActive && (
-                              <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
-                                <small onClick={() => updateEvent('changeMakeupCount', Math.max(1, (extra.qty || 1) - 1))} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
-                                <span style={{ fontSize: '0.8rem' }}>{extra.qty}</span>
-                                <small onClick={() => updateEvent('changeMakeupCount', (extra.qty || 1) + 1)} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
+                          {/* SMALL TIME RANGE INPUTS FOR SERVICES */}
+                          {isActive && (extra.id === 'extra_cam360' || extra.id === 'extra_photo') && (
+                            <MiniTimeInput
+                                label={extra.id === 'extra_cam360' ? 'PROGRAMACIÓN TÉCNICA (MÍN. 2H)' : 'PROGRAMACIÓN TÉCNICA (MÍN. 4H)'}
+                                startVal={extra.id === 'extra_cam360' ? newEvent.camStartTime : newEvent.photoStartTime}
+                                endVal={extra.id === 'extra_cam360' ? newEvent.camEndTime : newEvent.photoEndTime}
+                                onStartChange={(val) => updateEvent(extra.id === 'extra_cam360' ? 'camStartTime' : 'photoStartTime', val)}
+                                onEndChange={(val) => updateEvent(extra.id === 'extra_cam360' ? 'camEndTime' : 'photoEndTime', val)}
+                            />
+                          )}
+
+                          {/* PERSONALIZACIÓN DE DECORACIÓN (COLOR Y OCASIÓN) */}
+                          {isActive && extra.id.includes('_decor_') && (
+                            <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                              <label style={{ fontSize: '0.65rem', color: '#8b9bb4', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>
+                                Personalización Diseño Visual
+                              </label>
+                              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                
+                                {/* NATIVE COLOR PICKER HACK */}
+                                <label style={{ position: 'relative', display: 'flex', alignItems: 'center', background: '#1a1a24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '6px 14px', gap: '8px', cursor: 'pointer', overflow: 'hidden' }}>
+                                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: newEvent.decorColor || '#C9A84C', border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 0 10px rgba(0,0,0,0.5)' }} />
+                                  <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '1px' }}>
+                                    <span style={{ fontSize: '0.5rem', fontWeight: '900', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>COLOR</span>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#fff', lineHeight: 1 }}>{newEvent.decorColor || '#C9A84C'}</span>
+                                  </div>
+                                  <input 
+                                    type="color" 
+                                    value={newEvent.decorColor || '#C9A84C'} 
+                                    onChange={(e) => updateEvent('decorColor', e.target.value)}
+                                    style={{ position: 'absolute', top: '-10px', left: '-10px', opacity: 0, width: '200%', height: '200%', cursor: 'pointer' }}
+                                  />
+                                </label>
+
+                                {/* THEME/OCCASION INPUT */}
+                                <input 
+                                  type="text" 
+                                  placeholder="Ej: Neón, Floral, Despedida..."
+                                  value={newEvent.decorTheme || ''}
+                                  onChange={(e) => updateEvent('decorTheme', e.target.value)}
+                                  style={{ flex: 1, minWidth: '150px', background: '#1a1a24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '10px 15px', borderRadius: '20px', fontSize: '0.8rem', outline: 'none' }}
+                                />
                               </div>
-                            )}
-                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -4029,11 +4284,27 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         <strong>${(currentConf.base || 0).toLocaleString()}</strong>
                       </div>
 
-                      {/* HORAS EXTRAS */}
-                      {extrasKy > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', alignItems: 'center' }}>
-                          <span>+ {extrasKy} Horas Extras (${(Number(newEvent.extraHourPrice) || 0).toLocaleString()} c/u):</span>
-                          <strong>${(extrasKy * (Number(newEvent.extraHourPrice) || 0)).toLocaleString()}</strong>
+                      {/* DJ EXTRA */}
+                      {extraDJ > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', fontSize: '0.7rem' }}>
+                          <span>+ {extraDJ}h Extra DJ ($85k/h):</span>
+                          <strong>${extrasDJPrice.toLocaleString()}</strong>
+                        </div>
+                      )}
+
+                      {/* PHOTO EXTRA */}
+                      {extraPhoto > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff9f43', fontSize: '0.7rem' }}>
+                          <span>+ {extraPhoto}h Extra Foto ($50k/h):</span>
+                          <strong>${extrasPhotoPrice.toLocaleString()}</strong>
+                        </div>
+                      )}
+
+                      {/* CAM 360 EXTRA */}
+                      {extraCam > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#00d4ff', fontSize: '0.7rem' }}>
+                          <span>+ {extraCam}h Extra 360 ($150k/h):</span>
+                          <strong>${extrasCamPrice.toLocaleString()}</strong>
                         </div>
                       )}
                       {/* ADICIONALES SELECCIONADOS */}
@@ -4153,40 +4424,23 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
       console.error("Critical error in renderCreate:", error);
       return (
         <div style={{ padding: '40px', color: 'white', textAlign: 'center' }}>
-          <h2 style={{ color: 'var(--primary-cyan)', marginBottom: '16px' }}>⚠️ Error de Visualización</h2>
-          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <p style={{ opacity: 0.7, fontSize: '0.9rem' }}>Hubo un problema al procesar los datos de esta cotización/evento.</p>
-            <pre style={{
-              background: 'rgba(12, 12, 12, 0.5)',
-              padding: '15px',
-              borderRadius: '8px',
-              fontSize: '0.7rem',
-              color: '#ff6b6b',
-              marginTop: '15px',
-              whiteSpace: 'pre-wrap',
-              textAlign: 'left'
-            }}>
-              {error.stack || error.message}
-            </pre>
+          <h2 style={{ color: '#ff3860', marginBottom: '16px', fontSize: '1.8rem', fontWeight: '900' }}>⚠️ Error de Datos</h2>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '30px', borderRadius: '24px', border: '1px solid rgba(255,56,96,0.2)' }}>
+            <p style={{ opacity: 0.8, fontSize: '1rem', marginBottom: '20px', lineHeight: '1.5' }}>
+              Esta cotización contiene información dañada o incompleta que impide su visualización.
+            </p>
+            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '12px', marginBottom: '25px', textAlign: 'left' }}>
+               <code style={{ fontSize: '0.7rem', color: '#ff8a8a', whiteSpace: 'pre-wrap' }}>{error.message}</code>
+            </div>
             <button
               onClick={() => {
-                setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 30000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' });
+                setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' });
                 setView('quotations');
               }}
-              style={{
-                marginTop: '25px',
-                padding: '12px 24px',
-                background: 'var(--primary-cyan)',
-                border: 'none',
-                borderRadius: '10px',
-                color: '#000',
-                fontWeight: '800',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: '1px'
-              }}
+              className="primary-btn"
+              style={{ padding: '15px 30px', textTransform: 'uppercase', letterSpacing: '1px' }}
             >
-              Regresar a Cotizaciones
+              VOLVER A VENTAS
             </button>
           </div>
         </div>
@@ -4974,7 +5228,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 <div style={{ marginBottom: '10px' }}>
                   <span style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, display: 'block', marginBottom: '2px', letterSpacing: '1px' }}>SERVICIOS EXTRAS</span>
                   {(() => {
-                    const dynamicExtras = getDynamicExtras(Number(evt.eventDetails?.guestCount) || 10, evt.makeupCount);
+                    const dynamicExtras = getDynamicExtras(evt);
                     const selExtras = evt.logistics?.selectedExtras || {};
                     const active = Object.keys(selExtras).filter(k => selExtras[k]);
                     if (active.length === 0) return <span style={{ fontSize: '0.65rem', color: '#555', fontWeight: '700' }}>Ninguno</span>;
@@ -6579,34 +6833,41 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
   const renderBottomNav = () => (
     <nav className="bottom-nav" style={{
-      background: 'rgba(10, 10, 10, 0.98)',
+      background: 'rgba(5, 5, 5, 0.98)',
       backdropFilter: 'blur(30px)',
       borderTop: '1px solid rgba(255,255,255,0.08)',
-      padding: '10px 15px 20px 15px',
-      height: '80px'
+      padding: '0 10px 20px 10px',
+      height: '80px',
+      display: 'flex',
+      justifyContent: 'space-around',
+      alignItems: 'center'
     }}>
 
-
-      <button className={`nav-item ${view === 'quotations' ? 'active' : ''}`} onClick={() => setView('quotations')}>
-        <IconPDF size={18} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Cotizaciones</span>
+      <button className={`nav-item ${view === 'quotations' ? 'active' : ''}`} onClick={() => setView('quotations')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'quotations' ? 'var(--primary-cyan)' : '#666' }}>
+        <IconPDF size={20} />
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Ventas</span>
       </button>
 
-      <button className={`nav-item ${view === 'events' || view === 'detail' ? 'active' : ''}`} onClick={() => setView('events')}>
-        <IconCalendar size={18} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Eventos</span>
+      <button className={`nav-item ${view === 'events' || view === 'detail' ? 'active' : ''}`} onClick={() => setView('events')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: (view === 'events' || view === 'detail') ? 'var(--primary-cyan)' : '#666' }}>
+        <IconCalendar size={20} />
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Eventos</span>
+      </button>
+
+      <button className={`nav-item ${view === 'logistics' ? 'active' : ''}`} onClick={() => setView('logistics')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'logistics' ? 'var(--primary-cyan)' : '#666' }}>
+        <IconFlow size={20} />
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Logística</span>
       </button>
 
       {userRole === 'admin' && (
-        <button className={`nav-item ${view === 'accounting' ? 'active' : ''}`} onClick={() => setView('accounting')}>
-          <IconRecaudo size={18} />
-          <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Balance</span>
+        <button className={`nav-item ${view === 'accounting' ? 'active' : ''}`} onClick={() => setView('accounting')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'accounting' ? 'var(--primary-cyan)' : '#666' }}>
+          <IconRecaudo size={20} />
+          <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Caja</span>
         </button>
       )}
 
-      <button className={`nav-item ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')}>
-        <IconUser size={18} />
-        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '6px' }}>Perfil</span>
+      <button className={`nav-item ${view === 'profile' ? 'active' : ''}`} onClick={() => setView('profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: view === 'profile' ? 'var(--primary-cyan)' : '#666' }}>
+        <IconUser size={20} />
+        <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Yo</span>
       </button>
 
     </nav>
@@ -6711,6 +6972,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
     return (
       <div className="app-shell" style={{ minHeight: '100vh', background: '#050505', color: '#fff' }}>
+        <div className="noise-overlay"></div>
         {lastFatalError && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', zIndex: 99999, background: '#ff3860', color: '#fff', padding: '10px', fontSize: '0.6rem', fontWeight: 'bold', textAlign: 'center' }}>
             DEBUG MOBILE: {lastFatalError} <button onClick={() => setLastFatalError(null)} style={{ marginLeft: '10px', background: '#fff', color: '#ff3860', border: 'none', borderRadius: '4px', padding: '2px 5px' }}>OK</button>
@@ -6729,6 +6991,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           {view === 'accounting' && renderAccounting()}
           {view === 'config' && renderConfig()}
           {view === 'profile' && renderProfile()}
+          {view === 'logistics' && <LogisticsCalendarView events={events} onBack={() => setView('events')} />}
+          {view === 'catalog' && <CatalogManagerView onBack={() => setView('logistics')} />}
           {view === 'quotations' && (() => {
             try {
               return (

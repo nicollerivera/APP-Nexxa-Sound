@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { months, parseFirestoreDate, formatPeso } from '../utils/helpers';
+import { months, parseFirestoreDate, formatPeso } from '../utils/helpers.js';
 
 // --- ICONS (COPIED FOR VISUAL FIDELITY) ---
 const IconPlus = ({ size = 14 }) => (
@@ -167,7 +167,14 @@ const QuotationsView = ({
                         );
                     } catch (err) {
                         console.error("Error rendering quotation:", quo?.id, err);
-                        return null;
+                        return (
+                            <div key={quo?.id || Math.random()} style={{ padding: '15px', borderRadius: '15px', background: 'rgba(255, 56, 96, 0.05)', border: '1px solid rgba(255, 56, 96, 0.2)', marginBottom: '10px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ff3860', fontSize: '0.7rem', fontWeight: '900' }}>
+                                    <IconAlertTriangle size={14} /> ERROR DE DATOS
+                                </div>
+                                <p style={{ margin: '5px 0 0 0', fontSize: '0.6rem', opacity: 0.6 }}>ID: {quo?.id || 'Desconocido'}. La información de esta cotización está incompleta.</p>
+                            </div>
+                        );
                     }
                 })}
             </div>

@@ -43,20 +43,31 @@ const CreateEventView = ({
         transition: 'all 0.3s ease'
     });
 
-    // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE (REACTIVADO)
-    // Si ya existe horario DJ pero Foto/Decor están vacíos, sincronizarlos.
+    // Dynamic detection of required schedules based on package features
+    const needsPhoto = (pName) => {
+        if (!pName) return false;
+        const low = pName.toLowerCase();
+        return low.includes('onix') || low.includes('multii') || low.includes('kaizen') || low.includes('silver') || low.includes('elite') || low.includes('diamond');
+    };
+    const needsDecor = (pName) => {
+        if (!pName) return false;
+        const low = pName.toLowerCase();
+        return low.includes('multii') || low.includes('kaizen') || low.includes('elite') || low.includes('diamond');
+    };
+
+    // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE
     useEffect(() => {
         if (!newEvent || !newEvent.startTime || !newEvent.endTime) return;
 
         try {
-            const needsPhoto = (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration');
-            const needsDecor = (newEvent.packName === 'Celebration');
+            const hasPhoto = needsPhoto(newEvent.packName);
+            const hasDecor = needsDecor(newEvent.packName);
 
             let updates = {};
             let hasChanges = false;
 
             // Sync Foto
-            if (needsPhoto) {
+            if (hasPhoto) {
                 const photoStartEmpty = !newEvent.photoStartTime || newEvent.photoStartTime === '00:00';
                 const photoEndEmpty = !newEvent.photoEndTime || newEvent.photoEndTime === '00:00';
 
@@ -71,7 +82,7 @@ const CreateEventView = ({
             }
 
             // Sync Decor
-            if (needsDecor) {
+            if (hasDecor) {
                 const decorStartEmpty = !newEvent.decorStartTime || newEvent.decorStartTime === '00:00';
                 const decorEndEmpty = !newEvent.decorEndTime || newEvent.decorEndTime === '00:00';
 
@@ -150,8 +161,9 @@ const CreateEventView = ({
             if (rawPack) {
                 const pName = rawPack.toLowerCase();
                 if (pName.includes('essential')) newData.packName = 'Essential';
-                else if (pName.includes('memories')) newData.packName = 'Memories';
-                else if (pName.includes('celebration')) newData.packName = 'Celebration';
+                else if (pName.includes('onix') || pName.includes('silver')) newData.packName = 'Onix';
+                else if (pName.includes('multii') || pName.includes('elite')) newData.packName = 'Multii';
+                else if (pName.includes('kaizen') || pName.includes('diamond')) newData.packName = 'Kaizen';
                 else newData.packName = 'Personalizado';
             }
 
@@ -335,11 +347,16 @@ const CreateEventView = ({
                 }
 
                 let calculatedTotal = basePrice + totalExtrasValue;
-                currentExtrasList.forEach(ex => {
+                const allPossibleExtras = [
+                    ...(catalog?.extras || []).filter(e => !['acc_essential', 'acc_memories', 'acc_celebration', 'makeup'].includes(e.id)),
+                    ...currentExtrasList
+                ];
+                allPossibleExtras.forEach(ex => {
                     if (selExtras[ex.id]) calculatedTotal += ex.price;
                 });
 
-                updated.totalValue = calculatedTotal;
+                // Round to nearest 5000 (Sync with Web Stitch)
+                updated.totalValue = Math.round(calculatedTotal / 5000) * 5000;
 
                 if (pDuration > 0 && hasPhoto) {
                     updated.extraHourPrice = djExtraPrice;
@@ -352,12 +369,12 @@ const CreateEventView = ({
             if (!updated.totalValue && !newEvent.id) {
                 let sum = 0;
                 currentExtrasList.forEach(ex => { if (selExtras[ex.id]) sum += ex.price; });
-                updated.totalValue = sum;
+                updated.totalValue = Math.round(sum / 5000) * 5000;
             }
         }
 
         if (updated.totalValue > 0) {
-            updated.deposit = updated.totalValue * appConfig.depositPercentage;
+            updated.deposit = Math.round((updated.totalValue * appConfig.depositPercentage) / 5000) * 5000;
         }
 
         setNewEvent(updated);
@@ -382,9 +399,17 @@ const CreateEventView = ({
     }, [newEvent.packName, newEvent.id, setNewEvent, catalog, appConfig]);
 
     try {
-        const currentConf = catalog?.packages.find(p => p.name === newEvent.packName) || {};
+        const getNormPack = (name) => {
+          const n = String(name || '').toUpperCase();
+          if (n.includes('ESSENTIAL')) return 'Essential';
+          if (n.includes('ONIX') || n.includes('SILVER')) return 'Onix';
+          if (n.includes('MULTII') || n.includes('ELITE')) return 'Multii';
+          if (n.includes('KAIZEN') || n.includes('DIAMOND')) return 'Kaizen';
+          return 'Essential'; 
+        };
+        const currentConf = (catalog?.packages || []).find(p => p.name === getNormPack(newEvent.packName)) || { price: 0 };
         const duration = newEvent.startTime && newEvent.endTime ? getHours(newEvent.startTime, newEvent.endTime) : 0;
-        const extrasKy = Math.max(0, Math.ceil(duration - appConfig.baseHours));
+        const extrasKy = Math.max(0, Math.ceil(duration - (appConfig?.baseHours || 4)));
         const isEventMode = newEvent.id?.startsWith('EVT');
 
         return (
@@ -422,7 +447,7 @@ const CreateEventView = ({
                         <button
                             onClick={() => {
                                 if (window.confirm('¿Descartar cambios y limpiar formulario?')) {
-                                    const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: appConfig.defaultExtraHourPrice, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
+                                    const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'SONIDO ESSENTIAL ($450k)', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: appConfig.defaultExtraHourPrice, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
                                     setNewEvent(emptyState);
                                     localStorage.removeItem('nexxa_draft_event');
                                 }
@@ -563,18 +588,18 @@ const CreateEventView = ({
                                 )}
 
                                 {duration > 0 && (
-                                    <div style={{ marginBottom: '10px', padding: '4px 8px', background: duration < appConfig.baseHours ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: duration < appConfig.baseHours ? '#ff4d4d' : '#00d4ff', border: duration < appConfig.baseHours ? '1px solid #ff4d4d' : 'none' }}>
+                                    <div style={{ marginBottom: '10px', padding: '4px 8px', background: duration < (appConfig?.baseHours || 4) ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: duration < (appConfig?.baseHours || 4) ? '#ff4d4d' : '#00d4ff', border: duration < (appConfig?.baseHours || 4) ? '1px solid #ff4d4d' : 'none' }}>
                                         ⏳ <strong>{(Number(duration) || 0).toFixed(1)}h</strong> (DJ/Sonido)
-                                        {duration < appConfig.baseHours && <span> ⚠️ Mínimo {appConfig.baseHours} Horas requeridas</span>}
+                                        {duration < (appConfig?.baseHours || 4) && <span> ⚠️ Mínimo {(appConfig?.baseHours || 4)} Horas requeridas</span>}
                                         {extrasKy > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extrasKy}h extra)</span>}
                                     </div>
                                 )}
 
                                 <div style={{ marginTop: '15px' }}>
-                                    {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
+                                    {needsPhoto(newEvent.packName) && (
                                         <h4 style={{ fontSize: '0.8rem', color: 'var(--primary-cyan)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>1.1 Asignación Operativa</h4>
                                     )}
-                                    {(newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') && (
+                                    {needsPhoto(newEvent.packName) && (
                                         <div style={{ padding: '15px', background: 'rgba(255, 150, 0, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 150, 0, 0.2)', marginBottom: '10px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#facc15' }}>
                                                 <IconCalendar size={14} />
@@ -585,15 +610,9 @@ const CreateEventView = ({
                                                 <TimeInput label="Inicio Foto" value={newEvent.photoStartTime} onChange={(val) => updateEvent('photoStartTime', val)} />
                                                 <TimeInput label="Fin Foto" value={newEvent.photoEndTime} onChange={(val) => updateEvent('photoEndTime', val)} />
                                             </div>
-                                            {newEvent.photoDuration > 0 && (
-                                                <div style={{ marginTop: '10px', padding: '5px 10px', background: newEvent.photoDuration < appConfig.baseHours ? 'rgba(255,0,0,0.1)' : 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: newEvent.photoDuration < appConfig.baseHours ? '#ff4d4d' : '#facc15' }}>
-                                                    📸 <strong>{newEvent.photoDuration}h</strong> Fotografía
-                                                    {newEvent.photoDuration < appConfig.baseHours && <span> ⚠️ Mínimo {appConfig.baseHours}h</span>}
-                                                </div>
-                                            )}
                                         </div>
                                     )}
-                                    {(newEvent.packName === 'Celebration') && (
+                                    {needsDecor(newEvent.packName) && (
                                         <div style={{ padding: '15px', background: 'rgba(188, 111, 241, 0.05)', borderRadius: '15px', border: '1px solid rgba(188, 111, 241, 0.2)', marginBottom: '10px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-purple)' }}>
                                                 <IconFlow size={14} />
@@ -649,7 +668,10 @@ const CreateEventView = ({
                         {sectionState.s2 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '4px' }}>Adicionales Disponibles:</label>
-                                {getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).map(extra => {
+                                {[
+                                    ...(catalog?.extras || []).filter(e => !['acc_essential', 'acc_memories', 'acc_celebration', 'makeup'].includes(e.id)),
+                                    ...getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount)
+                                ].map(extra => {
                                     const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]);
                                     return (
                                         <div
@@ -664,7 +686,7 @@ const CreateEventView = ({
                                         >
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                 <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra?.name || 'Extra'}</span>
-                                                <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>
+                                                <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details || extra.desc}</span>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                 <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
@@ -780,7 +802,7 @@ const CreateEventView = ({
                                 {newEvent.packName !== 'Personalizado' ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white' }}>
-                                            <span>Paquete {newEvent.packName} ({appConfig.baseHours}h Base):</span>
+                                            <span>Paquete {newEvent.packName} ({(appConfig?.baseHours || 4)}h Base):</span>
                                             <strong>${(Number(currentConf.price) || 0).toLocaleString()}</strong>
                                         </div>
                                         {extrasKy > 0 && (
@@ -908,6 +930,9 @@ const CreateEventView = ({
         return (
             <div style={{ padding: '60px 20px', textAlign: 'center', color: '#fff' }}>
                 <h2 style={{ color: '#ff3860', fontSize: '1.5rem', marginBottom: '10px' }}>⚠️ Error de Datos</h2>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '12px', marginBottom: '25px', textAlign: 'left' }}>
+                    <code style={{ fontSize: '0.7rem', color: '#ff8a8a', whiteSpace: 'pre-wrap' }}>{error.message}</code>
+                </div>
                 <p style={{ opacity: 0.7, marginBottom: '30px' }}>Esta cotización contiene información dañada o incompleta que impide su visualización.</p>
                 <button
                     onClick={() => setView('quotations')}

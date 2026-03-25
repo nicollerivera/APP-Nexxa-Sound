@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react'; // Fix
+import React, { useState, useEffect } from 'react'; // Fix
 import RolesView from './components/RolesView';
 
 import QuotationsView from './components/QuotationsView';
@@ -96,6 +96,8 @@ function App() {
     ],
     neonArtist: 120000,
     minEventDuration: 4, // horas
+    baseHours: 4,
+    defaultExtraHourPrice: 85000,
     maxDiscount: 10, // %
 
     // 2. INVENTARIO
@@ -340,7 +342,7 @@ function App() {
         return hasValidClient;
       });
 
-      // Orden cronolÃ³gico: Los eventos mÃ¡s cercanos a suceder aparecen primero
+      // Orden cronológico: Los eventos más cercanos a suceder aparecen primero
       setEvents(validEvents.sort((a, b) => {
         if (!a || !b) return 0;
         const dateA = a.eventDetails?.date || '';
@@ -352,45 +354,50 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // 1.5 SYNC QUOTATIONS
   React.useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "quotations"), (snapshot) => {
-      // PROTECCIÓN RADICAL: Validar que snapshot.docs sea un array
-      if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) {
-        console.error("âš ï¸ onSnapshot quotations: snapshot.docs no es un array");
-        return;
-      }
+      if (!snapshot || !snapshot.docs || !Array.isArray(snapshot.docs)) return;
 
-      const liveQuo = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-
-      // AUDITORÃA: Detectar cotizaciones sin client.name
-      liveQuo.forEach(quo => {
-        if (!quo.client || (!quo.client.name && !quo.clientName)) {
-          console.error("ðŸ”´ COTIZACIÓN SIN NOMBRE DETECTADA:", {
-            id: quo.id,
-            client: quo.client,
-            clientName: quo.clientName
-          });
-        }
+      const liveQuo = snapshot.docs.map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          status: d.status || 'SENT',
+          client: {
+            name: d.client?.name || d.clientName || 'Cliente sin nombre',
+            phone: d.client?.phone || d.clientPhone || '',
+            phone2: d.client?.phone2 || d.clientPhone2 || ''
+          },
+          eventDetails: {
+            date: d.eventDetails?.date || d.date || '',
+            startTime: d.eventDetails?.startTime || d.startTime || '20:00',
+            endTime: d.eventDetails?.endTime || d.endTime || '00:00',
+            location: d.eventDetails?.location || d.location || '',
+            neighborhood: d.eventDetails?.neighborhood || d.neighborhood || '',
+            guestCount: Number(d.eventDetails?.guestCount || d.guestCount || 0),
+            occasion: d.eventDetails?.occasion || d.occasion || 'Evento'
+          },
+          logistics: {
+            packName: d.logistics?.packName || d.packName || 'Essential',
+            selectedExtras: d.logistics?.selectedExtras || d.selectedExtras || {},
+            makeupCount: Number(d.logistics?.makeupCount || d.makeupCount || 1)
+          },
+          financials: {
+            totalValue: Number(d.financials?.totalValue || d.totalValue || 0),
+            deposit: Number(d.financials?.deposit || d.deposit || 0),
+            extraHourPrice: Number(d.financials?.extraHourPrice || d.extraHourPrice || 85000)
+          },
+          createdAt: d.createdAt || null
+        };
       });
 
-      // FILTRO DE SEGURIDAD: Eliminar cotizaciones sin nombre
-      const validQuotations = liveQuo.filter(quo => {
-        return quo && (quo.client?.name || quo.clientName);
-      });
-
-      setQuotations(validQuotations.sort((a, b) => {
+      setQuotations(liveQuo.sort((a, b) => {
         if (!a || !b) return 0;
-        // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
         if (a.status === 'SENT' && b.status !== 'SENT') return -1;
         if (a.status !== 'SENT' && b.status === 'SENT') return 1;
-
-        // 2. ORDEN CRONOLÓGICO: MÃ¡s reciente primero
         const dateA = parseFirestoreDate(a.createdAt);
         const dateB = parseFirestoreDate(b.createdAt);
-        if (dateA && dateB && dateA.getTime && dateB.getTime && dateA.getTime() !== dateB.getTime()) return dateB - dateA;
-
-        // 3. FALLBACK: ID
+        if (dateA && dateB && dateA.getTime && dateB.getTime() !== dateA.getTime()) return dateB - dateA;
         return (b.id || '').localeCompare(a.id || '');
       }));
     });
@@ -525,24 +532,57 @@ function App() {
       if (data) {
         setCatalog(data);
         setIsConfigLoaded(true);
+        // FORCE SYNC: Check for specific branding to ensure we are on the latest version
+        const isUpToDate = data.packages && data.packages.some(p => p.name.includes('SONIDO ESSENTIAL'));
+        if (!isUpToDate) {
+          console.log("ACTUALIZANDO CATÁLOGO NEXXA...");
+          const forceCatalog = {
+            packages: [
+              { id: 'Essential', name: 'SONIDO ESSENTIAL ($450k)', price: 450000, extraDJ: 85000, extraPhoto: 0, features: ["2 Cabinas de Sonido", "DJ Crossover", "4 Luces LED", "Cámara de Humo", "Micrófono Animation"], highlight: false },
+              { id: 'Onix', name: 'ONIX / SILVER ($1.220.000)', price: 1220000, extraDJ: 85000, extraPhoto: 50000, features: ["Sonido Pro", "DJ Crossover", "Foto Pro", "Cámara 360", "Accesorios 111"], highlight: true },
+              { id: 'Multii', name: 'MULTII / ELITE ($1.440.000)', price: 1440000, extraDJ: 85000, extraPhoto: 50000, features: ["Pack Onix", "Decoración Onix", "Accesorios 444"], highlight: false },
+              { id: 'Kaizen', name: 'KAIZEN / DIAMOND ($1.940.000)', price: 1940000, extraDJ: 85000, extraPhoto: 50000, features: ["Sonido Pro", "DJ Crossover", "Foto", "360", "Decoración Kaizen", "Maquillaje", "Accesorios 777"], highlight: false },
+              { id: 'Personalizado', name: 'PERSONALIZADO', price: 0, extraDJ: 85000, extraPhoto: 0, features: ["Configuración Manual"], highlight: false }
+            ],
+            extras: [
+              { id: 'acc_essential', name: 'H.L. Essential', desc: 'Espuma + Manillas + Pitos (Precio Dinámico)', price: 0, isAddon: true },
+              { id: 'acc_memories', name: 'H.L. Memories', desc: 'Doble Espuma + Collares + Pitos (Precio Dinámico)', price: 0, isAddon: true },
+              { id: 'acc_celebration', name: 'H.L. Celebration', desc: 'Triple Espuma + Cañones + Todo (Precio Dinámico)', price: 0, isAddon: true },
+              { id: 'camara_360', name: 'Cámara 360° Master', desc: 'Plataforma XL (2 hrs base)', price: 550000, isAddon: true },
+              { id: 'camara_360_aerea', name: '360° Aérea Pro', desc: 'Sin plataforma, tomas cenitales', price: 650000, isAddon: true },
+              { id: 'foto_pro', name: 'Fotografía Pro', desc: '4 hrs + Entrega MicroSD', price: 200000, isAddon: true },
+              { id: 'maquillaje_neon', name: 'Maquillaje Neón', desc: '2 hrs de sesión artística', price: 120000, isAddon: true },
+              { id: 'decor_onix', name: 'Decoración Onix', desc: 'Arco de globos + Cortinas', price: 200000, isAddon: true },
+              { id: 'decor_multii', name: 'Decoración Multii', desc: 'Arco Circular + Neón LED', price: 340000, isAddon: true },
+              { id: 'decor_kaizen', name: 'Decoración Kaizen', desc: 'Respaldo + Cilindros + Full', price: 550000, isAddon: true }
+            ]
+          };
+          configService.updateCatalog(forceCatalog);
+        }
       } else {
-        // First time seeding if not found
-        console.log("Seeding catalog for the first time...");
+        // Initial seeding
         const initialCatalog = {
-          packages: [
-            { id: 'Essential', name: 'ESSENTIAL', price: 450000, extraDJ: 85000, extraPhoto: 0, features: ["2 Cabinas de Sonido", "DJ Crossover", "4 Luces LED", "Cámara de Humo", "Micrófono Animation"], highlight: false },
-            { id: 'Memories', name: 'MEMORIES', price: 650000, extraDJ: 85000, extraPhoto: 50000, features: ["2 Cabinas de Sonido", "DJ Crossover", "4 Luces LED", "Cámara de Humo", "Micrófono", "<strong>Fotografía</strong>"], highlight: true },
-            { id: 'Celebration', name: 'CELEBRATION', price: 850000, extraDJ: 85000, extraPhoto: 50000, features: ["2 Cabinas de Sonido", "DJ Crossover", "4 Luces LED", "Cámara de Humo", "Micrófono", "<strong>Fotografía</strong>", "<strong>Decoración</strong>"], highlight: false },
-            { id: 'Personalizado', name: 'PERSONALIZADO', price: 0, extraDJ: 85000, extraPhoto: 0, features: ["Configuración Manual"], highlight: false }
-          ],
-          extras: [
-            { id: 'makeup', name: 'Maquillaje Neón', desc: 'Pinturas y maquillador x 2 hrs.', price: 120000, isMakeup: true },
-            { id: 'acc_essential', name: 'Accesorios Essential', desc: '1 Espuma, 50 Manillas, 25 Pitos.', price: 38000, isAddon: true },
-            { id: 'acc_memories', name: 'Accesorios Memories', desc: '2 Espumas, 50 Manillas, 50 Pitos, 50 Collares.', price: 76000, isAddon: true },
-            { id: 'acc_celebration', name: 'Accesorios Celebration', desc: '3 Espumas, 25 Manillas, 50 Pitos, 50 Collares, 50 Antifaces, 3 cañones.', price: 114000, isAddon: true }
-          ]
-        };
-        configService.updateCatalog(initialCatalog);
+            packages: [
+              { id: 'Essential', name: 'SONIDO ESSENTIAL ($450k)', price: 450000, extraDJ: 85000, extraPhoto: 0, features: ["2 Cabinas de Sonido", "DJ Crossover", "4 Luces LED", "Cámara de Humo", "Micrófono Animation"], highlight: false },
+              { id: 'Onix', name: 'ONIX / SILVER ($1.220.000)', price: 1220000, extraDJ: 85000, extraPhoto: 50000, features: ["Sonido Pro", "DJ Crossover", "Foto Pro", "Cámara 360", "Accesorios 111"], highlight: true },
+              { id: 'Multii', name: 'MULTII / ELITE ($1.440.000)', price: 1440000, extraDJ: 85000, extraPhoto: 50000, features: ["Pack Onix", "Decoración Onix", "Accesorios 444"], highlight: false },
+              { id: 'Kaizen', name: 'KAIZEN / DIAMOND ($1.940.000)', price: 1940000, extraDJ: 85000, extraPhoto: 50000, features: ["Sonido Pro", "DJ Crossover", "Foto", "360", "Decoración Kaizen", "Maquillaje", "Accesorios 777"], highlight: false },
+              { id: 'Personalizado', name: 'PERSONALIZADO', price: 0, extraDJ: 85000, extraPhoto: 0, features: ["Configuración Manual"], highlight: false }
+            ],
+            extras: [
+              { id: 'acc_essential', name: 'H.L. Essential', desc: 'Espuma + Manillas + Pitos (Precio Dinámico)', price: 0, isAddon: true },
+              { id: 'acc_memories', name: 'H.L. Memories', desc: 'Doble Espuma + Collares + Pitos (Precio Dinámico)', price: 0, isAddon: true },
+              { id: 'acc_celebration', name: 'H.L. Celebration', desc: 'Triple Espuma + Cañones + Todo (Precio Dinámico)', price: 0, isAddon: true },
+              { id: 'camara_360', name: 'Cámara 360° Master', desc: 'Plataforma XL (2 hrs base)', price: 550000, isAddon: true },
+              { id: 'camara_360_aerea', name: '360° Aérea Pro', desc: 'Sin plataforma, tomas cenitales', price: 650000, isAddon: true },
+              { id: 'foto_pro', name: 'Fotografía Pro', desc: '4 hrs + Entrega MicroSD', price: 200000, isAddon: true },
+              { id: 'maquillaje_neon', name: 'Maquillaje Neón', desc: '2 hrs de sesión artística', price: 120000, isAddon: true },
+              { id: 'decor_onix', name: 'Decoración Onix', desc: 'Arco de globos + Cortinas', price: 200000, isAddon: true },
+              { id: 'decor_multii', name: 'Decoración Multii', desc: 'Arco Circular + Neón LED', price: 340000, isAddon: true },
+              { id: 'decor_kaizen', name: 'Decoración Kaizen', desc: 'Respaldo + Cilindros + Full', price: 550000, isAddon: true }
+            ]
+          };
+          configService.updateCatalog(initialCatalog);
       }
     });
 
@@ -900,7 +940,8 @@ function App() {
 
     // INITIAL ITEMS (Same logic as handleCreateEvent)
     let defaultItems = [];
-    if (newEvent.packName === 'Essential') {
+    const pName = (newEvent.packName || '').toLowerCase();
+    if (pName.includes('essential')) {
       defaultItems = [
         { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
         { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
@@ -908,20 +949,22 @@ function App() {
         { name: 'Máquina Humo + Control + Líquido', qty: 1, status: 'PENDING', area: 'DJ' },
         { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
       ];
-    } else if (newEvent.packName === 'Memories') {
+    } else if (pName.includes('onix') || pName.includes('silver')) {
       defaultItems = [
         { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
         { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
         { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
-        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Cámara 360 + Estructura', qty: 1, status: 'PENDING', area: '360' },
         { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
       ];
-    } else if (newEvent.packName === 'Celebration') {
+    } else if (pName.includes('multii') || pName.includes('kaizen')) {
       defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 4, status: 'PENDING', area: 'DJ' },
-        { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
+        { name: 'Sistema de Sonido Premium NEXXA', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Cabinas Line Array (4)', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Bajos 18" Doble (2)', qty: 1, status: 'PENDING', area: 'DJ' },
+        { name: 'Kit Decoración Premium', qty: 1, status: 'PENDING', area: 'DECOR' },
+        { name: 'Cámara 360 Overhead', qty: 1, status: 'PENDING', area: '360' },
+        { name: 'Kit Energía XL', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
       ];
     }
 
@@ -4522,10 +4565,9 @@ function App() {
                         location: (quo.eventDetails?.location || '').toString(),
                         neighborhood: (quo.eventDetails?.neighborhood || '').toString(),
                         packName: (() => {
-                          const p = (quo.logistics?.packName || quo.packName || '').toString().toLowerCase();
-                          if (p.includes('memories')) return 'Memories';
-                          if (p.includes('celebration')) return 'Celebration';
-                          return 'Essential';
+                          const p = (quo.logistics?.packName || quo.packName || '').toString();
+                          // Stop converting to old names, use the real name from database
+                          return p || 'SONIDO ESSENTIAL';
                         })(),
                         totalValue: Number(quo.financials?.totalValue || quo.totalValue) || 0,
                         deposit: (() => {

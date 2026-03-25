@@ -119,31 +119,13 @@ export const getTomorrowStr = () => {
 };
 export const getDynamicExtras = (guests, userMakeupCount) => {
   const g = Math.max(10, Number(guests) || 10);
-
-  // Costos Unitarios (Sync with Client App)
-  const C_FOAM = 13000;
-  const C_CANNON = 5000;
-  const C_BLOWOUT = 200;
-  const C_BRACELET = 400;
-  const C_NECKLACE = 400;
-  const C_MASK = 400;
+  const accMultiplier = Math.ceil(g / 10);
 
   // 1. Maquillaje (1 por cada 50 invitados O manual)
   const recommendedMakeup = Math.ceil(g / 50);
   const qty = (typeof userMakeupCount === 'number') ? userMakeupCount : recommendedMakeup;
-  const makeupPrice = qty * 120000;
-
-  // 2. Accesorios Essential
-  const rawEssential = C_FOAM + (g * (C_BLOWOUT + C_BRACELET));
-  const priceEssential = rawEssential;
-
-  // 3. Accesorios Memories
-  const rawMemories = (2 * C_FOAM) + (g * C_NECKLACE) + (g * (C_BLOWOUT + C_BRACELET));
-  const priceMemories = rawMemories;
-
-  // 4. Accesorios Celebration
-  const rawCelebration = (3 * C_FOAM) + (3 * C_CANNON) + (g * (C_BLOWOUT + C_BRACELET + C_NECKLACE + C_MASK));
-  const priceCelebration = rawCelebration;
+  // Stitch pricing: 150k per artist (based on STITCH_DATA in app)
+  const makeupPrice = 150000; 
 
   return [
     {
@@ -157,24 +139,24 @@ export const getDynamicExtras = (guests, userMakeupCount) => {
     },
     {
       id: 'acc_essential',
-      name: 'Accesorios Essential',
-      price: priceEssential,
+      name: 'Accesorios 111 (Base)',
+      price: 111000 * accMultiplier,
       area: 'Decor',
-      details: `1 Espuma + (${g} Pitos, ${g} Manillas)`
+      details: `111 Items | ${g} pax coverage`
     },
     {
       id: 'acc_memories',
-      name: 'Accesorios Memories',
-      price: priceMemories,
+      name: 'Accesorios 444 (Pro)',
+      price: 444000 * accMultiplier,
       area: 'Decor',
-      details: `2 Espumas + (${g} Collares, ${g} Pitos, ${g} Manillas)`
+      details: `444 Items | ${g} pax coverage`
     },
     {
       id: 'acc_celebration',
-      name: 'Accesorios Celebration',
-      price: priceCelebration,
+      name: 'Accesorios 777 (Premium)',
+      price: 777000 * accMultiplier,
       area: 'Decor',
-      details: `3 Espumas, 3 Cañones + (${g} de: Pitos, Manillas, Collares, Antifaces)`
+      details: `777 Items | ${g} pax coverage`
     }
   ];
 };

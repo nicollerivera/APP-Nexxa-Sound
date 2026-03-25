@@ -3,6 +3,22 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import React from 'react';
+console.log('Nexxa Staff: Iniciando carga del sistema...');
+
+// Capturador de errores globales para depuración (Pantalla Blanca)
+window.addEventListener('error', (e) => {
+  console.error("DEBUG FATAL ERROR:", e.message, e.filename, e.lineno);
+  // Mostrar error minimalista si la pantalla se queda blanca
+  const root = document.getElementById('root');
+  if (root && root.innerHTML === "") {
+    root.innerHTML = `<div style="padding:20px; color:#ff385c; font-family:sans-serif; background:#000; height:100vh;">
+      <h2>Error detectado en carga</h2>
+      <p>${e.message}</p>
+      <button onclick="localStorage.clear(); location.reload();">Borrar Cache y Recargar</button>
+    </div>`;
+  }
+});
+
 
 class ErrorBoundary extends React.Component {
   constructor(props) {

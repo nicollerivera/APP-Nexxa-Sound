@@ -1,11 +1,12 @@
-// --- HELPERS ---
 export const formatPeso = (amount) => {
+  const value = Number(amount);
+  if (isNaN(value)) return '$ 0';
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(amount);
+  }).format(value);
 };
 
 
@@ -23,12 +24,17 @@ export const parseInputNumber = (val) => {
 export const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
 export const getHours = (start, end) => {
-  if (!start || !end) return 0;
-  const [h1, m1] = start.split(':').map(Number);
-  const [h2, m2] = end.split(':').map(Number);
-  let diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-  if (diffMinutes < 0) diffMinutes += 24 * 60;
-  return diffMinutes / 60;
+  if (!start || !end || typeof start !== 'string' || typeof end !== 'string' || !start.includes(':') || !end.includes(':')) return 0;
+  try {
+    const [h1, m1] = start.split(':').map(Number);
+    const [h2, m2] = end.split(':').map(Number);
+    if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return 0;
+    let diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (diffMinutes < 0) diffMinutes += 24 * 60;
+    return diffMinutes / 60;
+  } catch (e) {
+    return 0;
+  }
 };
 
 export const parseLocalStrDate = (dateStr) => {
