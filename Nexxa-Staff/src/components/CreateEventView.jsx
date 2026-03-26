@@ -231,6 +231,11 @@ const CreateEventView = ({
             const currentExtras = { ...updated.selectedExtras };
             currentExtras[value] = !currentExtras[value];
             updated.selectedExtras = currentExtras;
+        } else if (field === 'changeExtraQty') {
+            const { id, q } = value;
+            const currentQtys = { ...(updated.extraQtys || {}) };
+            currentQtys[id] = Math.max(1, q);
+            updated.extraQtys = currentQtys;
         } else if (field === 'changeMakeupCount') {
             updated.makeupCount = value;
         } else if (field === 'guestCount') {
@@ -493,9 +498,9 @@ const CreateEventView = ({
                         </div>
                         {sectionState.s1 && (
                             <>
-                                <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5 }}>PLAN SELECCIONADO</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '15px' }}>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>1. Selecciona el Plan</label>
                                         <select
                                             value={newEvent.packName}
                                             onChange={(e) => {
@@ -504,6 +509,7 @@ const CreateEventView = ({
                                                 const basePrice = pkg?.price || 0;
                                                 const extraPrice = pkg?.extraHourPrice || pkg?.extraDJ || (appConfig?.defaultExtraHourPrice || 85000);
                                                 setNewEvent({ ...newEvent, packName: val, totalValue: basePrice, extraHourPrice: extraPrice });
+                                                if (!newEvent.guestCount) setTimeout(() => document.getElementById('guest-input')?.focus(), 100);
                                             }}
                                             style={{ width: '100%', padding: '15px', borderRadius: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontWeight: '900', fontSize: '1.2rem', appearance: 'none' }}
                                         >
@@ -512,80 +518,61 @@ const CreateEventView = ({
                                             ))}
                                         </select>
                                     </div>
-                                    <select
-                                        style={{
-                                            flex: 1,
-                                            color: 'white',
-                                            background: '#222',
-                                            ...getAlertStyle(newEvent.leadSource)
-                                        }}
-                                        value={newEvent.leadSource || ''}
-                                        onChange={e => updateEvent('leadSource', e.target.value)}
-                                    >
-                                        <option value="" style={{ color: '#ff4444', fontWeight: 'bold' }}>⚠️ ¿Cómo nos conoció?</option>
-                                        <option value="Facebook" style={{ color: '#000' }}>📘 Facebook</option>
-                                        <option value="Instagram" style={{ color: '#000' }}>📸 Instagram</option>
-                                        <option value="Google" style={{ color: '#000' }}>🔍 Google</option>
-                                        <option value="Recomendación" style={{ color: '#000' }}>👥 Recomendación</option>
-                                        <option value="WhatsApp" style={{ color: '#000' }}>💬 WhatsApp</option>
-                                        <option value="TikTok" style={{ color: '#000' }}>🎵 TikTok</option>
-                                        <option value="Otro" style={{ color: '#000' }}>🌐 Otro</option>
-                                    </select>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                                    
                                     <div>
-                                        <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Fecha</label>
+                                        <label style={{ fontSize: '0.65rem', color: 'var(--primary-cyan)', fontWeight: 'bold', display: 'block' }}>👥 Invitados (Fundamental)</label>
+                                        <input
+                                            id="guest-input"
+                                            type="tel"
+                                            inputMode="numeric"
+                                            placeholder="Ej: 50"
+                                            value={newEvent.guestCount || ''}
+                                            onChange={e => updateEvent('guestCount', e.target.value)}
+                                            style={{ width: '100%', borderColor: !newEvent.guestCount ? '#ff4d4d' : 'rgba(255,255,255,0.1)', animation: !newEvent.guestCount ? 'pulse 2s infinite' : 'none', ...getAlertStyle(newEvent.guestCount) }}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label style={{ fontSize: '0.7rem', color: '#666', display: 'block' }}>¿Cómo nos conoció?</label>
+                                        <select
+                                            style={{ width: '100%', ...getAlertStyle(newEvent.leadSource) }}
+                                            value={newEvent.leadSource || ''}
+                                            onChange={e => updateEvent('leadSource', e.target.value)}
+                                        >
+                                            <option value="">Selecciona...</option>
+                                            <option value="Facebook">📘 Facebook</option>
+                                            <option value="Instagram">📸 Instagram</option>
+                                            <option value="Google">🔍 Google</option>
+                                            <option value="Recomendación">👥 Recomendación</option>
+                                            <option value="WhatsApp">💬 WhatsApp</option>
+                                            <option value="TikTok">🎵 TikTok</option>
+                                            <option value="Otro">🌐 Otro</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ fontSize: '0.7rem', color: '#666', display: 'block' }}>Fecha del Evento</label>
                                         <input
                                             required
                                             type="date"
                                             value={newEvent.date}
                                             onChange={e => updateEvent('date', e.target.value)}
                                             style={{ width: '100%', ...getAlertStyle(newEvent.date) }}
-                                            min={new Date().toISOString().split('T')[0]}
                                         />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Ocasión</label>
+                                        <label style={{ fontSize: '0.7rem', color: '#666', display: 'block' }}>Ocasión</label>
                                         <input
-                                            placeholder="Ej: Cumpleaños"
+                                            placeholder="Boda, 15s..."
                                             value={newEvent.occasion}
                                             onChange={e => updateEvent('occasion', e.target.value)}
                                             style={{ width: '100%', ...getAlertStyle(newEvent.occasion) }}
                                         />
                                     </div>
-                                </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
-                                    <div>
-                                        <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Invitados</label>
-                                        <input
-                                            type="tel"
-                                            inputMode="numeric"
-                                            placeholder="#"
-                                            value={newEvent.guestCount || ''}
-                                            onChange={e => updateEvent('guestCount', e.target.value)}
-                                            style={{ width: '100%', ...getAlertStyle(newEvent.guestCount) }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Valor Hora Extra ($)</label>
-                                        <input type="tel" inputMode="numeric" value={formatInputNumber(newEvent.extraHourPrice)} onChange={e => updateEvent('extraHourPrice', parseInputNumber(e.target.value))} style={{ width: '100%', color: '#facc15', fontWeight: 'bold' }} />
-                                    </div>
+                                    <TimeInput label="🕛 Inicio DJ" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
+                                    <TimeInput label="🕛 Fin DJ" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
                                 </div>
-
-                                {isEventMode ? (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
-                                        <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
-                                        <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
-                                        <TimeInput label="Bodega" value={newEvent.warehouseTime} onChange={(val) => updateEvent('warehouseTime', val)} />
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                                        <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
-                                        <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
-                                    </div>
-                                )}
 
                                 {duration > 0 && (
                                     <div style={{ marginBottom: '10px', padding: '4px 8px', background: duration < (appConfig?.baseHours || 4) ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: duration < (appConfig?.baseHours || 4) ? '#ff4d4d' : '#00d4ff', border: duration < (appConfig?.baseHours || 4) ? '1px solid #ff4d4d' : 'none' }}>
@@ -666,44 +653,66 @@ const CreateEventView = ({
                         </div>
 
                         {sectionState.s2 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '4px' }}>Adicionales Disponibles:</label>
-                                {[
-                                    ...(catalog?.extras || []).filter(e => !['acc_essential', 'acc_memories', 'acc_celebration', 'makeup'].includes(e.id)),
-                                    ...getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount)
-                                ].map(extra => {
-                                    const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]);
-                                    return (
-                                        <div
-                                            key={extra.id}
-                                            onClick={() => updateEvent('toggleExtra', extra.id)}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px',
-                                                background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
-                                                border: '1px solid', borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
-                                                borderRadius: '8px', cursor: 'pointer'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra?.name || 'Extra'}</span>
-                                                <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details || extra.desc}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
-                                                    + ${extra.price.toLocaleString()}
-                                                </span>
-                                                {extra.isMakeup && isActive && (
-                                                    <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
-                                                        <small onClick={() => updateEvent('changeMakeupCount', Math.max(1, (extra.qty || 1) - 1))} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
-                                                        <span style={{ fontSize: '0.8rem' }}>{extra.qty}</span>
-                                                        <small onClick={() => updateEvent('changeMakeupCount', (extra.qty || 1) + 1)} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                {Object.entries(
+                                    getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount, newEvent).reduce((acc, ex) => {
+                                        acc[ex.category] = acc[ex.category] || [];
+                                        acc[ex.category].push(ex);
+                                        return acc;
+                                    }, {})
+                                ).map(([category, catExtras]) => (
+                                    <div key={category}>
+                                        <label style={{ fontSize: '0.65rem', color: 'var(--primary-cyan)', fontWeight: '900', textTransform: 'uppercase', marginBottom: '8px', display: 'block', opacity: 0.7 }}>{category}</label>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            {catExtras.map(extra => {
+                                                const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]);
+                                                const isAcc = extra.id.startsWith('acc_') && !extra.isItem;
+                                                const qty = isAcc ? Math.ceil(Number(newEvent.guestCount || 10) / 10) : extra.qty;
+                                                return (
+                                                    <div key={extra.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <div
+                                                            onClick={() => updateEvent('toggleExtra', extra.id)}
+                                                            style={{
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 10px',
+                                                                background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
+                                                                border: '1px solid', borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
+                                                                borderRadius: '12px', cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>
+                                                                    {extra?.name || 'Extra'} {isActive && isAcc && <span style={{ color: 'var(--primary-cyan)', marginLeft: '8px', background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: '4px' }}>x{qty}</span>}
+                                                                </span>
+                                                                <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details || extra.desc}</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
+                                                                    + ${(extra.displayPrice || extra.price).toLocaleString()}
+                                                                </span>
+                                                                {isActive && (extra.isMakeup || extra.isItem) && (
+                                                                    <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
+                                                                        <small onClick={() => updateEvent(extra.isMakeup ? 'changeMakeupCount' : 'changeExtraQty', extra.isMakeup ? Math.max(1, (extra.qty || 1) - 1) : { id: extra.id, q: (extra.qty || 1) - 1 })} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
+                                                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{extra.qty}</span>
+                                                                        <small onClick={() => updateEvent(extra.isMakeup ? 'changeMakeupCount' : 'changeExtraQty', extra.isMakeup ? (extra.qty || 1) + 1 : { id: extra.id, q: (extra.qty || 1) + 1 })} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
+                                                                    </div>
+                                                                )}
+                                                                <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
+                                                            </div>
+                                                        </div>
+                                                        {isActive && (extra.id === 'extra_cam360' || extra.id === 'extra_photo') && (
+                                                            <input 
+                                                                type="text" 
+                                                                placeholder="Franja Horaria Téc. (Ej: 8-10pm)"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                style={{ background: '#111', border: '1px solid #333', borderRadius: '8px', padding: '6px 12px', fontSize: '0.75rem', color: '#fff', marginTop: '2px' }}
+                                                            />
+                                                        )}
                                                     </div>
-                                                )}
-                                                <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
-                                            </div>
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>

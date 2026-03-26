@@ -11,15 +11,16 @@
   --success-green: #00ffa3;
   --danger-red: #ff385c;
 
-  --brand-gradient: linear-gradient(135deg, #00f2ff 0%, #bc6ff1 50%, #ff007a 100%);
+  --brand-gradient: linear-gradient(135deg, #bc6ff1 0%, #00f2ff 100%);
+  --purple-relief: 0 0 15px rgba(188, 111, 241, 0.4);
   --glass-bg: rgba(255, 255, 255, 0.02);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-highlight: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(188, 111, 241, 0.2);
+  --glass-highlight: rgba(188, 111, 241, 0.08);
 
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.5);
   --glow-cyan: 0 0 20px rgba(0, 242, 255, 0.3);
-  --glow-purple: 0 0 25px rgba(188, 111, 241, 0.3);
+  --glow-purple: 0 0 25px rgba(188, 111, 241, 0.35);
 
   --font-family: 'Inter', 'Outfit', system-ui, -apple-system, sans-serif;
   --font-display: 'Outfit', sans-serif;
@@ -96,6 +97,16 @@ button:active {
 
 .custom-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--primary-cyan);
+}
+
+@keyframes pulse {
+  0% { border-color: rgba(255, 56, 92, 0.2); box-shadow: 0 0 0 0 rgba(255, 56, 92, 0.4); }
+  70% { border-color: rgba(255, 56, 92, 1); box-shadow: 0 0 0 10px rgba(255, 56, 92, 0); }
+  100% { border-color: rgba(255, 56, 92, 0.2); box-shadow: 0 0 0 0 rgba(255, 56, 92, 0); }
+}
+
+.pulse-required {
+  animation: pulse 2s infinite;
 }
 
 /* Aurora Blobs in Background */
@@ -597,7 +608,7 @@ body::after {
 .create-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 .form-section {
@@ -617,7 +628,7 @@ body::after {
 }
 
 .form-section h3 {
-  margin: 0 0 15px 0;
+  margin: 0 0 10px 0;
   font-size: 0.9rem;
   font-weight: 900;
   text-transform: uppercase;

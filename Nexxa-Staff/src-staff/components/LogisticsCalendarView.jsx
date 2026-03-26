@@ -204,10 +204,14 @@ const LogisticsCalendarView = ({ events = [], onBack }) => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.6 }}>
-                    <IconLocation size={14} />
-                    <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>{evt.eventDetails.neighborhood || 'Ubicación'}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
+                    <IconLocation size={14} color="var(--primary-cyan)" />
+                    <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+                      {evt.eventDetails.neighborhood && evt.eventDetails.location 
+                        ? `${evt.eventDetails.neighborhood} — ${evt.eventDetails.location}`
+                        : (evt.eventDetails.neighborhood || evt.eventDetails.location || 'Ubicación por definir')}
+                    </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.6 }}>
                     <IconUser size={14} />

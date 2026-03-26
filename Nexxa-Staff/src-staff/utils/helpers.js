@@ -44,7 +44,7 @@ export const parseLocalStrDate = (dateStr) => {
 };
 
 export const parseFirestoreDate = (date) => {
-  if (!date) return new Date(); // Treat missing date as 'now' for sorting
+  if (!date) return new Date(0); // Treat missing date as epoch (bottom) for sorting
   if (date.toDate) return date.toDate();
   if (typeof date === 'string' && date.includes('-')) return parseLocalStrDate(date);
   return new Date(date);

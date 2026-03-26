@@ -18,21 +18,21 @@ import * as pdfService from './services/pdfService';
 import { db, auth } from './firebase';
 
 // Auxiliares dinámicos para el catálogo de Stitch
-const needsPhoto = (name, selectedExtras = {}) => {
-    const p = (name || '').toUpperCase();
-    return p.includes('ONIX') || p.includes('SILVER') || p.includes('MULTII') || p.includes('ELITE') || p.includes('KAIZEN') || p.includes('DIAMOND') || selectedExtras?.extra_photo;
+const needsPhoto = (pName, selectedExtras = {}) => {
+  const p = (pName || '').toUpperCase();
+  return p.includes('ONIX') || p.includes('MULTII') || p.includes('KAIZEN') || p.includes('MEMORIES') || p.includes('CELEBRATION') || selectedExtras?.extra_photo;
 };
-const needsDecor = (name, selectedExtras = {}) => {
-    const p = (name || '').toUpperCase();
-    return p.includes('MULTII') || p.includes('ELITE') || p.includes('KAIZEN') || p.includes('DIAMOND') || selectedExtras?.extra_decor;
+const needsDecor = (pName, selectedExtras = {}) => {
+  const p = (pName || '').toUpperCase();
+  return p.includes('CELEBRATION') || p.includes('ONIX') || p.includes('MULTII') || p.includes('KAIZEN') || selectedExtras?.extra_decor_onix || selectedExtras?.extra_decor_multii || selectedExtras?.extra_decor_kaizen;
 };
-const needsCam360 = (name, selectedExtras = {}) => {
-    const p = (name || '').toUpperCase();
-    return p.includes('ONIX') || p.includes('SILVER') || p.includes('MULTII') || p.includes('ELITE') || p.includes('KAIZEN') || p.includes('DIAMOND') || selectedExtras?.extra_cam360;
+const needsCam360 = (pName, selectedExtras = {}) => {
+  const p = (pName || '').toUpperCase();
+  return p.includes('ONIX') || p.includes('MULTII') || p.includes('KAIZEN') || selectedExtras?.extra_cam360;
 };
-const needsAV = (name, selectedExtras = {}) => {
-    const p = (name || '').toUpperCase();
-    return p.includes('KAIZEN') || p.includes('DIAMOND') || selectedExtras?.extra_av;
+const needsAV = (pName, selectedExtras = {}) => {
+  const p = (pName || '').toUpperCase();
+  return p.includes('ONIX') || p.includes('KAIZEN') || selectedExtras?.extra_av;
 };
 import {
   collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, addDoc,
@@ -46,14 +46,12 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebas
 
 // --- TIME INTERVAL GENERATOR ---
 const generateTimeOptions = () => {
-  const times = [];
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 15) {
-      times.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-    }
-  }
-  return times;
-};
+   const times = [];
+   for (let h = 0; h < 24; h++) {
+     times.push(`${String(h).padStart(2, '0')}:00`);
+   }
+   return times;
+ };
 
 const getDisplayTimeUI = (val) => {
   if (!val) return { h: '08', m: '00', period: 'PM', full: '08:00 PM' };
@@ -85,21 +83,21 @@ const TimeInput = ({ value, onChange, label }) => {
     <div className="time-input-premium" style={{
       position: 'relative',
       background: 'rgba(255, 255, 255, 0.02)',
-      borderRadius: '28px',
-      padding: '25px 15px',
+      borderRadius: '16px',
+      padding: '10px 8px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       border: '1px solid rgba(255, 255, 255, 0.08)',
-      minHeight: '150px',
+      minHeight: '85px',
       cursor: 'pointer',
       overflow: 'hidden',
-      boxShadow: isAM ? '0 15px 45px rgba(0, 242, 255, 0.1)' : '0 15px 45px rgba(188, 111, 241, 0.1)',
+      boxShadow: isAM ? '0 8px 25px rgba(0, 242, 255, 0.08)' : '0 8px 25px rgba(188, 111, 241, 0.08)',
       transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      margin: '10px 0'
+      margin: '4px 0'
     }}>
       {/* DYNAMIC AM/PM BLOB BACKGROUND */}
       <div style={{
@@ -119,12 +117,12 @@ const TimeInput = ({ value, onChange, label }) => {
       <span style={{
         position: 'relative',
         zIndex: 2,
-        fontSize: '0.6rem',
+        fontSize: '0.45rem',
         color: 'rgba(255,255,255,0.4)',
         textTransform: 'uppercase',
         fontWeight: '900',
-        letterSpacing: '2.5px',
-        marginBottom: '12px'
+        letterSpacing: '1.5px',
+        marginBottom: '6px'
       }}>
         {label}
       </span>
@@ -135,36 +133,36 @@ const TimeInput = ({ value, onChange, label }) => {
         zIndex: 2,
         display: 'flex',
         alignItems: 'baseline',
-        gap: '6px',
+        gap: '4px',
         color: '#fff'
       }}>
         <div style={{ textAlign: 'center' }}>
           <span style={{
-            fontSize: '4.2rem',
+            fontSize: '2.2rem',
             fontWeight: '100',
             lineHeight: '1',
             fontFamily: 'system-ui',
-            letterSpacing: '-2px'
+            letterSpacing: '-1px'
           }}>
             {display.h}
           </span>
         </div>
 
         <span style={{
-          fontSize: '2.5rem',
+          fontSize: '1.2rem',
           fontWeight: '100',
           color: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
           opacity: 0.5,
-          marginBottom: '8px'
+          marginBottom: '4px'
         }}>:</span>
 
         <div style={{ textAlign: 'center' }}>
           <span style={{
-            fontSize: '4.2rem',
+            fontSize: '2.2rem',
             fontWeight: '100',
             lineHeight: '1',
             fontFamily: 'system-ui',
-            letterSpacing: '-2px'
+            letterSpacing: '-1px'
           }}>
             {display.m}
           </span>
@@ -175,15 +173,15 @@ const TimeInput = ({ value, onChange, label }) => {
       <div style={{
         position: 'relative',
         zIndex: 2,
-        marginTop: '15px',
-        fontSize: '0.75rem',
+        marginTop: '8px',
+        fontSize: '0.55rem',
         fontWeight: '900',
         color: '#fff',
         background: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
-        padding: '5px 16px',
+        padding: '3px 10px',
         borderRadius: '50px',
         textTransform: 'uppercase',
-        letterSpacing: '1.5px',
+        letterSpacing: '1px',
         boxShadow: isAM ? '0 5px 15px rgba(0, 242, 255, 0.4)' : '0 5px 15px rgba(188, 111, 241, 0.4)',
         transition: 'all 0.3s ease'
       }}>
@@ -228,15 +226,15 @@ const TimeInput = ({ value, onChange, label }) => {
 };
 
 // --- MINI TIME INPUT (FOR EXTRAS) ---
-const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label }) => {
+const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, labelColor = '#8b9bb4' }) => {
   return (
     <div style={{ marginTop: '12px', marginLeft: '2px' }}>
       <span style={{ 
-        fontSize: '0.65rem', color: '#8b9bb4', fontWeight: '900', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px', display: 'inline-block', fontFamily: 'monospace'
+        fontSize: '0.65rem', color: labelColor, fontWeight: '950', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px', display: 'inline-block', fontFamily: 'monospace'
       }}>{label}</span>
       <div style={{
         position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10, 10, 15, 0.7)',
-        border: '1px solid rgba(255,255,255,0.03)', borderRadius: '50px', padding: '14px 28px', gap: '24px', width: 'fit-content', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)'
+        border: '1px solid rgba(188, 111, 241, 0.2)', borderRadius: '50px', padding: '14px 28px', gap: '24px', width: 'fit-content', boxShadow: '0 0 20px rgba(188, 111, 241, 0.15), inset 0 2px 10px rgba(0,0,0,0.5)'
       }}>
         <div style={{ position: 'relative', cursor: 'pointer' }}>
           <span style={{ color: '#fff', fontWeight: '900', fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
@@ -285,14 +283,14 @@ function App() {
         const pPhone = params.get('phone') || '';
         const pDate = params.get('date') || '';
         const pStart = params.get('start') || '';
-        const pEnd = params.get('end') || '';
-        const pLoc = params.get('loc') || '';
+        const pEnd = params.get('end') || '';        const pLoc = params.get('loc') || params.get('address') || params.get('direccion') || '';
+        const pBarrio = params.get('barrio') || params.get('neighborhood') || '';
         const pPack = params.get('pack') || '';
         const pExtras = params.get('extras') || '';
 
         // Map Pack ID to Name
         let finalPack = 'Personalizado';
-        if (pPack.toUpperCase().includes('ESSENTIAL')) finalPack = 'SONIDO ESSENTIAL';
+        if (pPack.toUpperCase().includes('ESSENTIAL')) finalPack = 'ONIX';
         if (pPack.toUpperCase().includes('ONIX') || pPack.toUpperCase().includes('SILVER')) finalPack = 'ONIX';
         if (pPack.toUpperCase().includes('MULTII') || pPack.toUpperCase().includes('ELITE')) finalPack = 'MULTII';
         if (pPack.toUpperCase().includes('KAIZEN') || pPack.toUpperCase().includes('DIAMOND')) finalPack = 'KAIZEN';
@@ -309,7 +307,7 @@ function App() {
           });
         }
 
-        const pGuest = params.get('pax') || params.get('guests') || '10';
+        const pGuest = params.get('pax') || params.get('guests') || params.get('invitados') || '10';
 
         const preFilledEvent = {
           clientName: pClient,
@@ -318,6 +316,7 @@ function App() {
           startTime: pStart,
           endTime: pEnd,
           location: pLoc,
+          neighborhood: pBarrio,
           packName: finalPack,
           managerName: '',
           guestCount: pGuest,
@@ -366,17 +365,30 @@ function App() {
         return;
       }
 
-      const liveEvents = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      const liveEvents = snapshot.docs.map(doc => {
+        const d = doc.data();
+        if (!d) return null;
+        
+        // NORMALIZACIÓN DE UBICACIÓN Y BARRIO (Nacional -> Staff)
+        const normLocation = d.eventDetails?.location || d.eventDetails?.direccion || d.eventDetails?.address || d.location || d.direccion || d.address || '';
+        const normNeighborhood = d.eventDetails?.neighborhood || d.eventDetails?.barrio || d.neighborhood || d.barrio || '';
+        
+        const normalizedDetails = {
+          ...(d.eventDetails || {}),
+          location: normLocation,
+          neighborhood: normNeighborhood
+        };
 
-      // AUDITORÍA: Detectar eventos sin client.name
+        return { ...d, eventDetails: normalizedDetails, id: doc.id };
+      }).filter(e => e !== null);
+
+      // AUDITORÍA: Detectar eventos sin client.name o location
       liveEvents.forEach(evt => {
         if (!evt.client || (!evt.client.name && !evt.clientName)) {
-          console.error("🔴 EVENTO SIN NOMBRE DETECTADO:", {
-            id: evt.id,
-            client: evt.client,
-            clientName: evt.clientName,
-            fullData: evt
-          });
+          console.error("🔴 EVENTO SIN NOMBRE DETECTADO:", evt.id);
+        }
+        if (!evt.eventDetails?.location && !evt.location) {
+          console.warn("🟠 EVENTO SIN UBICACIÓN:", evt.id);
         }
       });
 
@@ -409,53 +421,94 @@ function App() {
       const liveQuo = snapshot.docs.map(doc => {
         const d = doc.data();
         if (!d) return null;
+
+        // NORMALIZACIÓN DE UBICACIÓN (Defensiva)
+        const normLoc = d.eventDetails?.location || d.eventDetails?.direccion || d.eventDetails?.address || d.direccion || d.address || d.location || '';
+        const normHood = d.eventDetails?.neighborhood || d.eventDetails?.barrio || d.barrio || d.neighborhood || '';
+
+        // NORMALIZACIÓN DE EXTRAS (Landing -> Staff)
+        const rawExtras = d.logistics?.selectedExtras || d.selectedExtras || d.servicios || {};
+        const cleanExtras = {};
+        Object.keys(rawExtras).forEach(k => {
+          const val = rawExtras[k];
+          if (val) {
+            // Normalización extrema: quitar acentos y pasar a minúsculas
+            const searchStr = (typeof val === 'string' ? (k + ' ' + val) : k)
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "");
+
+            if (searchStr.includes('photo') || searchStr.includes('foto')) cleanExtras['extra_photo'] = true;
+            else if (searchStr.includes('360') || searchStr.includes('video') || searchStr.includes('cam')) cleanExtras['extra_cam360'] = true;
+            else if (searchStr.includes('makeup') || searchStr.includes('maquillaje') || searchStr.includes('neon')) cleanExtras['extra_makeup'] = true;
+            else if (searchStr.includes('av') || searchStr.includes('audiovisual') || searchStr.includes('sonido')) cleanExtras['extra_av'] = true;
+            else if (searchStr.includes('111') || (searchStr.includes('essential') && searchStr.includes('kit'))) cleanExtras['acc_essential'] = true;
+            else if (searchStr.includes('444') || (searchStr.includes('memories') && searchStr.includes('kit'))) cleanExtras['acc_memories'] = true;
+            else if (searchStr.includes('777') || (searchStr.includes('celebration') && searchStr.includes('kit'))) cleanExtras['acc_celebration'] = true;
+            else if (searchStr.includes('onix') && (searchStr.includes('decor') || searchStr.includes('montaje'))) cleanExtras['extra_decor_onix'] = true;
+            else if (searchStr.includes('multii') && (searchStr.includes('decor') || searchStr.includes('montaje'))) cleanExtras['extra_decor_multii'] = true;
+            else if (searchStr.includes('kaizen') && (searchStr.includes('decor') || searchStr.includes('montaje'))) cleanExtras['extra_decor_kaizen'] = true;
+            else cleanExtras[k] = true;
+          }
+        });
+
+        const pName = (d.logistics?.packName || d.paquete || d.packName || '').toUpperCase();
+
         return {
           id: doc.id,
           status: d.status || 'SENT',
-          createdAt: d.createdAt || null,
+          createdAt: d.createdAt || d.timestamp || d.created_at || d.date || null,
           client: {
             name: (d.client?.name || d.clientName || 'Sin Nombre').trim(),
-            phone: d.client?.phone || '',
-            phone2: d.client?.phone2 || ''
+            phone: d.client?.phone || d.clientPhone || '',
+            phone2: d.client?.phone2 || d.clientPhone2 || ''
           },
           eventDetails: {
-            date: d.eventDetails?.date || '',
+            date: d.eventDetails?.date || d.arrivalDate || d.date || '',
             occasion: d.eventDetails?.occasion || '',
-            startTime: d.eventDetails?.startTime || '',
-            endTime: d.eventDetails?.endTime || '',
-            location: d.eventDetails?.location || '',
-            neighborhood: d.eventDetails?.neighborhood || '',
-            guestCount: Number(d.eventDetails?.guestCount) || 10,
-            photoStartTime: d.eventDetails?.photoStartTime || '',
-            photoEndTime: d.eventDetails?.photoEndTime || '',
-            cam360StartTime: d.eventDetails?.cam360StartTime || '',
-            cam360EndTime: d.eventDetails?.cam360EndTime || '',
-            avStartTime: d.eventDetails?.avStartTime || '',
-            avEndTime: d.eventDetails?.avEndTime || ''
+            startTime: d.eventDetails?.startTime || d.startTime || '',
+            endTime: d.eventDetails?.endTime || d.endTime || '',
+            location: normLoc,
+            neighborhood: normHood,
+            guestCount: Number(d.eventDetails?.guestCount || d.eventDetails?.invitados || d.invitados) || 10,
+            photoStartTime: d.eventDetails?.photoStartTime || d.eventDetails?.photoStart || '',
+            photoEndTime: d.eventDetails?.photoEndTime || d.eventDetails?.photoEnd || '',
+            cam360StartTime: d.eventDetails?.cam360StartTime || d.eventDetails?.camStart || d.eventDetails?.videoStartTime || '',
+            cam360EndTime: d.eventDetails?.cam360EndTime || d.eventDetails?.camEnd || d.eventDetails?.videoEndTime || '',
+            avStartTime: d.eventDetails?.avStartTime || d.eventDetails?.avStart || '',
+            avEndTime: d.eventDetails?.avEndTime || d.eventDetails?.avEnd || ''
           },
           financials: {
-            totalValue: Number(d.financials?.totalValue || d.totalValue) || 0,
-            deposit: Number(d.financials?.deposit || d.deposit) || 0,
+            totalValue: Number(d.financials?.totalValue || d.totalValue || 0),
+            deposit: Number(d.financials?.deposit || d.deposit || 0),
             extraHourPrice: Number(d.financials?.extraHourPrice) || 85000
           },
           logistics: {
-            packName: d.logistics?.packName || d.packName || 'Essential',
-            selectedExtras: d.logistics?.selectedExtras || d.selectedExtras || {},
-            makeupCount: Number(d.logistics?.makeupCount) || 1
+            packName: pName.includes('ESSENTIAL') ? 'ONIX' : (pName || 'PERSONALIZADO'),
+            selectedExtras: cleanExtras,
+            makeupCount: Number(d.logistics?.makeupCount || d.makeupCount) || 1
           }
         };
       }).filter(q => q && (q.client.name !== 'Sin Nombre' || q.id));
 
       setQuotations(liveQuo.sort((a, b) => {
         if (!a || !b) return 0;
-        // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
-        if (a.status === 'SENT' && b.status !== 'SENT') return -1;
-        if (a.status !== 'SENT' && b.status === 'SENT') return 1;
 
-        // 2. ORDEN CRONOLÓGICO: Más reciente primero
-        const dateA = parseFirestoreDate(a.createdAt);
-        const dateB = parseFirestoreDate(b.createdAt);
-        if (dateA && dateB && dateA.getTime && dateB.getTime && dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+        // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
+        const statusOrder = { 'SENT': 0, 'APPROVED': 1, 'LOST': 2 };
+        const orderA = statusOrder[a.status] ?? 3;
+        const orderB = statusOrder[b.status] ?? 3;
+        
+        if (orderA !== orderB) return orderA - orderB;
+
+        // 2. ORDEN CRONOLÓGICO: Más reciente primero dentro de su sección
+        const dateA = a.createdAt ? parseFirestoreDate(a.createdAt) : new Date(0);
+        const dateB = b.createdAt ? parseFirestoreDate(b.createdAt) : new Date(0);
+        
+        const timeA = dateA.getTime ? dateA.getTime() : 0;
+        const timeB = dateB.getTime ? dateB.getTime() : 0;
+
+        if (timeA !== timeB) return timeB - timeA;
 
         // 3. FALLBACK: ID
         return (b.id || '').localeCompare(a.id || '');
@@ -541,8 +594,9 @@ function App() {
   const [filterExecution, setFilterExecution] = useState('ALL'); // ALL, PENDING_STAFF, PENDING_WH, PENDING_CLOSURE
   const [staffPayModal, setStaffPayModal] = useState(null);
   const [whatsappModalQuo, setWhatsappModalQuo] = useState(null); // { quo, type }
-  const [sectionState, setSectionState] = useState({ s1: true, s2: false, s3: false });
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [sectionState, setSectionState] = useState({ s1: true, s2: true, s3: false });
+  const [catSectionState, setCatSectionState] = useState({});
+  const toggleCatSection = (key) => setCatSectionState(prev => ({ ...prev, [key]: !prev[key] }));
   const toggleSection = (key) => setSectionState(prev => ({ ...prev, [key]: !prev[key] }));
   const [isEditingAds, setIsEditingAds] = useState(false);
   const [localAdsBuffer, setLocalAdsBuffer] = useState({});
@@ -553,6 +607,7 @@ function App() {
   const [paymentModal, setPaymentModal] = useState(null); // { evt, type: 'DEPOSIT' | 'FINAL' }
   const [paymentSplit, setPaymentSplit] = useState({ Nequi: 0, Daviplata: 0, Efectivo: 0 });
   const [historySearch, setHistorySearch] = useState('');
+  const [agendaDate, setAgendaDate] = useState(new Date().toISOString().split('T')[0]);
 
   // --- AUTH STATE ---
   const [loginUser, setLoginUser] = useState('');
@@ -902,7 +957,14 @@ function App() {
     const draft = localStorage.getItem('nexxa_draft_event');
     if (draft) {
       try {
-        return JSON.parse(draft);
+        const d = JSON.parse(draft);
+        // Ensure no automatic selection for new drafts
+        if (!d.id) {
+          if ((d.packName || '').toUpperCase().includes('ESSENTIAL')) d.packName = '';
+          if (d.packName === 'ONIX' && !d.clientName && !d.date) d.packName = '';
+        }
+        if (d.packName === 'null' || !d.packName || d.packName.toUpperCase().includes('ESSENTIAL')) d.packName = '';
+        return d;
       } catch (e) {
         console.error("Error parsing draft", e);
       }
@@ -910,10 +972,11 @@ function App() {
     return {
       clientName: '', clientPhone: '', clientPhone2: '',
       date: '', startTime: '', endTime: '',
+      djStartTime: '', djEndTime: '',
       location: '', neighborhood: '',
-      packName: 'Essential',
+      packName: '',
       totalValue: '', deposit: '',
-      leadSource: '', guestCount: '',
+      leadSource: '', guestCount: '50',
       occasion: '',
       extraHourPrice: 85000,
       indications: 'Ninguna',
@@ -921,8 +984,14 @@ function App() {
       materialExplanation: '',
       photoStartTime: '',
       photoEndTime: '',
+      avStartTime: '',
+      avEndTime: '',
       decorStartTime: '',
       decorEndTime: '',
+      memoriesStartTime: '',
+      memoriesEndTime: '',
+      celebrationStartTime: '',
+      celebrationEndTime: '',
       paymentMethod: 'Nequi'
     };
   });
@@ -954,22 +1023,9 @@ function App() {
     }
 
     // Mandatory Roles based on Package
-    if (newEvent.packName === 'Memories' || newEvent.packName === 'Celebration') {
+    if (newEvent.packName === 'Multii' || newEvent.packName === 'Kaizen') {
       if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
         return alert(`⚠️ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÍA.`);
-      }
-      const photoDur = getHours(newEvent.photoStartTime, newEvent.photoEndTime);
-      if (photoDur <= 0) {
-        return alert('⚠️ EL HORARIO DE FOTOGRAFÍA NO PUEDE SER DE 0 HORAS.');
-      }
-    }
-    if (newEvent.packName === 'Celebration') {
-      if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
-        return alert('⚠️ EL PAQUETE CELEBRATION REQUIERE HORARIO DE DECORACIÓN.');
-      }
-      const decorDur = getHours(newEvent.decorStartTime, newEvent.decorEndTime);
-      if (decorDur <= 0) {
-        return alert('⚠️ EL HORARIO DE DECORACIÓN NO PUEDE SER DE 0 HORAS.');
       }
     }
 
@@ -981,30 +1037,21 @@ function App() {
     const finalQuoId = `QUO-${dateCode}-${String(dailyCount).padStart(2, '0')}`;
 
     // INITIAL ITEMS (Same logic as handleCreateEvent)
-    let defaultItems = [];
-    if (newEvent.packName === 'Essential') {
-      defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Luces LED + Soporte Trípode', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Máquina Humo + Control + Líquido', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
-      ];
-    } else if (newEvent.packName === 'Memories') {
-      defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
-        { name: 'PC Portátil + Cargador + Cable Audio 2 a 1', qty: 1, status: 'PENDING', area: 'DJ' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
-      ];
-    } else if (newEvent.packName === 'Celebration') {
-      defaultItems = [
-        { name: 'Cabinas Activas 15" + Trípodes', qty: 4, status: 'PENDING', area: 'DJ' },
-        { name: 'Bajos 18" Activos', qty: 2, status: 'PENDING', area: 'DJ' },
-        { name: 'Cámara Pro + Lente + Flash', qty: 1, status: 'PENDING', area: 'PHOTO' },
-        { name: 'Kit Energía (3 Poder, 2 Mult, 2 Ext, 2 Adapt)', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
-      ];
+    const p = (newEvent.packName || '').toUpperCase();
+    const proto = STITCH_DATA.protocols[p];
+    let defaultItems = (proto?.items || []).map(name => ({
+        name,
+        qty: 1,
+        status: 'PENDING',
+        area: 'LOGÍSTICA'
+    }));
+
+    if (defaultItems.length === 0) {
+        // Fallback for Personalizado
+        defaultItems = [
+            { name: 'SISTEMA AUDIO NEXXA PRO', qty: 1, status: 'PENDING', area: 'DJ' },
+            { name: 'KIT ENERGIA COMPLETO', qty: 1, status: 'PENDING', area: 'LOGÍSTICA' }
+        ];
     }
 
     const eventObj = {
@@ -1022,6 +1069,8 @@ function App() {
         neighborhood: newEvent.neighborhood || '',
         startTime: newEvent.startTime,
         endTime: newEvent.endTime,
+        djStartTime: newEvent.djStartTime || newEvent.startTime,
+        djEndTime: newEvent.djEndTime || newEvent.endTime,
         guestCount: newEvent.guestCount,
         photoStartTime: newEvent.photoStartTime || '',
         photoEndTime: newEvent.photoEndTime || '',
@@ -1052,7 +1101,7 @@ function App() {
 
       alert('✅ Cotización Guardada y Enviada.');
       setView('quotations');
-      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', color: '#00f2ff' });
+      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Onix', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', color: '#00f2ff' });
       localStorage.removeItem('nexxa_draft_event');
     } catch (err) {
       console.error(err);
@@ -1218,9 +1267,8 @@ function App() {
   // --- EDIT & STATUS HANDLERS ---
   // --- TARIFAS EXACTAS APP NEXXA ---
   const PRICING = {
-    'Essential': { base: 1050000, extraDJ: 85000, extraPhoto: 50000 },
-    'Onix': { base: 1420000, extraDJ: 85000, extraPhoto: 50000 },
-    'Multii': { base: 1700000, extraDJ: 85000, extraPhoto: 50000 },
+    'Onix': { base: 1220000, extraDJ: 85000, extraPhoto: 50000 },
+    'Multii': { base: 1440000, extraDJ: 85000, extraPhoto: 50000 },
     'Kaizen': { base: 1940000, extraDJ: 85000, extraPhoto: 50000 },
     'Personalizado': { base: 0, extraDJ: 0, extraPhoto: 0 }
   };
@@ -1230,36 +1278,44 @@ function App() {
   // ==========================================
   const STITCH_DATA = {
     protocols: {
-      'ESSENTIAL': { price: 1050000, roles: ['dj'] },
-      'ONIX':      { price: 1420000, roles: ['dj', 'foto'] },
-      'MULTII':    { price: 1700000, roles: ['dj', 'foto', 'cam360'] },
-      'KAIZEN':    { price: 1940000, roles: ['dj', 'foto', 'cam360', 'makeup'] }
+      'ONIX':      { price: 1250000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_onix', 'extra_av'] },
+      'MULTII':    { price: 1440000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii'] },
+      'KAIZEN':    { price: 1940000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup'] },
+      'CELEBRATION': { price: 850000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Pro', 'Decoración'], includedExtras: ['extra_photo', 'extra_decor_onix'] },
+      'MEMORIES':    { price: 650000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Pro'], includedExtras: ['extra_photo'] }
     },
     extras: {
-      audiovisuales: 1050000,
-      photo: 230000,
-      cam360: 250000,
-      makeup: 150000,
-      decor_onix: 140000,
-      decor_multii: 170000,
-      decor_kaizen: 250000,
-      acc_essential: 111000,
-      acc_memories: 444000,
-      acc_celebration: 777000
+      photo: 200000,   // Base for 4h
+      cam360: 550000,  // Base for 2h
+      makeup: 120000,
+      av: 450000,
+      decor_onix: 200000,
+      decor_multii: 340000,
+      decor_kaizen: 550000,
+      // INDIVIDUAL ITEMS (Single Source of Truth)
+      acc_espuma: 13000,
+      acc_canon: 5000,
+      acc_manilla: 400,
+      acc_antifaz: 300,
+      acc_collar: 400,
+      acc_pito: 200
     },
     hourlyRates: {
       dj: 85000,
       photo: 50000,
-      cam360: 125000
+      cam360: 200000,
+      av: 85000
     }
   };
 
   const PRICING_DYNAMIC = new Proxy({}, {
     get: (target, name) => {
-      if (!name) return { base: 0, roles: [] };
-      const n = name.toUpperCase();
-      const match = Object.entries(STITCH_DATA.protocols).find(([id]) => n.includes(id));
-      return match ? { base: match[1].price, roles: match[1].roles } : { base: 0, roles: [] };
+      let activeName = name || '';
+      if (activeName.toUpperCase() === 'ESSENTIAL' || activeName.toUpperCase() === 'SONIDO ESSENTIAL') activeName = 'Onix';
+      if (!activeName) return { base: 0, roles: [] };
+      const config = STITCH_DATA.protocols[activeName.toUpperCase()];
+      if (!config) return { base: 0, roles: [] };
+      return { base: config.price, roles: config.roles };
     }
   });
 
@@ -1271,119 +1327,103 @@ function App() {
     const recommendedMakeup = Math.ceil(g / 50);
     const qty = (typeof userMakeupCount === 'number') ? userMakeupCount : recommendedMakeup;
 
-    // Determine specific guest count for accessories (defaults to global guest count, minimum 10)
-    let rawAccGuests = evt?.accGuests;
-    if (rawAccGuests === undefined) {
-        rawAccGuests = Math.max(10, Number(guests) || 10);
-    }
-    const accNum = Math.max(0, Number(rawAccGuests) || 0);
-    const accMultiplier = Math.ceil(accNum / 10);
-
     const photoDur = getHours(evt?.photoStartTime || '20:00', evt?.photoEndTime || evt?.photoStartTime || '20:00');
     const camDur = getHours(evt?.camStartTime || '20:00', evt?.camEndTime || evt?.camStartTime || '20:00');
+    const avDur = getHours(evt?.avStartTime || '20:00', evt?.avEndTime || evt?.avStartTime || '20:00');
 
-    const extraPhotoCost = STITCH_DATA.extras.photo + (Math.max(0, Math.ceil(photoDur - 4)) * STITCH_DATA.hourlyRates.photo);
-    const extraCamCost = STITCH_DATA.extras.cam360 + (Math.max(0, Math.ceil(camDur - 2)) * STITCH_DATA.hourlyRates.cam360);
+    const extraPhotoCost = STITCH_DATA.extras.photo;
+    const extraCamCost = STITCH_DATA.extras.cam360;
+    const extraAVCost = STITCH_DATA.extras.av;
 
-    return [
+    const extras = [
       {
         id: 'extra_makeup',
-        name: `Maquillaje Neón (2h)`,
+        name: `Maquillaje Neón`,
         price: STITCH_DATA.extras.makeup,
-        displayPrice: STITCH_DATA.extras.makeup,
-        qty: qty,
         isMakeup: true,
-        area: 'Style',
-        details: `${qty} Artista(s) para retoque y aplicación.`
+        category: 'Style',
+        details: `Aplicación de maquillaje reactivo UV.`,
+        needsTime: true
       },
       {
         id: 'acc_essential',
-        name: 'Accesorios 111 (Base)',
-        price: (STITCH_DATA.extras.acc_essential || 0) * accMultiplier,
-        displayPrice: (STITCH_DATA.extras.acc_essential || 0) * accMultiplier,
-        qty: accNum,
+        name: 'Kit 111',
+        price: (STITCH_DATA.extras.acc_espuma * 1) + (g * (STITCH_DATA.extras.acc_collar + STITCH_DATA.extras.acc_manilla + STITCH_DATA.extras.acc_pito)),
         isAcc: true,
-        area: 'Logística',
-        details: `${accNum} pax | Kit de animación básico.`
+        category: 'Accesorios',
+        details: `1 Espuma + ${g} Collares/Manillas/Pitos.`,
+        needsTime: false
       },
       {
         id: 'acc_memories',
-        name: 'Accesorios 444 (Pro)',
-        price: (STITCH_DATA.extras.acc_memories || 0) * accMultiplier,
-        displayPrice: (STITCH_DATA.extras.acc_memories || 0) * accMultiplier,
-        qty: accNum,
+        name: 'Kit 444',
+        price: (STITCH_DATA.extras.acc_espuma * 2) + (g * (STITCH_DATA.extras.acc_collar + STITCH_DATA.extras.acc_manilla + STITCH_DATA.extras.acc_pito)),
         isAcc: true,
-        area: 'Logística',
-        details: `${accNum} pax | Kit de animación mejorado.`
+        category: 'Accesorios',
+        details: `2 Espuma + ${g} Collares/Manillas/Pitos.`,
+        needsTime: false
       },
       {
         id: 'acc_celebration',
-        name: 'Accesorios 777 (Premium)',
-        price: (STITCH_DATA.extras.acc_celebration || 0) * accMultiplier,
-        displayPrice: (STITCH_DATA.extras.acc_celebration || 0) * accMultiplier,
-        qty: accNum,
+        name: 'Kit 777',
+        price: (STITCH_DATA.extras.acc_espuma * 3) + (STITCH_DATA.extras.acc_canon * 3) + (g * (STITCH_DATA.extras.acc_manilla + STITCH_DATA.extras.acc_pito + STITCH_DATA.extras.acc_collar + STITCH_DATA.extras.acc_antifaz)),
         isAcc: true,
-        area: 'Logística',
-        details: `${accNum} pax | Kit de animación full.`
+        category: 'Accesorios',
+        details: `3 Espuma + 3 Cañón + ${g} Collares/Manillas/Pitos/Antifaces.`,
+        needsTime: false
       },
-      {
-        id: 'extra_decor_onix',
-        name: 'Decoración Ónix',
-        price: STITCH_DATA.extras.decor_onix,
-        displayPrice: STITCH_DATA.extras.decor_onix,
-        area: 'Decoración',
-        details: 'Ambientación nivel entrada'
-      },
-      {
-        id: 'extra_decor_multii',
-        name: 'Decoración Multii',
-        price: STITCH_DATA.extras.decor_multii,
-        displayPrice: STITCH_DATA.extras.decor_multii,
-        area: 'Decoración',
-        details: 'Ambientación nivel intermedio'
-      },
-      {
-        id: 'extra_decor_kaizen',
-        name: 'Decoración Kaizen',
-        price: STITCH_DATA.extras.decor_kaizen,
-        displayPrice: STITCH_DATA.extras.decor_kaizen,
-        area: 'Decoración',
-        details: 'Ambientación máxima gama'
-      },
-      {
-        id: 'extra_cam360',
-        name: 'Cámara 360°',
-        price: STITCH_DATA.extras.cam360,
-        displayPrice: extraCamCost,
-        area: 'Video',
-        details: 'Plataforma con videos ilimitados'
-      },
-      {
-        id: 'extra_photo',
-        name: 'Fotografía Social',
-        price: STITCH_DATA.extras.photo,
-        displayPrice: extraPhotoCost,
-        area: 'Photo',
-        details: 'Registro fotográfico del evento'
-      }
+      // DECORATION
+      { id: 'extra_decor_onix', name: 'Decoración Ónix', price: STITCH_DATA.extras.decor_onix, category: 'Decoración', details: 'Arco Globos (100+) • Fondo Shimmer • Topper Temático', needsTime: true },
+      { id: 'extra_decor_multii', name: 'Decoración Multii', price: STITCH_DATA.extras.decor_multii, category: 'Decoración', details: 'Set de Globos (150+) • Estructura Circular • Manguera Neón • Cortina de Velo', needsTime: true },
+      { id: 'extra_decor_kaizen', name: 'Decoración Kaizen', price: STITCH_DATA.extras.decor_kaizen, category: 'Decoración', details: 'Fondo de Diseño Personalizado • Trío de Cilindros • Set de Globos Premium', needsTime: true },
+      // MEDIA / AUDIOVISUALES (Base price in list, extension via global calculator)
+      { id: 'extra_av', name: 'Audiovisuales (Base 4h)', price: extraAVCost, category: 'Audiovisuales', details: 'Sonido Pro (2 Cabinas) • DJ Crossover • Show de Luces (4 LED + Humo)', needsTime: true },
+      { id: 'extra_cam360', name: 'Cámara 360° Aérea (Min 2h)', price: extraCamCost, category: 'Video', details: 'Base 2h + Hora Extra $200k', needsTime: true },
+      { id: 'extra_photo', name: 'Fotografía Social (Min 4h)', price: extraPhotoCost, category: 'Photo', details: 'Base 4h + Hora Extra $50k', needsTime: true },
+      // INDIVIDUAL ITEMS
+      { id: 'acc_espuma', name: 'Espuma', price: (STITCH_DATA.extras.acc_espuma || 0), isItem: true, category: 'Artículos', details: 'Lata de espuma para animación.' },
+      { id: 'acc_canon', name: 'Cañón de Confeti', price: (STITCH_DATA.extras.acc_canon || 0), isItem: true, category: 'Artículos', details: 'Cañón manual de confeti o CO2.' },
+      { id: 'acc_manilla', name: 'Manilla Neón', price: (STITCH_DATA.extras.acc_manilla || 0), isItem: true, category: 'Artículos', details: 'Manilla reactiva luz UV.' },
+      { id: 'acc_antifaz', name: 'Antifaz', price: (STITCH_DATA.extras.acc_antifaz || 0), isItem: true, category: 'Artículos', details: 'Antifaz de cartón decorado.' },
+      { id: 'acc_collar', name: 'Collar Hawaiano', price: (STITCH_DATA.extras.acc_collar || 0), isItem: true, category: 'Artículos', details: 'Collar de flores sintéticas.' },
+      { id: 'acc_pito', name: 'Pito', price: (STITCH_DATA.extras.acc_pito || 0), isItem: true, category: 'Artículos', details: 'Silbato plástico para rumba.' }
     ];
+
+    return extras.map(ex => {
+        let sQty = evt?.extraQtys?.[ex.id] || ex.qty || 1;
+        // Force guest count for Logistics Kits 111, 444, 777
+        if (ex.isAcc && !ex.isItem) sQty = g; 
+        
+        const pack = (evt?.packName || '').toUpperCase();
+        const proto = STITCH_DATA.protocols[pack];
+        const isIncluded = proto?.includedExtras?.includes(ex.id) || false;
+
+        const finalPrice = (isIncluded) ? 0 : ((ex.isItem || ex.isMakeup) ? ex.price * sQty : ex.price);
+        return { ...ex, basePrice: ex.price, qty: sQty, price: finalPrice, displayPrice: finalPrice, isIncluded };
+    });
   };
 
   // --- DYNAMIC PRICING CALCULATOR (Staff Sync) ---
   const currentConf = PRICING_DYNAMIC[newEvent.packName] || {};
-  const djDur = getHours(newEvent.startTime || '20:00', newEvent.endTime || newEvent.startTime || '20:00');
-  const photoDur = getHours(newEvent.photoStartTime || '20:00', newEvent.photoEndTime || newEvent.photoStartTime || '20:00');
-  const camDur = getHours(newEvent.camStartTime || '20:00', newEvent.camEndTime || newEvent.camStartTime || '20:00');
-  const decorDur = getHours(newEvent.decorStartTime || '19:00', newEvent.decorEndTime || newEvent.decorStartTime || '19:00');
-  const avDur = getHours(newEvent.avStartTime || '20:00', newEvent.avEndTime || newEvent.avStartTime || '20:00');
+  const djDur = getHours(newEvent.djStartTime || newEvent.startTime || '20:00', newEvent.djEndTime || newEvent.endTime || newEvent.djStartTime || '20:00');
+  const photoDur = getHours(newEvent.photoStartTime || newEvent.startTime || '20:00', newEvent.photoEndTime || newEvent.endTime || newEvent.photoStartTime || '20:00');
+  const camDur = getHours(newEvent.camStartTime || newEvent.startTime || '20:00', newEvent.camEndTime || newEvent.endTime || newEvent.camStartTime || '20:00');
+  const decorDur = getHours(newEvent.decorStartTime || subtractMinutes(newEvent.startTime || '20:00', 60), newEvent.decorEndTime || subtractMinutes(newEvent.startTime || '20:00', -60));
+  const avDur = getHours(newEvent.avStartTime || newEvent.startTime || '20:00', newEvent.avEndTime || newEvent.endTime || newEvent.avStartTime || '20:00');
 
   const extraDJ = Math.max(0, Math.ceil(djDur - 4));
   const extraPhoto = Math.max(0, Math.ceil(photoDur - 4));
   const extraCam = Math.max(0, Math.ceil(camDur - 2));
 
-  const extrasDJPrice = extraDJ * STITCH_DATA.hourlyRates.dj;
-  const extrasPhotoPrice = extraPhoto * STITCH_DATA.hourlyRates.photo;
-  const extrasCamPrice = extraCam * STITCH_DATA.hourlyRates.cam360;
+  const hasDJ = newEvent.selectedExtras?.extra_dj || currentConf.roles?.includes('DJs Profesionales') || currentConf.roles?.includes('DJs');
+  const hasPhoto = newEvent.selectedExtras?.extra_photo || currentConf.roles?.includes('Fotografía Profesional');
+  const hasCam = newEvent.selectedExtras?.extra_cam360 || currentConf.roles?.includes('Cámara 360°');
+  const hasAV = newEvent.selectedExtras?.extra_av || currentConf.items?.includes('Sonido Pro') || currentConf.items?.includes('Sonido Line Array');
+
+  const extrasDJPrice = hasDJ ? (extraDJ * STITCH_DATA.hourlyRates.dj) : 0;
+  const extrasPhotoPrice = hasPhoto ? (extraPhoto * STITCH_DATA.hourlyRates.photo) : 0;
+  const extrasCamPrice = hasCam ? (extraCam * STITCH_DATA.hourlyRates.cam360) : 0;
+  const extrasAVPrice = hasAV ? (Math.max(0, Math.ceil(avDur - 4)) * STITCH_DATA.hourlyRates.av) : 0;
 
   const activeExtrasArr = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id]);
   const otherExtrasPrice = activeExtrasArr.reduce((acc, ex) => acc + (Number(ex.price) || 0), 0);
@@ -1392,11 +1432,12 @@ function App() {
                         (isNaN(extrasDJPrice) ? 0 : extrasDJPrice) + 
                         (isNaN(extrasPhotoPrice) ? 0 : extrasPhotoPrice) + 
                         (isNaN(extrasCamPrice) ? 0 : extrasCamPrice) + 
+                        (isNaN(extrasAVPrice) ? 0 : extrasAVPrice) + 
                         (isNaN(otherExtrasPrice) ? 0 : otherExtrasPrice);
 
   // Auto-update totalValue and dependent prices in the form seamlessly
   useEffect(() => {
-    if (!newEvent.id && computedTotal > 0 && Number(newEvent.totalValue) !== computedTotal) {
+    if (computedTotal > 0 && Number(newEvent.totalValue) !== computedTotal) {
         setNewEvent(prev => ({ 
            ...prev, 
            totalValue: computedTotal,
@@ -1473,15 +1514,7 @@ function App() {
     // 1. DEFINIR ITEMS (Calculated based on Package + Extras?)
     // Note: Currently simple package mapping.
     const p = (newEvent.packName || '').toUpperCase();
-    if (p.includes('ESSENTIAL')) {
-      defaultItems = [
-        { name: 'CABINAS ACTIVAS 15 PULGADAS + TRÍPODES', qty: 2, checked: false, area: 'DJ' },
-        { name: 'PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 A 1', qty: 1, checked: false, area: 'DJ' },
-        { name: 'LUCES LED X4 + SOPORTE TRÍPODE', qty: 1, checked: false, area: 'DJ' },
-        { name: 'MÁQUINA HUMO + CONTROL + LÍQUIDO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', qty: 1, checked: false, area: 'LOGÍSTICA' }
-      ];
-    } else if (p.includes('ONIX')) {
+    if (p.includes('ONIX')) {
       defaultItems = [
         { name: 'SISTEMA AUDIO NEXXA PRO', qty: 1, checked: false, area: 'DJ' },
         { name: 'SISTEMA ILUMINACIÓN ONIX', qty: 1, checked: false, area: 'DJ' },
@@ -1536,17 +1569,21 @@ function App() {
     // 2. VERIFICACIÓN DE STOCK (Only for CONFIRMED)
     let conflictMsg = '';
     if (status === 'CONFIRMED') {
-      const newStart = newEvent.startTime ? parseInt(newEvent.startTime.replace(':', '')) : 0;
-      let newEnd = newEvent.endTime ? parseInt(newEvent.endTime.replace(':', '')) : 0;
+      const startToCheck = newEvent.djStartTime || newEvent.startTime || '20:00';
+      const endToCheck = newEvent.djEndTime || newEvent.endTime || startToCheck;
+      const newStart = parseInt(startToCheck.replace(':', ''));
+      let newEnd = parseInt(endToCheck.replace(':', ''));
       if (newEnd < newStart) newEnd += 2400;
 
       const overlappingEvents = events.filter(evt => {
         if (evt.status === 'FINISHED' || evt.status === 'DRAFT') return false;
-        if (evt.id === newEvent.id) return false; // Don't check against self if editing
+        if (evt.id === newEvent.id) return false;
         if (evt.eventDetails.date !== newEvent.date) return false;
 
-        const evtStart = parseInt(evt.eventDetails.startTime.replace(':', ''));
-        let evtEnd = parseInt(evt.eventDetails.endTime.replace(':', ''));
+        const evtStartStr = evt.eventDetails.djStartTime || evt.eventDetails.startTime || '20:00';
+        const evtEndStr = evt.eventDetails.djEndTime || evt.eventDetails.endTime || evtStartStr;
+        const evtStart = parseInt(evtStartStr.replace(':', ''));
+        let evtEnd = parseInt(evtEndStr.replace(':', ''));
         if (evtEnd < evtStart) evtEnd += 2400;
 
         return (newStart < evtEnd && newEnd > evtStart);
@@ -1600,6 +1637,8 @@ function App() {
         neighborhood: newEvent.neighborhood || '',
         startTime: newEvent.startTime,
         endTime: newEvent.endTime,
+        djStartTime: newEvent.djStartTime || newEvent.startTime,
+        djEndTime: newEvent.djEndTime || newEvent.endTime,
         materialsTime: newEvent.materialsTime || '',
         warehouseTime: newEvent.warehouseTime || '',
         indications: newEvent.indications || 'Ninguna',
@@ -1660,6 +1699,8 @@ function App() {
       date: evt.eventDetails.date,
       startTime: evt.eventDetails.startTime,
       endTime: evt.eventDetails.endTime,
+      djStartTime: evt.eventDetails.djStartTime || evt.eventDetails.startTime || '',
+      djEndTime: evt.eventDetails.djEndTime || evt.eventDetails.endTime || '',
       location: evt.eventDetails.location,
       neighborhood: evt.eventDetails.neighborhood || '',
       guestCount: evt.eventDetails.guestCount || '',
@@ -3785,17 +3826,24 @@ function App() {
           const currentExtras = { ...updated.selectedExtras };
           currentExtras[value] = !currentExtras[value];
           updated.selectedExtras = currentExtras;
+        } else if (field === 'changeExtraQty') {
+          const { id, q } = value;
+          const currentQtys = { ...(updated.extraQtys || {}) };
+          currentQtys[id] = Math.max(1, q);
+          updated.extraQtys = currentQtys;
         } else if (field === 'changeMakeupCount') {
           updated.makeupCount = value;
         } else if (field === 'guestCount') {
           updated.guestCount = value;
           updated.makeupCount = null;
         } else if (field === 'packName') {
-          updated.packName = value;
+          updated.packName = (value === 'ESSENTIAL' ? 'ONIX' : value);
         } else if (field === 'startTime') {
           updated.startTime = value;
           // Auto-sync if not manually changed or if they match old default
+          if (!updated.djStartTime || updated.djStartTime === '08:00') updated.djStartTime = value;
           if (!updated.photoStartTime || updated.photoStartTime === '08:00') updated.photoStartTime = value;
+          if (!updated.avStartTime || updated.avStartTime === '08:00') updated.avStartTime = value;
 
           // RULE: Decorator starts 1 hr before DJ, lasts 2 hours
           if (!updated.decorStartTime || updated.decorStartTime === '08:00') {
@@ -3806,10 +3854,16 @@ function App() {
           }
         } else if (field === 'endTime') {
           updated.endTime = value;
-          // Auto-sync if not manually changed or if they match old default
+          // Auto-sync
+          if (!updated.djEndTime || updated.djEndTime === '08:00') updated.djEndTime = value;
           if (!updated.photoEndTime || updated.photoEndTime === '08:00') updated.photoEndTime = value;
-          // Note: Decoration end time is usually fixed at 2hrs from its start, 
-          // but we prioritize the startTime rule.
+          if (!updated.avEndTime || updated.avEndTime === '08:00') updated.avEndTime = value;
+        } else if (field === 'djStartTime') {
+          updated.djStartTime = value;
+          if (!updated.startTime) updated.startTime = value;
+        } else if (field === 'djEndTime') {
+          updated.djEndTime = value;
+          if (!updated.endTime) updated.endTime = value;
         } else {
           updated[field] = value;
         }
@@ -3933,7 +3987,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               <button
                 onClick={() => {
                   if (confirm('¿Descartar cambios y limpiar formulario?')) {
-                    const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
+                    const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: '', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' };
                     setNewEvent(emptyState);
                     localStorage.removeItem('nexxa_draft_event');
                   }
@@ -3957,155 +4011,136 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3>1. Paquete y Horarios</h3>
-                <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s1 ? '▼' : '▶'}</span>
+                <h3 style={{ color: 'var(--primary-cyan)' }}>1. Datos del Evento</h3>
+                <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
                 <>
-                  {/* Row 0: Package & Lead Source */}
-                  <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                    <select style={{ flex: 1 }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
-                      <option value="SONIDO ESSENTIAL">SONIDO ESSENTIAL ($450k)</option>
-                      <option value="ONIX">ONIX ($1.22M)</option>
-                      <option value="MULTII">MULTII ($1.44M)</option>
-                      <option value="KAIZEN">KAIZEN ($1.94M)</option>
-                      <option value="Personalizado">Personalizado</option>
-                    </select>
-                    <select style={{ flex: 1 }} value={newEvent.leadSource || ''} onChange={e => updateEvent('leadSource', e.target.value)}>
-                      <option value="">¿Cómo nos conoció?</option>
-                      <option value="Facebook">📘 Facebook</option>
-                      <option value="Instagram">📸 Instagram</option>
-                      <option value="Google">🔍 Google</option>
-                      <option value="Recomendación">👥 Recomendación</option>
-                      <option value="WhatsApp">💬 WhatsApp</option>
-                      <option value="TikTok">🎵 TikTok</option>
-                      <option value="Otro">🌐 Otro</option>
-                    </select>
-                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '15px' }}>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <input 
+                        required 
+                        placeholder="👤 Nombre del Cliente" 
+                        value={newEvent.clientName} 
+                        onChange={e => updateEvent('clientName', e.target.value)} 
+                        style={{ width: '100%', fontSize: '0.95rem', fontWeight: 'bold', border: '1px solid rgba(188, 111, 241, 0.4)', boxShadow: 'var(--glow-purple)', height: '45px' }} 
+                      />
+                    </div>
 
-                  {/* Row 1: Date & Occasion */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Fecha</label>
-                      <input required type="date" value={newEvent.date} onChange={e => updateEvent('date', e.target.value)} style={{ width: '100%' }} min={new Date().toISOString().split('T')[0]} />
+                      <input placeholder="📱 Celular Princ." value={newEvent.clientPhone} onChange={e => updateEvent('clientPhone', e.target.value)} type="tel" style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Ocasión</label>
-                      <input placeholder="Ej: Cumpleaños" value={newEvent.occasion} onChange={e => updateEvent('occasion', e.target.value)} style={{ width: '100%' }} />
+                      <input placeholder="📱 Celular Sec." value={newEvent.clientPhone2} onChange={e => updateEvent('clientPhone2', e.target.value)} type="tel" style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
                     </div>
-                  </div>
 
-                  {/* Row 2: Guests & Price */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                    <div style={{ gridColumn: 'span 2', marginTop: '2px' }}>
+                      <select style={{ width: '100%', padding: '10px', fontSize: '0.85rem', border: '1px solid rgba(188, 111, 241, 0.3)', height: '42px', background: 'rgba(188, 111, 241, 0.05)' }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
+                        <option value="">Selecciona el Plan...</option>
+                        <option value="ONIX">ONIX ($1.22M)</option>
+                        <option value="MULTII">MULTII ($1.44M)</option>
+                        <option value="KAIZEN">KAIZEN ($1.94M)</option>
+                        <option value="Personalizado">Personalizado</option>
+                      </select>
+                    </div>
+
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Invitados</label>
-                      <input type="tel" inputMode="numeric" placeholder="#" value={newEvent.guestCount || ''} onChange={e => updateEvent('guestCount', e.target.value)} style={{ width: '100%' }} />
+                       <input 
+                        id="guest-input"
+                        type="tel" 
+                        inputMode="numeric" 
+                        placeholder="👥 Invitados" 
+                        value={newEvent.guestCount || ''} 
+                        onChange={e => updateEvent('guestCount', e.target.value)} 
+                        style={{ width: '100%', fontSize: '0.85rem', height: '40px' }} 
+                      />
                     </div>
+
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '2px', display: 'block' }}>Valor Hora Extra ($)</label>
-                      <input type="tel" inputMode="numeric" value={formatInputNumber(newEvent.extraHourPrice)} onChange={e => updateEvent('extraHourPrice', parseInputNumber(e.target.value))} style={{ width: '100%', color: '#facc15', fontWeight: 'bold' }} />
+                      <input required type="date" value={newEvent.date} onChange={e => updateEvent('date', e.target.value)} style={{ width: '100%', fontSize: '0.85rem', height: '40px' }} />
+                    </div>
+
+                    <div>
+                      <select style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} value={newEvent.leadSource || ''} onChange={e => updateEvent('leadSource', e.target.value)}>
+                        <option value="">¿Cómo nos conoció?</option>
+                        <option value="Facebook">📘 Facebook</option>
+                        <option value="Instagram">📸 Instagram</option>
+                        <option value="Google">🔍 Google</option>
+                        <option value="Recomendación">👥 Recomendación</option>
+                        <option value="WhatsApp">💬 WhatsApp</option>
+                        <option value="TikTok">🎵 TikTok</option>
+                        <option value="Otro">🌐 Otro</option>
+                      </select>
+                    </div>
+
+                    <div style={{ gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '10px' }}>
+                       <div style={{ position: 'relative' }}>
+                          <label style={{ fontSize: '0.55rem', fontWeight: '900', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>🕒 Inicio Evento</label>
+                          <select 
+                            style={{ width: '100%', fontSize: '0.9rem', height: '40px', fontWeight: 'bold' }} 
+                            value={newEvent.startTime} 
+                            onChange={e => updateEvent('startTime', e.target.value)}
+                          >
+                            <option value="">--:--</option>
+                            {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t}>{getDisplayTimeUI(t).full}</option>)}
+                          </select>
+                       </div>
+                       <div style={{ position: 'relative' }}>
+                          <label style={{ fontSize: '0.55rem', fontWeight: '900', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>⌛ Fin Evento</label>
+                          <select 
+                            style={{ width: '100%', fontSize: '0.9rem', height: '40px', fontWeight: 'bold' }} 
+                            value={newEvent.endTime} 
+                            onChange={e => updateEvent('endTime', e.target.value)}
+                          >
+                            <option value="">--:--</option>
+                            {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t}>{getDisplayTimeUI(t).full}</option>)}
+                          </select>
+                       </div>
+                    </div>
+
+                    <div>
+                      <input placeholder="🎉 Ocasión (Boda/Cumple)" value={newEvent.occasion} onChange={e => updateEvent('occasion', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
+                    </div>
+
+                    <div style={{ gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px', marginTop: '4px' }}>
+                      <input required placeholder="🏠 Barrio" value={newEvent.neighborhood || ''} onChange={e => updateEvent('neighborhood', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
+                      <input required placeholder="📍 Dirección" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
                     </div>
                   </div>
+                  </>
+              )}
+            </div>
 
-                  {/* Event Time Inputs */}
-                  {isEventMode ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
-                      <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
-                      <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
-                      <TimeInput label="Bodega" value={newEvent.warehouseTime} onChange={(val) => updateEvent('warehouseTime', val)} />
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                      <TimeInput label="Hora Inicio" value={newEvent.startTime} onChange={(val) => updateEvent('startTime', val)} />
-                      <TimeInput label="Hora Fin" value={newEvent.endTime} onChange={(val) => updateEvent('endTime', val)} />
-                    </div>
-                  )}
+            {/* SECCIÓN 3: HORARIOS DEL PERSONAL (GRANULAR) */}
+            <div className="form-section">
+              <div
+                onClick={() => toggleSection('s3')}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '15px' : '0' }}
+              >
+                <h3 style={{ color: 'var(--primary-cyan)' }}>3. Horarios del Personal</h3>
+                <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s3 ? '▼' : '▶'}</span>
+              </div>
 
-                  {djDur > 0 && (
-                    <div style={{ marginBottom: '10px', padding: '4px 8px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '14px', fontSize: '0.75rem', textAlign: 'center', color: '#00d4ff' }}>
-                      ⏱ <strong>{djDur.toFixed(1)}h</strong> (DJ/Sonido)
-                      {extraDJ > 0 && <span style={{ color: '#facc15', marginLeft: '5px' }}> (+{extraDJ}h extra)</span>}
-                    </div>
-                  )}
-
-                  {/* SECCIÓN 2.1: ASIGNACIÓN OPERATIVA (Visibilidad Global) */}
-                  <div style={{ marginTop: '15px' }}>
-                    {(needsPhoto(newEvent.packName, newEvent.selectedExtras) || needsDecor(newEvent.packName, newEvent.selectedExtras) || needsCam360(newEvent.packName, newEvent.selectedExtras) || needsAV(newEvent.packName, newEvent.selectedExtras)) && (
-                      <h4 style={{ fontSize: '0.8rem', color: 'var(--primary-cyan)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>1.1 Asignación Operativa</h4>
-                    )}
-                    {/* SEPARATE SCHEDULING FOR PHOTOGRAPHY */}
-                    {needsPhoto(newEvent.packName, newEvent.selectedExtras) && (
-                      <div style={{ padding: '15px', background: 'rgba(255, 150, 0, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 150, 0, 0.2)', marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#facc15' }}>
-                          <IconCalendar size={14} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Fotografía (OBLIGATORIO)</span>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <TimeInput label="Inicio Foto" value={newEvent.photoStartTime} onChange={(val) => updateEvent('photoStartTime', val)} />
-                          <TimeInput label="Fin Foto" value={newEvent.photoEndTime} onChange={(val) => updateEvent('photoEndTime', val)} />
-                        </div>
-                        {photoDur > 0 && (
-                          <div style={{ marginTop: '10px', padding: '5px 10px', background: 'rgba(255, 200, 0, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: '#facc15' }}>
-                            📸 <strong>{photoDur.toFixed(1)}h</strong> Fotografía
-                          </div>
-                        )}
-                        <p style={{ margin: '8px 0 0 0', fontSize: '0.65rem', opacity: 0.6, color: '#fff' }}>
-                          * El fotógrafo suele ir por una franja de horas distinta a la del DJ.
-                        </p>
-                      </div>
-                    )}
-                    {/* SEPARATE SCHEDULING FOR DECORATION */}
-                    {needsDecor(newEvent.packName, newEvent.selectedExtras) && (
-                      <div style={{ padding: '15px', background: 'rgba(188, 111, 241, 0.05)', borderRadius: '15px', border: '1px solid rgba(188, 111, 241, 0.2)', marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-purple)' }}>
-                          <IconFlow size={14} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Decoración</span>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <TimeInput label="Inicio Decor" value={newEvent.decorStartTime} onChange={(val) => updateEvent('decorStartTime', val)} />
-                          <TimeInput label="Fin Decor" value={newEvent.decorEndTime} onChange={(val) => updateEvent('decorEndTime', val)} />
-                        </div>
-                      </div>
-                    )}
-                    {/* SEPARATE SCHEDULING FOR CAMERA 360 */}
-                    {needsCam360(newEvent.packName, newEvent.selectedExtras) && (
-                      <div style={{ padding: '15px', background: 'rgba(0, 242, 255, 0.05)', borderRadius: '15px', border: '1px solid rgba(0, 242, 255, 0.2)', marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-cyan)' }}>
-                          <IconCamera size={14} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Cámara 360°</span>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <TimeInput label="Inicio 360" value={newEvent.camStartTime} onChange={(val) => updateEvent('camStartTime', val)} />
-                          <TimeInput label="Fin 360" value={newEvent.camEndTime} onChange={(val) => updateEvent('camEndTime', val)} />
-                        </div>
-                        {camDur > 0 && (
-                          <div style={{ marginTop: '10px', padding: '5px 10px', background: 'rgba(0, 242, 255, 0.1)', borderRadius: '10px', fontSize: '0.75rem', textAlign: 'center', color: 'var(--primary-cyan)' }}>
-                            📹 <strong>{camDur.toFixed(1)}h</strong> Cámara 360°
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {/* SEPARATE SCHEDULING FOR AUDIOVISUAL */}
-                    {needsAV(newEvent.packName, newEvent.selectedExtras) && (
-                      <div style={{ padding: '15px', background: 'rgba(255, 56, 96, 0.05)', borderRadius: '15px', border: '1px solid rgba(255, 56, 96, 0.2)', marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#ff3860' }}>
-                          <IconBox size={14} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Horario Audiovisual / Pantalla</span>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <TimeInput label="Inicio AV" value={newEvent.avStartTime} onChange={(val) => updateEvent('avStartTime', val)} />
-                          <TimeInput label="Fin AV" value={newEvent.avEndTime} onChange={(val) => updateEvent('avEndTime', val)} />
-                        </div>
-                      </div>
-                    )}
+              {sectionState.s3 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <div style={{ padding: '4px' }}>
+                    <MiniTimeInput
+                      label="🎧 Horario DJ (Protocolo / Servicio)"
+                      labelColor="var(--primary-cyan)"
+                      startVal={newEvent.djStartTime}
+                      endVal={newEvent.djEndTime}
+                      onStartChange={val => updateEvent('djStartTime', val)}
+                      onEndChange={val => updateEvent('djEndTime', val)}
+                    />
                   </div>
-
-                  {/* Row 3: Location */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginBottom: '10px' }}>
-                    <input required placeholder="Barrio" value={newEvent.neighborhood || ''} onChange={e => updateEvent('neighborhood', e.target.value)} />
-                    <input required placeholder="Dirección Exacta" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} />
+                  
+                  {/* Summary of active durations in this section */}
+                  <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {djDur > 0 && <span style={{ padding: '8px 14px', background: 'rgba(0, 242, 255, 0.1)', borderRadius: '25px', fontSize: '0.65rem', border: '1px solid rgba(0, 242, 255, 0.2)', color: 'var(--primary-cyan)', fontWeight: 'bold' }}>DJ: {djDur.toFixed(1)}h</span>}
+                    {photoDur > 0 && <span style={{ padding: '8px 14px', background: 'rgba(250, 204, 21, 0.1)', borderRadius: '25px', fontSize: '0.65rem', border: '1px solid rgba(250, 204, 21, 0.2)', color: '#facc15', fontWeight: 'bold' }}>FOTO: {photoDur.toFixed(1)}h</span>}
+                    {decorDur > 0 && <span style={{ padding: '8px 14px', background: 'rgba(188, 111, 241, 0.1)', borderRadius: '25px', fontSize: '0.65rem', border: '1px solid rgba(188, 111, 241, 0.2)', color: 'var(--primary-purple)', fontWeight: 'bold' }}>DECOR: {decorDur.toFixed(1)}h</span>}
                   </div>
-                </>
+                </div>
               )}
             </div>
 
@@ -4115,133 +4150,147 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s2')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s2 ? '15px' : '0' }}
               >
-                <h3>2. Extras</h3>
-                <span style={{ fontSize: '1rem', color: '#00d4ff' }}>{sectionState.s2 ? '▼' : '▶'}</span>
+                <h3 style={{ color: 'var(--primary-cyan)' }}>2. Extras</h3>
+                <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s2 ? '▼' : '▶'}</span>
               </div>
 
               {sectionState.s2 && (
-                <>
-                  {/* EXTRAS LIST */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '0.7rem', color: '#666', marginBottom: '4px' }}>Adicionales Disponibles:</label>
-                    {getDynamicExtras(newEvent).map(extra => {
-                      const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]);
-                      return (
-                        <div key={extra.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <div
-                            onClick={() => updateEvent('toggleExtra', extra.id)}
-                            style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px',
-                              background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
-                              border: '1px solid', borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
-                              borderRadius: '8px', cursor: 'pointer'
-                            }}
-                          >
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>{extra?.name || 'Extra'}</span>
-                              <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
-                                + ${(extra.displayPrice || extra.price).toLocaleString()}
-                              </span>
-                              {extra.isMakeup && isActive && (
-                                <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
-                                  <small onClick={() => updateEvent('changeMakeupCount', Math.max(1, (extra.qty || 1) - 1))} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
-                                  <span style={{ fontSize: '0.8rem' }}>{extra.qty}</span>
-                                  <small onClick={() => updateEvent('changeMakeupCount', (extra.qty || 1) + 1)} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
-                                </div>
-                              )}
-                              {extra.isAcc && isActive && (
-                                <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
-                                  <input 
-                                    type="number" 
-                                    min="1" 
-                                    value={extra.qty || ''} 
-                                    onChange={(e) => updateEvent('accGuests', Math.max(1, parseInt(e.target.value) || 1))} 
-                                    style={{ width: '35px', background: 'transparent', border: 'none', color: '#fff', fontSize: '0.8rem', textAlign: 'center', outline: 'none' }}
-                                  />
-                                  <span style={{ fontSize: '0.6rem', color: '#888', marginRight: '4px', cursor: 'default' }}>Inv.</span>
-                                </div>
-                              )}
-                              <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
-                            </div>
-                          </div>
-                          {/* SMALL TIME RANGE INPUTS FOR SERVICES */}
-                          {isActive && (extra.id === 'extra_cam360' || extra.id === 'extra_photo') && (
-                            <MiniTimeInput
-                                label={extra.id === 'extra_cam360' ? 'PROGRAMACIÓN TÉCNICA (MÍN. 2H)' : 'PROGRAMACIÓN TÉCNICA (MÍN. 4H)'}
-                                startVal={extra.id === 'extra_cam360' ? newEvent.camStartTime : newEvent.photoStartTime}
-                                endVal={extra.id === 'extra_cam360' ? newEvent.camEndTime : newEvent.photoEndTime}
-                                onStartChange={(val) => updateEvent(extra.id === 'extra_cam360' ? 'camStartTime' : 'photoStartTime', val)}
-                                onEndChange={(val) => updateEvent(extra.id === 'extra_cam360' ? 'camEndTime' : 'photoEndTime', val)}
-                            />
-                          )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  {Object.entries(
+                    getDynamicExtras(newEvent).reduce((acc, ex) => {
+                      acc[ex.category] = acc[ex.category] || [];
+                      acc[ex.category].push(ex);
+                      return acc;
+                    }, {})
+                  ).map(([category, catExtras]) => (
+                    <div key={category} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
+                      <div 
+                        onClick={() => toggleCatSection(category)}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '12px 0' }}
+                      >
+                        <label style={{ fontSize: '0.65rem', color: 'var(--primary-purple)', fontWeight: '950', textTransform: 'uppercase', margin: 0, display: 'block', opacity: 1, letterSpacing: '2px' }}>{category}</label>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--primary-purple)', opacity: 0.7 }}>{catSectionState[category] ? '▼' : '▶'}</span>
+                      </div>
 
-                          {/* PERSONALIZACIÓN DE DECORACIÓN (COLOR Y OCASIÓN) */}
-                          {isActive && extra.id.includes('_decor_') && (
-                            <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                              <label style={{ fontSize: '0.65rem', color: '#8b9bb4', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>
-                                Personalización Diseño Visual
-                              </label>
-                              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                
-                                {/* NATIVE COLOR PICKER HACK */}
-                                <label style={{ position: 'relative', display: 'flex', alignItems: 'center', background: '#1a1a24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '6px 14px', gap: '8px', cursor: 'pointer', overflow: 'hidden' }}>
-                                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: newEvent.decorColor || '#C9A84C', border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 0 10px rgba(0,0,0,0.5)' }} />
-                                  <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '1px' }}>
-                                    <span style={{ fontSize: '0.5rem', fontWeight: '900', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>COLOR</span>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#fff', lineHeight: 1 }}>{newEvent.decorColor || '#C9A84C'}</span>
+                      {catSectionState[category] && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '5px' }}>
+                          {catExtras.map(extra => {
+                            const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]) || extra.isIncluded;
+                            const isAcc = extra.id.startsWith('acc_') && !extra.isItem;
+                            const accQty = extra.qty;
+                            return (
+                              <div key={extra.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div
+                                  onClick={() => updateEvent('toggleExtra', extra.id)}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 10px',
+                                    background: isActive ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255,255,255,0.03)',
+                                    border: '1px solid', borderColor: isActive ? 'var(--primary-cyan)' : 'rgba(255,255,255,0.1)',
+                                    borderRadius: '12px', cursor: 'pointer'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: isActive ? 'bold' : 'normal', color: isActive ? '#fff' : '#ccc' }}>
+                                      {extra?.name || 'Extra'} {extra.isIncluded && <span style={{ color: 'var(--success-green)', fontSize: '0.6rem', marginLeft: '8px', border: '1px solid var(--success-green)', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle' }}>INCLUIDO</span>} {isActive && extra.isAcc && !extra.isIncluded && <span style={{ color: 'var(--primary-cyan)', marginLeft: '8px', background: 'rgba(0,0,0,0.3)', padding: '2px 8px', borderRadius: '4px' }}>x{extra.qty}</span>}
+                                    </span>
+                                    {isActive && <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{extra.details}</span>}
                                   </div>
-                                  <input 
-                                    type="color" 
-                                    value={newEvent.decorColor || '#C9A84C'} 
-                                    onChange={(e) => updateEvent('decorColor', e.target.value)}
-                                    style={{ position: 'absolute', top: '-10px', left: '-10px', opacity: 0, width: '200%', height: '200%', cursor: 'pointer' }}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
+                                      {extra.isIncluded ? (
+                                        <span style={{ fontSize: '0.7rem', color: '#ff4d4d', opacity: 0.8 }}>
+                                          ${(extra.basePrice || extra.price).toLocaleString()} (Incluido)
+                                        </span>
+                                      ) : `+ $${(extra.displayPrice || extra.price).toLocaleString()}`}
+                                    </span>
+                                    {isActive && (extra.isMakeup || extra.isItem) && (
+                                      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
+                                        <small onClick={() => updateEvent(extra.isMakeup ? 'changeMakeupCount' : 'changeExtraQty', extra.isMakeup ? Math.max(1, (extra.qty || 1) - 1) : { id: extra.id, q: (extra.qty || 1) - 1 })} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{extra.qty}</span>
+                                        <small onClick={() => updateEvent(extra.isMakeup ? 'changeMakeupCount' : 'changeExtraQty', extra.isMakeup ? (extra.qty || 1) + 1 : { id: extra.id, q: (extra.qty || 1) + 1 })} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
+                                      </div>
+                                    )}
+                                    <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
+                                  </div>
+                                </div>
+
+                                {extra.needsTime && isActive && (
+                                  <MiniTimeInput
+                                    label="🕒 Franja Horaria (Requerida)"
+                                    labelColor="var(--primary-purple)"
+                                    startVal={(() => {
+                                        if (extra.id === 'extra_photo') return newEvent.photoStartTime;
+                                        if (extra.id === 'extra_cam360') return newEvent.camStartTime;
+                                        if (extra.id === 'extra_av') return newEvent.avStartTime;
+                                        if (extra.id.includes('_decor_')) return newEvent.decorStartTime;
+                                        if (extra.id === 'extra_makeup') return newEvent.makeupStartTime || '20:00';
+                                        if (extra.id === 'acc_memories') return newEvent.memoriesStartTime;
+                                        if (extra.id === 'acc_celebration') return newEvent.celebrationStartTime;
+                                        return '';
+                                    })()}
+                                    endVal={(() => {
+                                        if (extra.id === 'extra_photo') return newEvent.photoEndTime;
+                                        if (extra.id === 'extra_cam360') return newEvent.camEndTime;
+                                        if (extra.id === 'extra_av') return newEvent.avEndTime;
+                                        if (extra.id.includes('_decor_')) return newEvent.decorEndTime;
+                                        if (extra.id === 'extra_makeup') return newEvent.makeupEndTime || '22:00';
+                                        if (extra.id === 'acc_memories') return newEvent.memoriesEndTime;
+                                        if (extra.id === 'acc_celebration') return newEvent.celebrationEndTime;
+                                        return '';
+                                    })()}
+                                    onStartChange={(val) => {
+                                        let field = '';
+                                        if (extra.id === 'extra_photo') field = 'photoStartTime';
+                                        else if (extra.id === 'extra_cam360') field = 'camStartTime';
+                                        else if (extra.id === 'extra_av') field = 'avStartTime';
+                                        else if (extra.id.includes('_decor_')) field = 'decorStartTime';
+                                        else if (extra.id === 'extra_makeup') field = 'makeupStartTime';
+                                        else if (extra.id === 'acc_memories') field = 'memoriesStartTime';
+                                        else if (extra.id === 'acc_celebration') field = 'celebrationStartTime';
+                                        if (field) updateEvent(field, val);
+                                    }}
+                                    onEndChange={(val) => {
+                                        let field = '';
+                                        if (extra.id === 'extra_photo') field = 'photoEndTime';
+                                        else if (extra.id === 'extra_cam360') field = 'camEndTime';
+                                        else if (extra.id === 'extra_av') field = 'avEndTime';
+                                        else if (extra.id.includes('_decor_')) field = 'decorEndTime';
+                                        else if (extra.id === 'extra_makeup') field = 'makeupEndTime';
+                                        else if (extra.id === 'acc_memories') field = 'memoriesEndTime';
+                                        else if (extra.id === 'acc_celebration') field = 'celebrationEndTime';
+                                        if (field) updateEvent(field, val);
+                                    }}
                                   />
-                                </label>
+                                )}
 
-                                {/* THEME/OCCASION INPUT */}
-                                <input 
-                                  type="text" 
-                                  placeholder="Ej: Neón, Floral, Despedida..."
-                                  value={newEvent.decorTheme || ''}
-                                  onChange={(e) => updateEvent('decorTheme', e.target.value)}
-                                  style={{ flex: 1, minWidth: '150px', background: '#1a1a24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '10px 15px', borderRadius: '20px', fontSize: '0.8rem', outline: 'none' }}
-                                />
+                                {extra.id.includes('_decor_') && isActive && (
+                                  <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: isActive ? '1px solid var(--primary-cyan)' : '1px solid rgba(255,255,255,0.05)' }}>
+                                    <label style={{ fontSize: '0.65rem', color: 'var(--primary-purple)', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>🖌️ Personalización Diseño Visual</label>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                      <label style={{ position: 'relative', display: 'flex', alignItems: 'center', background: '#1a1a24', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '6px 14px', gap: '8px', cursor: 'pointer', overflow: 'hidden' }}>
+                                        <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: newEvent.decorColor || '#C9A84C', border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 0 10px rgba(0,0,0,0.5)' }} />
+                                        <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '1px' }}>
+                                          <span style={{ fontSize: '0.5rem', fontWeight: '900', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>COLOR</span>
+                                          <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#fff', lineHeight: 1 }}>{newEvent.decorColor || '#C9A84C'}</span>
+                                        </div>
+                                        <input type="color" value={newEvent.decorColor || '#C9A84C'} onChange={(e) => updateEvent('decorColor', e.target.value)} style={{ position: 'absolute', top: '-10px', left: '-10px', opacity: 0, width: '200%', height: '200%', cursor: 'pointer' }} />
+                                      </label>
+                                      <input type="text" placeholder="Ej: Neón, Floral, Despedida..." value={newEvent.decorTheme || ''} onChange={(e) => updateEvent('decorTheme', e.target.value)} style={{ flex: 1, minWidth: '150px', background: '#1a1a24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '10px 15px', borderRadius: '20px', fontSize: '0.8rem', outline: 'none' }} />
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          )}
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                </>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
 
-
-            {/* SECCIÓN 3: CLIENTE (ACCORDION - COLLAPSED DEFAULT) */}
-            <div className="form-section">
-              <div
-                onClick={() => toggleSection('s3')}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '15px' : '0' }}
-              >
-                <h3>3. Datos del Cliente</h3>
-                <span style={{ fontSize: '1.2rem', color: '#00d4ff' }}>{sectionState.s3 ? '▼' : '▶'}</span>
-              </div>
-
-              {sectionState.s3 && (
-                <>
-                  <input required placeholder="Nombre Cliente" value={newEvent.clientName} onChange={e => updateEvent('clientName', e.target.value)} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '6px' }}>
-                    <input placeholder="WhatsApp P." value={newEvent.clientPhone} onChange={e => updateEvent('clientPhone', e.target.value)} type="tel" />
-                    <input placeholder="WhatsApp S." value={newEvent.clientPhone2} onChange={e => updateEvent('clientPhone2', e.target.value)} type="tel" />
-                  </div>
-                </>
-              )}
-            </div>
 
             {/* SECCIÓN 4: DETALLES DE MISION (SOLO MODO EVENTO) */}
             {
@@ -4271,66 +4320,86 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
 
             {/* SECCIÓN 5: COTIZACIÓN (TOTAL) */}
-            <div className="form-section" style={{ borderColor: '#00d4ff', borderWidth: '1px', borderStyle: 'solid' }}>
-              <h3 style={{ color: '#00d4ff' }}>5. Cotización Final</h3>
+            <div className="form-section" style={{ borderColor: 'var(--primary-cyan)', borderWidth: '1px', borderStyle: 'solid' }}>
+              <h3 style={{ color: 'var(--primary-cyan)' }}>5. Cotización Final</h3>
 
               <div className="money-row">
                 <div style={{ flex: 1, fontSize: '0.8rem', color: '#ccc', background: '#222', padding: '10px', borderRadius: '8px', marginRight: '10px' }}>
-                  {newEvent.packName !== 'Personalizado' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      {/* BASE */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white' }}>
-                        <span>Paquete Base (4h):</span>
-                        <strong>${(currentConf.base || 0).toLocaleString()}</strong>
-                      </div>
+                  {(() => {
+                    const p = (newEvent.packName || '').toUpperCase();
+                    const proto = STITCH_DATA.protocols[p] || {};
+                    const hasPlan = p && p !== 'PERSONALIZADO';
 
-                      {/* DJ EXTRA */}
-                      {extraDJ > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', fontSize: '0.7rem' }}>
-                          <span>+ {extraDJ}h Extra DJ ($85k/h):</span>
-                          <strong>${extrasDJPrice.toLocaleString()}</strong>
-                        </div>
-                      )}
-
-                      {/* PHOTO EXTRA */}
-                      {extraPhoto > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff9f43', fontSize: '0.7rem' }}>
-                          <span>+ {extraPhoto}h Extra Foto ($50k/h):</span>
-                          <strong>${extrasPhotoPrice.toLocaleString()}</strong>
-                        </div>
-                      )}
-
-                      {/* CAM 360 EXTRA */}
-                      {extraCam > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#00d4ff', fontSize: '0.7rem' }}>
-                          <span>+ {extraCam}h Extra 360 ($150k/h):</span>
-                          <strong>${extrasCamPrice.toLocaleString()}</strong>
-                        </div>
-                      )}
-                      {/* ADICIONALES SELECCIONADOS */}
-                      {(() => {
-                        const activeExtras = getDynamicExtras(Number(newEvent.guestCount) || 10, newEvent.makeupCount).filter(
-                          ex => newEvent.selectedExtras?.[ex.id]
-                        );
-                        if (activeExtras.length === 0) return null;
-                        return activeExtras.map(ex => {
-                          if (!ex) return null;
-                          return (
-                            <div key={ex.id} style={{ marginBottom: '4px' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#bc6ff1' }}>
-                                <span>+ {ex?.name || 'Extra'}:</span>
-                                <strong>${ex.price.toLocaleString()}</strong>
-                              </div>
-                              <div style={{ fontSize: '0.65rem', color: '#999', paddingLeft: '10px', fontStyle: 'italic' }}>
-                                {ex.details}
-                              </div>
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {/* HEADER MESSAGE / PLAN SPECS */}
+                        {/* HEADER MESSAGE / PLAN SPECS */}
+                        {p === 'PERSONALIZADO' ? (
+                          <div style={{ color: 'var(--primary-cyan)', fontWeight: 'bold', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            Configuración Personalizada
+                          </div>
+                        ) : hasPlan ? (
+                          <div style={{ paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white', fontWeight: 'bold' }}>
+                              <span>Paquete {p} (4h):</span>
+                              <span>${(proto.price || 0).toLocaleString()}</span>
                             </div>
-                          )
-                        });
-                      })()}
-                    </div>
-                  ) : <div>Tarifa Manual</div>}
-                </div>
+                            <div style={{ fontSize: '0.62rem', color: '#aaa', marginTop: '6px', lineHeight: '1.4', fontWeight: 'bold' }}>
+                              Personal: { (proto.roles || []).join(' • ') }
+                            </div>
+                            <div style={{ fontSize: '0.6rem', color: '#888', marginTop: '4px', lineHeight: '1.4' }}>
+                              Equipos: { (proto.items || []).join(' • ') }
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {/* DJ EXTRA (ONLY IF PACKAGE CHOSEN) */}
+                        {hasPlan && extraDJ > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', fontSize: '0.65rem' }}>
+                            <span>+ {extraDJ}h Extensión DJ ($85k/h):</span>
+                            <strong>${extrasDJPrice.toLocaleString()}</strong>
+                          </div>
+                        )}
+
+                        {/* PHOTO/VIDEO/AV EXTRAS (IF ANY DURATION ADDED) */}
+                        {extraPhoto > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff9f43', fontSize: '0.65rem' }}>
+                            <span>+ {extraPhoto}h Extensión Fotografía ($50k/h):</span>
+                            <strong>${extrasPhotoPrice.toLocaleString()}</strong>
+                          </div>
+                        )}
+                        {extraCam > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#00d4ff', fontSize: '0.65rem' }}>
+                            <span>+ {extraCam}h Extensión 360 ($200k/h):</span>
+                            <strong>${extrasCamPrice.toLocaleString()}</strong>
+                          </div>
+                        )}
+                        {Math.max(0, Math.ceil(avDur - 4)) > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff3860', fontSize: '0.65rem' }}>
+                            <span>+ {Math.max(0, Math.ceil(avDur - 4))}h Extensión Audiovisual ($85k/h):</span>
+                            <strong>${extrasAVPrice.toLocaleString()}</strong>
+                          </div>
+                        )}
+
+                        {/* ADICIONALES SELECCIONADOS (KITS, NEON, ETC) */}
+                        {(() => {
+                          const activeExtras = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id]);
+                          if (activeExtras.length === 0) return null;
+                          return (
+                            <div style={{ marginTop: '5px', paddingTop: '5px', borderTop: hasPlan ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                              {activeExtras.map(ex => (
+                                <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#bc6ff1', fontSize: '0.65rem', marginBottom: '2px' }}>
+                                  <span>+ {ex.name} {ex.qty > 1 ? `(x${ex.qty})` : ''}:</span>
+                                  <strong>${ex.price.toLocaleString()}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    );
+                  })()}
+                  </div>
 
                 <div style={{ flex: 1 }}>
                   <small style={{ color: '#888', marginBottom: '2px' }}>Valor Total (Calculado):</small>
@@ -4387,13 +4456,13 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         type="button"
                         onClick={() => updateEvent('paymentMethod', m.id.replace('Davi', 'Daviplata').replace('Efect', 'Efectivo'))}
                         style={{
-                          padding: '12px 2px',
+                          padding: '6px 2px',
                           borderRadius: '8px',
                           border: '1px solid',
                           borderColor: newEvent.paymentMethod?.includes(m.id) ? m.color : 'rgba(255,255,255,0.1)',
                           background: newEvent.paymentMethod?.includes(m.id) ? `${m.color}22` : 'rgba(255,255,255,0.03)',
                           color: newEvent.paymentMethod?.includes(m.id) ? m.color : 'rgba(255,255,255,0.3)',
-                          fontSize: '0.6rem',
+                          fontSize: '0.55rem',
                           fontWeight: '800',
                           transition: 'all 0.2s',
                           whiteSpace: 'nowrap',
@@ -4417,8 +4486,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 <IconCheck /> {newEvent.id ? 'Actualizar' : 'Confirmar'}
               </button>
             </div>
-          </form >
-        </div >
+          </form>
+        </div>
       )
     } catch (error) {
       console.error("Critical error in renderCreate:", error);
@@ -4434,7 +4503,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             </div>
             <button
               onClick={() => {
-                setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' });
+                setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Onix', totalValue: '', deposit: '', leadSource: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '' });
                 setView('quotations');
               }}
               className="primary-btn"
@@ -5061,13 +5130,15 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       const updates = { [field]: timeString };
 
                       // SYNC LOGIC: If updating DJ time, sync PHOTO/DECOR if they match old DJ time
-                      if (field === 'eventDetails.startTime') {
-                        if (evt.eventDetails?.photoStartTime === evt.eventDetails?.startTime) updates['eventDetails.photoStartTime'] = timeString;
-                        if (evt.eventDetails?.decorStartTime === evt.eventDetails?.startTime) updates['eventDetails.decorStartTime'] = timeString;
+                      if (field === 'eventDetails.startTime' || field === 'eventDetails.djStartTime') {
+                        const oldStart = evt.eventDetails?.djStartTime || evt.eventDetails?.startTime;
+                        if (evt.eventDetails?.photoStartTime === oldStart) updates['eventDetails.photoStartTime'] = timeString;
+                        if (evt.eventDetails?.decorStartTime === oldStart) updates['eventDetails.decorStartTime'] = timeString;
                       }
-                      if (field === 'eventDetails.endTime') {
-                        if (evt.eventDetails?.photoEndTime === evt.eventDetails?.endTime) updates['eventDetails.photoEndTime'] = timeString;
-                        if (evt.eventDetails?.decorEndTime === evt.eventDetails?.endTime) updates['eventDetails.decorEndTime'] = timeString;
+                      if (field === 'eventDetails.endTime' || field === 'eventDetails.djEndTime') {
+                        const oldEnd = evt.eventDetails?.djEndTime || evt.eventDetails?.endTime;
+                        if (evt.eventDetails?.photoEndTime === oldEnd) updates['eventDetails.photoEndTime'] = timeString;
+                        if (evt.eventDetails?.decorEndTime === oldEnd) updates['eventDetails.decorEndTime'] = timeString;
                       }
 
                       updateDoc(doc(db, "events", evt.id), updates);
@@ -5076,8 +5147,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     const roles = [
                       {
                         id: 'DJ', label: 'DJ', color: '#fff',
-                        startField: 'eventDetails.startTime', endField: 'eventDetails.endTime',
-                        sVal: evt.eventDetails?.startTime, eVal: evt.eventDetails?.endTime,
+                        startField: 'eventDetails.djStartTime', endField: 'eventDetails.djEndTime',
+                        sVal: evt.eventDetails?.djStartTime || evt.eventDetails?.startTime, 
+                        eVal: evt.eventDetails?.djEndTime || evt.eventDetails?.endTime,
                         visible: true
                       },
                       {
@@ -5692,6 +5764,145 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
   };
 
   // --- VIEW: EVENTS (EJECUCIÓN) ---
+  // --- LOGISTICS AGENDA HELPERS ---
+  const timeToMinutes = (timeStr) => {
+    if (!timeStr || typeof timeStr !== 'string') return 0;
+    const parts = (timeStr.includes(':') ? timeStr : `${timeStr}:00`).split(':');
+    return parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
+  };
+
+  const minutesToTime = (totalMinutes) => {
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const p = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${String(h12).padStart(2,'0')}:${String(m).padStart(2,'0')} ${p}`;
+  };
+
+  const renderLogisticsAgenda = () => {
+    const dayEvents = events.filter(e => e.eventDetails?.date === agendaDate && e.status !== 'CANCELLED');
+    
+    let points = [];
+    dayEvents.forEach(evt => {
+      const client = evt?.client?.name || evt?.clientName || 'Cliente';
+      const city = evt.logistics?.neighborhood || 'NEXXA HQ';
+      
+      if (evt.eventDetails?.warehouseTime) {
+        points.push({
+          time: evt.eventDetails.warehouseTime,
+          type: 'WAREHOUSE_OUT',
+          label: `SALIDA BODEGA: ${client}`,
+          sub: `Logística: ${city}`,
+          evtId: evt.id
+        });
+      }
+      
+      if (evt.eventDetails?.startTime) {
+        points.push({
+          time: evt.eventDetails.startTime,
+          type: 'DELIVERY',
+          label: `ENTREGA Y MONTAJE: ${client}`,
+          sub: `Ubicación: ${evt.logistics?.location || city}`,
+          evtId: evt.id
+        });
+      }
+      
+      if (evt.eventDetails?.endTime) {
+        points.push({
+          time: evt.eventDetails.endTime,
+          type: 'RECEPTION',
+          label: `RECEPCIÓN Y DESMONTAJE: ${client}`,
+          sub: `Retorno de equipos`,
+          evtId: evt.id
+        });
+      }
+    });
+
+    points.sort((a, b) => a.time.localeCompare(b.time));
+
+    const timeline = [];
+    for (let i = 0; i < points.length; i++) {
+        timeline.push(points[i]);
+        if (i < points.length - 1) {
+            const currentMins = timeToMinutes(points[i].time);
+            const nextMins = timeToMinutes(points[i+1].time);
+            const gap = nextMins - currentMins;
+            if (gap > 30) {
+                timeline.push({ type: 'FREE', duration: gap, start: points[i].time, end: points[i+1].time });
+            }
+        }
+    }
+
+    return (
+      <div className="fade-in" style={{ paddingBottom: '40px' }}>
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.02)', borderRadius: '18px', padding: '15px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '25px', alignItems: 'center', gap: '15px' }}>
+            <div style={{ fontSize: '1.2rem' }}>📅</div>
+            <div style={{ flex: 1 }}>
+                <small style={{ display: 'block', fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, letterSpacing: '1px', marginBottom: '4px' }}>FECHA DE CONSULTA</small>
+                <input 
+                    type="date" 
+                    value={agendaDate} 
+                    onChange={(e) => setAgendaDate(e.target.value)}
+                    style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1rem', fontWeight: '950', outline: 'none', width: '100%' }}
+                />
+            </div>
+            {dayEvents.length > 0 && <div style={{ background: 'var(--primary-cyan)', color: '#000', fontSize: '0.6rem', fontWeight: '1000', padding: '4px 10px', borderRadius: '10px' }}>{dayEvents.length} EVENTOS</div>}
+        </div>
+
+        <div style={{ position: 'relative', paddingLeft: '30px', listStyle: 'none' }}>
+           {/* Vertical Line */}
+           <div style={{ position: 'absolute', left: '7px', top: '10px', bottom: '10px', width: '2px', background: 'linear-gradient(180deg, var(--primary-cyan) 0%, var(--primary-purple) 100%)', opacity: 0.2, borderRadius: '10px' }}></div>
+           
+           {timeline.length === 0 ? (
+             <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '15px', opacity: 0.15 }}>🚚</div>
+                <h3 style={{ fontSize: '0.9rem', color: '#fff', opacity: 0.5, fontWeight: '800' }}>Sin logística programada</h3>
+                <small style={{ opacity: 0.3 }}>Este día se encuentra totalmente libre.</small>
+             </div>
+           ) : timeline.map((itm, idx) => {
+               if (itm.type === 'FREE') {
+                   const h = Math.floor(itm.duration / 60);
+                   const m = itm.duration % 60;
+                   return (
+                       <div key={`free-${idx}`} style={{ margin: '15px 0', padding: '12px 15px', background: 'rgba(34, 197, 94, 0.03)', border: '1px dashed rgba(34, 197, 94, 0.2)', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', marginLeft: '5px' }}>
+                           <div style={{ color: 'var(--success-green)', fontSize: '0.9rem' }}>🟢</div>
+                           <div>
+                               <div style={{ fontSize: '0.65rem', fontWeight: '950', color: 'var(--success-green)', letterSpacing: '0.5px' }}>TIEMPO DISPONIBLE</div>
+                               <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>Libre durante {h > 0 ? `${h}h ` : ''}{m > 0 ? `${m}m` : ''}</div>
+                           </div>
+                       </div>
+                   );
+               }
+
+               const icon = itm.type === 'WAREHOUSE_OUT' ? '📦' : itm.type === 'DELIVERY' ? '🚚' : '📥';
+               const color = itm.type === 'RECEPTION' ? 'var(--primary-purple)' : 'var(--primary-cyan)';
+
+               return (
+                   <div key={idx} style={{ position: 'relative', marginBottom: '25px', cursor: 'pointer' }} onClick={() => { if(itm.evtId) { setSelectedEventId(itm.evtId); setView('detail'); } }}>
+                       {/* Node Dot */}
+                       <div style={{ position: 'absolute', left: '-27px', top: '15px', width: '10px', height: '10px', borderRadius: '50%', background: color, boxShadow: `0 0 10px ${color}`, zIndex: 2 }}></div>
+                       
+                       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '20px', padding: '15px', transition: 'all 0.3s' }}>
+                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                   <div style={{ fontSize: '1.2rem' }}>{icon}</div>
+                                   <div>
+                                       <span style={{ fontSize: '0.85rem', fontWeight: '950', color: '#fff' }}>{getDisplayTimeUI(itm.time).full}</span>
+                                   </div>
+                               </div>
+                               <IconArrowRight size={14} style={{ opacity: 0.2 }} />
+                           </div>
+                           <h4 style={{ margin: '0 0 4px 0', fontSize: '0.75rem', fontWeight: '900', color: itm.type === 'FREE' ? 'var(--success-green)' : '#fff', letterSpacing: '0.3px' }}>{itm.label}</h4>
+                           <p style={{ margin: 0, fontSize: '0.6rem', opacity: 0.5, fontWeight: '700' }}>{itm.sub}</p>
+                       </div>
+                   </div>
+               );
+           })}
+        </div>
+      </div>
+    );
+  };
+
   const renderEventsList = () => {
     try {
       // Solo eventos confirmados, orden cronológico
@@ -5858,6 +6069,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
           }}>
             {[
               { id: 'list', label: 'EVENTOS' },
+              { id: 'agenda', label: 'AGENDA' },
               { id: 'inventory', label: 'INVENTARIO' },
               { id: 'history', label: 'HISTORIAL' }
             ].map(tab => (
@@ -6499,10 +6711,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       location: quo.eventDetails?.location || '',
                       neighborhood: quo.eventDetails?.neighborhood || '',
                       packName: (() => {
-                        const p = (quo.logistics?.packName || '').toLowerCase();
-                        if (p.includes('memories')) return 'Memories';
-                        if (p.includes('celebration')) return 'Celebration';
-                        return 'Essential';
+                        const p = (quo.logistics?.packName || '').toUpperCase();
+                        if (p.includes('MEMORIES')) return 'MEMORIES';
+                        if (p.includes('CELEBRATION')) return 'CELEBRATION';
+                        if (p.includes('MULTII')) return 'MULTII';
+                        if (p.includes('KAIZEN')) return 'KAIZEN';
+                        return 'ONIX'; // 'Essential' now maps to ONIX
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
                       deposit: (() => {
@@ -6999,7 +7213,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 <QuotationsView
                   quotations={quotations}
                   onCreate={() => {
-                    setNewEvent({ clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', paymentMethod: 'Nequi' });
+                    setNewEvent({ clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: '', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', paymentMethod: 'Nequi' });
                     setView('create');
                   }}
                   onEdit={(quo) => {
@@ -7007,51 +7221,53 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       id: quo.id,
                       createdAt: quo.createdAt || null,
                       clientName: quo.client?.name || quo.clientName || '',
-                      clientPhone: quo.client?.phone || '',
-                      clientPhone2: quo.client?.phone2 || '',
+                      clientPhone: quo.client?.phone || quo.clientPhone || '',
+                      clientPhone2: quo.client?.phone2 || quo.clientPhone2 || '',
                       date: quo.eventDetails?.date || '',
                       startTime: quo.eventDetails?.startTime || '',
                       endTime: quo.eventDetails?.endTime || '',
                       location: quo.eventDetails?.location || '',
                       neighborhood: quo.eventDetails?.neighborhood || '',
                       packName: (() => {
-                        const p = (quo.logistics?.packName || '').toLowerCase();
-                        if (p.includes('memories')) return 'Memories';
-                        if (p.includes('celebration')) return 'Celebration';
-                        return 'Essential';
+                        const p = (quo.logistics?.packName || '').toUpperCase();
+                        if (p.includes('ONIX') || p.includes('ESSENTIAL')) return 'ONIX';
+                        if (p.includes('MULTII')) return 'MULTII';
+                        if (p.includes('KAIZEN')) return 'KAIZEN';
+                        if (p.includes('MEMORIES')) return 'MEMORIES';
+                        if (p.includes('CELEBRATION')) return 'CELEBRATION';
+                        if (p.includes('APP') || p.includes('PERSONALIZADO')) return 'PERSONALIZADO';
+                        return '';
                       })(),
-                      totalValue: quo.financials?.totalValue || 0,
-                      deposit: (() => {
-                        const total = Number(quo.financials?.totalValue) || 0;
-                        const savedDep = quo.financials?.deposit;
-                        if (savedDep) return savedDep;
-                        return total > 0 ? Math.round((total * 0.3) / 1000) * 1000 : '';
-                      })(),
+                      totalValue: Number(quo.financials?.totalValue) || 0,
+                      deposit: Number(quo.financials?.deposit) || 0,
                       managerName: '',
-                      guestCount: quo.eventDetails?.guestCount || 0,
-                      selectedExtras: (() => {
-                        const raw = quo.logistics?.selectedExtras || {};
-                        const clean = {};
-                        Object.keys(raw).forEach(k => {
-                          if (raw[k]) {
-                            const lowerK = k.toLowerCase();
-                            if (lowerK === 'makeup' || lowerK === 'neon' || lowerK.includes('maquillaje')) clean['extra_makeup'] = true;
-                            else clean[k] = true;
-                          }
-                        });
-                        return clean;
-                      })(),
+                      guestCount: Number(quo.eventDetails?.guestCount) || 50,
+                      selectedExtras: quo.logistics?.selectedExtras || {},
+                      extraQtys: quo.logistics?.extraQtys || {},
                       makeupCount: quo.logistics?.makeupCount || 1,
                       occasion: quo.eventDetails?.occasion || '',
-                      extraHourPrice: quo.financials?.extraHourPrice || (() => {
-                        const p = (quo.logistics?.packName || '').toLowerCase();
-                        if (p.includes('memories') || p.includes('celebration')) return 120000;
-                        return 85000;
-                      })(),
+                      extraHourPrice: quo.financials?.extraHourPrice || 85000,
                       indications: quo.eventDetails?.indications || 'Ninguna',
                       materialsTime: '',
                       warehouseTime: '',
-                      materialExplanation: ''
+                      photoStartTime: quo.eventDetails?.photoStartTime || '',
+                      photoEndTime: quo.eventDetails?.photoEndTime || '',
+                      decorStartTime: quo.eventDetails?.decorStartTime || '',
+                      decorEndTime: quo.eventDetails?.decorEndTime || '',
+                      camStartTime: quo.eventDetails?.cam360StartTime || '',
+                      camEndTime: quo.eventDetails?.cam360EndTime || '',
+                      avStartTime: quo.eventDetails?.avStartTime || '',
+                      avEndTime: quo.eventDetails?.avEndTime || '',
+                      essentialStartTime: quo.eventDetails?.essentialStartTime || '',
+                      essentialEndTime: quo.eventDetails?.essentialEndTime || '',
+                      memoriesStartTime: quo.eventDetails?.memoriesStartTime || '',
+                      memoriesEndTime: quo.eventDetails?.memoriesEndTime || '',
+                      celebrationStartTime: quo.eventDetails?.celebrationStartTime || '',
+                      celebrationEndTime: quo.eventDetails?.celebrationEndTime || '',
+                      decorColor: quo.eventDetails?.decorColor || '',
+                      decorTheme: quo.eventDetails?.decorTheme || '',
+                      materialExplanation: '',
+                      paymentMethod: quo.financials?.paymentMethod || 'Nequi'
                     });
                     setView('create');
                   }}

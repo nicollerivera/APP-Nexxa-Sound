@@ -117,48 +117,106 @@ export const getTomorrowStr = () => {
   d.setDate(d.getDate() + 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
-export const getDynamicExtras = (guests, userMakeupCount) => {
+export const getDynamicExtras = (guests, makeupCount, extraQtys = {}) => {
   const g = Math.max(10, Number(guests) || 10);
   const accMultiplier = Math.ceil(g / 10);
 
-  // 1. Maquillaje (1 por cada 50 invitados O manual)
+  // 1. Maquillaje (Manual or suggest 1 per 50)
   const recommendedMakeup = Math.ceil(g / 50);
-  const qty = (typeof userMakeupCount === 'number') ? userMakeupCount : recommendedMakeup;
-  // Stitch pricing: 150k per artist (based on STITCH_DATA in app)
+  const mQty = (typeof makeupCount === 'number') ? makeupCount : recommendedMakeup;
+  // Stitch pricing: 150k per artist
   const makeupPrice = 150000; 
 
-  return [
+  const items = [
     {
       id: 'extra_makeup',
       name: `Maquillaje Neón`,
       price: makeupPrice,
-      qty: qty,
+      qty: mQty,
       isMakeup: true,
-      area: 'Photo',
-      details: `${qty} Artista(s) (1 por c/50 invitados)`
+      category: 'Servicios',
+      details: `${mQty} Artista(s) (1 por c/50 invitados)`
     },
+    // KITS (Calculated by Pax/10)
     {
       id: 'acc_essential',
       name: 'Accesorios 111 (Base)',
       price: 111000 * accMultiplier,
-      area: 'Decor',
-      details: `111 Items | ${g} pax coverage`
+      category: 'Kits',
+      details: `Incluye ${111 * accMultiplier} items | Sugerido para ${g} pax.`
     },
     {
       id: 'acc_memories',
       name: 'Accesorios 444 (Pro)',
       price: 444000 * accMultiplier,
-      area: 'Decor',
-      details: `444 Items | ${g} pax coverage`
+      category: 'Kits',
+      details: `Incluye ${444 * accMultiplier} items | Sugerido para ${g} pax.`
     },
     {
       id: 'acc_celebration',
       name: 'Accesorios 777 (Premium)',
       price: 777000 * accMultiplier,
-      area: 'Decor',
-      details: `777 Items | ${g} pax coverage`
+      category: 'Kits',
+      details: `Incluye ${777 * accMultiplier} items | Sugerido para ${g} pax.`
+    },
+    // INDIVIDUAL ITEMS (Manual Qty)
+    {
+      id: 'acc_espuma',
+      name: 'Espuma',
+      price: 13000,
+      qty: extraQtys['acc_espuma'] || 1,
+      isItem: true,
+      category: 'Artículos',
+      details: 'Lata de espuma para animación.'
+    },
+    {
+      id: 'acc_canon',
+      name: 'Cañón de Confeti',
+      price: 5000,
+      qty: extraQtys['acc_canon'] || 1,
+      isItem: true,
+      category: 'Artículos',
+      details: 'Cañón manual de confeti o CO2.'
+    },
+    {
+      id: 'acc_manilla',
+      name: 'Manilla Neón',
+      price: 400,
+      qty: extraQtys['acc_manilla'] || 1,
+      isItem: true,
+      category: 'Artículos',
+      details: 'Manilla reactiva luz UV.'
+    },
+    {
+      id: 'acc_antifaz',
+      name: 'Antifaz',
+      price: 300,
+      qty: extraQtys['acc_antifaz'] || 1,
+      isItem: true,
+      category: 'Artículos',
+      details: 'Antifaz de cartón decorado.'
+    },
+    {
+      id: 'acc_collar',
+      name: 'Collar Hawaiano',
+      price: 400,
+      qty: extraQtys['acc_collar'] || 1,
+      isItem: true,
+      category: 'Artículos',
+      details: 'Collar de flores sintéticas.'
+    },
+    {
+      id: 'acc_pito',
+      name: 'Pito',
+      price: 200,
+      qty: extraQtys['acc_pito'] || 1,
+      isItem: true,
+      category: 'Artículos',
+      details: 'Silbato plástico para rumba.'
     }
   ];
+
+  return items;
 };
 
 export const getClientName = (evt) => {

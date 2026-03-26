@@ -444,9 +444,23 @@ const LogisticsView = ({ events, quotations = [], inventory = [], staffRates = {
                                                             )}
                                                         </div>
                                                         <h4 style={{ margin: '0 0 2px 0', fontSize: '1rem', fontWeight: 'bold', color: 'white' }}>{task.title}</h4>
-                                                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', fontWeight: '500' }}>{task.client}</div>
+                                                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', fontWeight: '700' }}>{task.client}</div>
+                                                        {(task.loc || task.sub) && (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
+                                                                {task.loc && (
+                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--primary-cyan)', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                        📍 {task.loc}
+                                                                    </div>
+                                                                )}
+                                                                {task.sub && (
+                                                                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600', paddingLeft: '16px' }}>
+                                                                        {task.sub}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                         {task.staff && (
-                                                            <div style={{ marginTop: '5px', fontSize: '0.7rem', color: task.color, fontWeight: '700', opacity: 0.9 }}>
+                                                            <div style={{ marginTop: '10px', fontSize: '0.7rem', color: task.color, fontWeight: '700', padding: '4px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', width: 'fit-content' }}>
                                                                 👤 {task.staff}
                                                             </div>
                                                         )}

@@ -44,11 +44,24 @@ const QuotationsView = ({
     // Sorting logic
     const sortedQuotations = [...quotations].sort((a, b) => {
         if (!a || !b) return 0;
-        if (a.status === 'SENT' && b.status !== 'SENT') return -1;
-        if (a.status !== 'SENT' && b.status === 'SENT') return 1;
-        const dateA = parseFirestoreDate(a?.createdAt);
-        const dateB = parseFirestoreDate(b?.createdAt);
-        if (dateA && dateB && dateA.getTime && dateB.getTime && dateA.getTime() !== dateB.getTime()) return dateB - dateA;
+
+        // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
+        const statusOrder = { 'SENT': 0, 'APPROVED': 1, 'LOST': 2 };
+        const orderA = statusOrder[a.status] ?? 3;
+        const orderB = statusOrder[b.status] ?? 3;
+        
+        if (orderA !== orderB) return orderA - orderB;
+
+        // 2. ORDEN CRONOLÓGICO: Más reciente primero dentro de su sección
+        const dateA = a.createdAt ? parseFirestoreDate(a.createdAt) : new Date(0);
+        const dateB = b.createdAt ? parseFirestoreDate(b.createdAt) : new Date(0);
+        
+        const timeA = dateA.getTime ? dateA.getTime() : 0;
+        const timeB = dateB.getTime ? dateB.getTime() : 0;
+
+        if (timeA !== timeB) return timeB - timeA;
+
+        // 3. FALLBACK: ID
         return (b.id || '').localeCompare(a.id || '');
     });
 
@@ -148,7 +161,19 @@ const QuotationsView = ({
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '40px' }}>
                                     <div>
                                         <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#fff' }}>{clientName}</h4>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', opacity: 0.5, fontWeight: '500' }}>📅 {quo.eventDetails?.date} • {quo.logistics?.packName || 'Plan'}</p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                                            <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, fontWeight: '700', color: 'var(--primary-cyan)' }}>
+                                                📅 {quo.eventDetails?.date} • {quo.eventDetails?.neighborhood || 'Barrio por definir'}
+                                            </p>
+                                            {quo.eventDetails?.location && (
+                                                <p style={{ margin: 0, fontSize: '0.7rem', opacity: 0.4, fontWeight: '500', color: '#fff' }}>
+                                                    📍 {quo.eventDetails.location}
+                                                </p>
+                                            )}
+                                            <p style={{ margin: 0, fontSize: '0.65rem', opacity: 0.3, fontWeight: '800', letterSpacing: '0.5px' }}>
+                                                📦 {quo.logistics?.packName || 'Plan Personalizado'}
+                                            </p>
+                                        </div>
                                     </div>
                                     <div style={{ fontWeight: '900', fontSize: '1.1rem', color: 'var(--primary-cyan)' }}>{formatPeso(quo.financials?.totalValue || 0)}</div>
                                 </div>
