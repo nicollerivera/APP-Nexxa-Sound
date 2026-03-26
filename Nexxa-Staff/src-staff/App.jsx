@@ -423,18 +423,20 @@ function App() {
         if (!d) return null;
 
         // NORMALIZACIÓN DE UBICACIÓN (Defensiva)
-        const normLoc = d.eventDetails?.location || d.eventDetails?.direccion || d.eventDetails?.address || d.direccion || d.address || d.location || '';
-        const normHood = d.eventDetails?.neighborhood || d.eventDetails?.barrio || d.barrio || d.neighborhood || '';
+        const dClient = d.client || {};
+        const dEvent = d.eventDetails || {};
+        const normLoc = dEvent.location || dEvent.direccion || dEvent.address || dClient.location || dClient.direccion || dClient.address || d.direccion || d.address || d.location || '';
+        const normHood = dEvent.neighborhood || dEvent.barrio || dClient.neighborhood || dClient.barrio || d.barrio || d.neighborhood || '';
 
         // NORMALIZACIÓN DE EXTRAS (Landing -> Staff)
-        const rawExtras = d.logistics?.selectedExtras || d.selectedExtras || d.servicios || {};
+        const rawExtras = d.logistics?.selectedExtras || d.selectedExtras || d.servicios || d.items || {};
         const cleanExtras = {};
-        Object.keys(rawExtras).forEach(k => {
-          const val = rawExtras[k];
-          if (val) {
-            const rawStr = (typeof val === 'string' ? (k + ' ' + val) : k);
-            const searchStr = rawStr.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        
+        const processStr = (s) => (s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
+        if (Array.isArray(rawExtras)) {
+          rawExtras.forEach(item => {
+            const searchStr = processStr(typeof item === 'string' ? item : (item.id + ' ' + item.name + ' ' + (item.category || '')));
             if (searchStr.includes('photo') || searchStr.includes('foto')) cleanExtras['extra_photo'] = true;
             else if (searchStr.includes('360') || searchStr.includes('cam') || searchStr.includes('master')) cleanExtras['extra_cam360'] = true;
             else if (searchStr.includes('makeup') || searchStr.includes('maquillaje') || searchStr.includes('neon')) cleanExtras['extra_makeup'] = true;
@@ -445,9 +447,28 @@ function App() {
             else if (searchStr.includes('onix') || searchStr.includes('decor')) cleanExtras['extra_decor_onix'] = true;
             else if (searchStr.includes('multii')) cleanExtras['extra_decor_multii'] = true;
             else if (searchStr.includes('kaizen')) cleanExtras['extra_decor_kaizen'] = true;
-            else cleanExtras[k] = true;
-          }
-        });
+            else if (typeof item === 'string') cleanExtras[item] = true;
+            else if (item.id) cleanExtras[item.id] = true;
+          });
+        } else {
+          Object.keys(rawExtras).forEach(k => {
+            const val = rawExtras[k];
+            if (val) {
+              const searchStr = processStr(typeof val === 'string' ? (k + ' ' + val) : k);
+              if (searchStr.includes('photo') || searchStr.includes('foto')) cleanExtras['extra_photo'] = true;
+              else if (searchStr.includes('360') || searchStr.includes('cam') || searchStr.includes('master')) cleanExtras['extra_cam360'] = true;
+              else if (searchStr.includes('makeup') || searchStr.includes('maquillaje') || searchStr.includes('neon')) cleanExtras['extra_makeup'] = true;
+              else if (searchStr.includes('av') || searchStr.includes('audiovisual') || searchStr.includes('sonido')) cleanExtras['extra_av'] = true;
+              else if (searchStr.includes('111') || (searchStr.includes('essential') && searchStr.includes('kit'))) cleanExtras['acc_essential'] = true;
+              else if (searchStr.includes('444') || (searchStr.includes('memories') && searchStr.includes('kit'))) cleanExtras['acc_memories'] = true;
+              else if (searchStr.includes('777') || (searchStr.includes('celebration') && searchStr.includes('kit'))) cleanExtras['acc_celebration'] = true;
+              else if (searchStr.includes('onix') || searchStr.includes('decor')) cleanExtras['extra_decor_onix'] = true;
+              else if (searchStr.includes('multii')) cleanExtras['extra_decor_multii'] = true;
+              else if (searchStr.includes('kaizen')) cleanExtras['extra_decor_kaizen'] = true;
+              else cleanExtras[k] = true;
+            }
+          });
+        }
 
         const pName = (d.logistics?.packName || d.paquete || d.packName || '').toUpperCase();
 
@@ -468,7 +489,7 @@ function App() {
             location: normLoc,
             neighborhood: normHood,
             guestCount: (() => {
-                const rawG = String(d.eventDetails?.guestCount || d.eventDetails?.invitados || d.invitados || '10');
+                const rawG = String(dEvent.guests || dEvent.guestCount || dEvent.invitados || d.invitados || '10');
                 const match = rawG.match(/\d+/);
                 return match ? Number(match[0]) : 10;
             })(),
@@ -7938,7 +7959,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             RECARGAR APLICACIÓN
           </button>
         </div>
-        <div style={{ position: 'fixed', bottom: '10px', right: '10px', fontSize: '10px', color: 'rgba(255,255,255,0.05)', zIndex: 9999 }}>v1.0.1-2603</div>
+        <div style={{ position: 'fixed', bottom: '10px', right: '10px', fontSize: '10px', color: 'rgba(255,255,255,0.05)', zIndex: 9999 }}>v1.0.2-2603</div>
       </div>
     );
   }
