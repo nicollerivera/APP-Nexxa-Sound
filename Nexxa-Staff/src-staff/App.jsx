@@ -432,22 +432,19 @@ function App() {
         Object.keys(rawExtras).forEach(k => {
           const val = rawExtras[k];
           if (val) {
-            // Normalización extrema: quitar acentos y pasar a minúsculas
-            const searchStr = (typeof val === 'string' ? (k + ' ' + val) : k)
-              .toLowerCase()
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "");
+            const rawStr = (typeof val === 'string' ? (k + ' ' + val) : k);
+            const searchStr = rawStr.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
             if (searchStr.includes('photo') || searchStr.includes('foto')) cleanExtras['extra_photo'] = true;
-            else if (searchStr.includes('360') || searchStr.includes('video') || searchStr.includes('cam')) cleanExtras['extra_cam360'] = true;
+            else if (searchStr.includes('360') || searchStr.includes('cam') || searchStr.includes('master')) cleanExtras['extra_cam360'] = true;
             else if (searchStr.includes('makeup') || searchStr.includes('maquillaje') || searchStr.includes('neon')) cleanExtras['extra_makeup'] = true;
             else if (searchStr.includes('av') || searchStr.includes('audiovisual') || searchStr.includes('sonido')) cleanExtras['extra_av'] = true;
             else if (searchStr.includes('111') || (searchStr.includes('essential') && searchStr.includes('kit'))) cleanExtras['acc_essential'] = true;
             else if (searchStr.includes('444') || (searchStr.includes('memories') && searchStr.includes('kit'))) cleanExtras['acc_memories'] = true;
             else if (searchStr.includes('777') || (searchStr.includes('celebration') && searchStr.includes('kit'))) cleanExtras['acc_celebration'] = true;
-            else if (searchStr.includes('onix') && (searchStr.includes('decor') || searchStr.includes('montaje'))) cleanExtras['extra_decor_onix'] = true;
-            else if (searchStr.includes('multii') && (searchStr.includes('decor') || searchStr.includes('montaje'))) cleanExtras['extra_decor_multii'] = true;
-            else if (searchStr.includes('kaizen') && (searchStr.includes('decor') || searchStr.includes('montaje'))) cleanExtras['extra_decor_kaizen'] = true;
+            else if (searchStr.includes('onix') || searchStr.includes('decor')) cleanExtras['extra_decor_onix'] = true;
+            else if (searchStr.includes('multii')) cleanExtras['extra_decor_multii'] = true;
+            else if (searchStr.includes('kaizen')) cleanExtras['extra_decor_kaizen'] = true;
             else cleanExtras[k] = true;
           }
         });
@@ -470,7 +467,11 @@ function App() {
             endTime: d.eventDetails?.endTime || d.endTime || '',
             location: normLoc,
             neighborhood: normHood,
-            guestCount: Number(d.eventDetails?.guestCount || d.eventDetails?.invitados || d.invitados) || 10,
+            guestCount: (() => {
+                const rawG = String(d.eventDetails?.guestCount || d.eventDetails?.invitados || d.invitados || '10');
+                const match = rawG.match(/\d+/);
+                return match ? Number(match[0]) : 10;
+            })(),
             photoStartTime: d.eventDetails?.photoStartTime || d.eventDetails?.photoStart || '',
             photoEndTime: d.eventDetails?.photoEndTime || d.eventDetails?.photoEnd || '',
             cam360StartTime: d.eventDetails?.cam360StartTime || d.eventDetails?.camStart || d.eventDetails?.videoStartTime || '',
@@ -7937,6 +7938,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             RECARGAR APLICACIÓN
           </button>
         </div>
+        <div style={{ position: 'fixed', bottom: '10px', right: '10px', fontSize: '10px', color: 'rgba(255,255,255,0.05)', zIndex: 9999 }}>v1.0.1-2603</div>
       </div>
     );
   }
