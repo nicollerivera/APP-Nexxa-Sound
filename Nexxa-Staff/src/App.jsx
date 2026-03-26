@@ -80,7 +80,16 @@ import ConfigManagerView from './components/ConfigManagerView';
 
 
 function App() {
-  // --- 0. DYNAMIC CONFIGURATION STATE ---
+  const APP_VERSION = "1.2.9b"; // Build Fix Force Refresh
+  
+  // --- 0. FORCE CACHE BREAK ---
+  useEffect(() => {
+    const savedVer = localStorage.getItem('nexxa_app_ver');
+    if (savedVer !== APP_VERSION) {
+      localStorage.setItem('nexxa_app_ver', APP_VERSION);
+      window.location.reload();
+    }
+  }, []);
   const [catalog, setCatalog] = useState(null);
   const [isConfigLoaded, setIsConfigLoaded] = useState(false);
 
@@ -360,26 +369,78 @@ function App() {
 
       const liveQuo = snapshot.docs.map(doc => {
         const d = doc.data();
+        
+        // --- ROBUST NORMALIZATION LAYER (v1.0.2-FINAL) ---
+        // 1. Ubicación y Barrio
+        const loc = d.eventDetails?.location || d.client?.location || d.location || d.address || '';
+        const neighborhood = d.eventDetails?.neighborhood || d.neighborhood || '';
+        
+        // 2. Invitados (Parsing Regex)
+        const guestsRaw = d.eventDetails?.guests || d.eventDetails?.guestCount || d.guestCount || d.invitados || '10';
+        const guestNum = parseInt(String(guestsRaw).match(/\d+/)?.[0] || '10');
+
+        // 3. Servicios y Extras (Permissive Mapping)
+        const cleanExtras = {};
+        const items = d.items || d.logistics?.selectedExtras || d.selectedExtras || [];
+        
+        if (Array.isArray(items)) {
+          items.forEach(item => {
+            const searchStr = (String(item.id || '') + ' ' + String(item.name || '') + ' ' + String(item.category || '')).toLowerCase()
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Quitar tildes
+            
+            if (searchStr.includes('photo') || searchStr.includes('foto')) cleanExtras['foto_pro'] = true;
+            else if (searchStr.includes('360') || searchStr.includes('cam') || searchStr.includes('master')) cleanExtras['camara_360'] = true;
+            else if (searchStr.includes('makeup') || searchStr.includes('maquillaje') || searchStr.includes('neon')) cleanExtras['maquillaje_neon'] = true;
+            else if (searchStr.includes('onix') || searchStr.includes('decor')) cleanExtras['decor_onix'] = true;
+            else if (searchStr.includes('kaizen')) cleanExtras['decor_kaizen'] = true;
+            else if (searchStr.includes('multii')) cleanExtras['decor_multii'] = true;
+            else if (searchStr.includes('essential')) cleanExtras['acc_essential'] = true;
+            else if (searchStr.includes('memories')) cleanExtras['acc_memories'] = true;
+            else if (searchStr.includes('celebration')) cleanExtras['acc_celebration'] = true;
+          });
+        } else if (typeof items === 'object') {
+          // Si llega como objeto {id: true}
+          Object.keys(items).forEach(k => { if (items[k]) cleanExtras[k] = true; });
+        }
+
+        // 4. Nombre del Paquete (Intelligent Deduction)
+        const pRaw = d.logistics?.packName || d.packName || d.paquete || '';
+        let finalPack = 'Personalizado';
+        const pName = String(pRaw).toUpperCase();
+        
+        if (pName.includes('KAIZEN')) finalPack = 'Kaizen';
+        else if (pName.includes('MULTII')) finalPack = 'Multii';
+        else if (pName.includes('ONIX')) finalPack = 'Onix';
+        else if (pName.includes('MEMORIES')) finalPack = 'Memories';
+        else if (pName.includes('ESSENTIAL')) finalPack = 'Essential';
+        else if (Array.isArray(items)) {
+           // Detección por items si el nombre viene vacío o genérico
+           const searchAll = items.map(i => String(i.id || '')).join(' ').toLowerCase();
+           if (searchAll.includes('kaizen')) finalPack = 'Kaizen';
+           else if (searchAll.includes('multii')) finalPack = 'Multii';
+           else if (searchAll.includes('onix')) finalPack = 'Onix';
+        }
+
         return {
           id: doc.id,
           status: d.status || 'SENT',
           client: {
-            name: d.client?.name || d.clientName || 'Cliente sin nombre',
-            phone: d.client?.phone || d.clientPhone || '',
-            phone2: d.client?.phone2 || d.clientPhone2 || ''
+            name: d.client?.name || d.clientName || d.nombre || 'Cliente sin nombre',
+            phone: d.client?.phone || d.clientPhone || d.celular || d.celular1 || '',
+            phone2: d.client?.phone2 || d.clientPhone2 || d.celular2 || ''
           },
           eventDetails: {
-            date: d.eventDetails?.date || d.date || '',
+            date: d.eventDetails?.date || d.date || d.fecha || '',
             startTime: d.eventDetails?.startTime || d.startTime || '20:00',
             endTime: d.eventDetails?.endTime || d.endTime || '00:00',
-            location: d.eventDetails?.location || d.location || '',
-            neighborhood: d.eventDetails?.neighborhood || d.neighborhood || '',
-            guestCount: Number(d.eventDetails?.guestCount || d.guestCount || 0),
-            occasion: d.eventDetails?.occasion || d.occasion || 'Evento'
+            location: loc,
+            neighborhood: neighborhood,
+            guestCount: guestNum,
+            occasion: d.eventDetails?.occasion || d.occasion || d.ocasion || 'Evento'
           },
           logistics: {
-            packName: d.logistics?.packName || d.packName || 'Essential',
-            selectedExtras: d.logistics?.selectedExtras || d.selectedExtras || {},
+            packName: finalPack,
+            selectedExtras: cleanExtras,
             makeupCount: Number(d.logistics?.makeupCount || d.makeupCount || 1)
           },
           financials: {
@@ -393,11 +454,20 @@ function App() {
 
       setQuotations(liveQuo.sort((a, b) => {
         if (!a || !b) return 0;
-        if (a.status === 'SENT' && b.status !== 'SENT') return -1;
-        if (a.status !== 'SENT' && b.status === 'SENT') return 1;
-        const dateA = parseFirestoreDate(a.createdAt);
-        const dateB = parseFirestoreDate(b.createdAt);
-        if (dateA && dateB && dateA.getTime && dateB.getTime() !== dateA.getTime()) return dateB - dateA;
+        
+        // --- REGLA DE ORO DE VENTAS: Lo más nuevo arriba ---
+        // 1. Obtener timestamps (ms)
+        const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (parseFirestoreDate(a.createdAt).getTime() || 0);
+        const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (parseFirestoreDate(b.createdAt).getTime() || 0);
+        
+        // 2. Si uno no tiene fecha (nuevo registro en sync), va PRIMERO
+        if (!timeA && timeB) return -1;
+        if (timeA && !timeB) return 1;
+        
+        // 3. Ordenar por creación descendente
+        if (timeB !== timeA) return timeB - timeA;
+        
+        // 4. Fallback por ID
         return (b.id || '').localeCompare(a.id || '');
       }));
     });
@@ -4371,6 +4441,10 @@ function App() {
           <IconUser size={20} />
           <span style={{ fontSize: '0.6rem', fontWeight: '900', marginTop: '4px' }}>Yo</span>
         </button>
+
+        <div style={{ position: 'absolute', bottom: '5px', right: '10px', fontSize: '10px', opacity: 0.3, pointerEvents: 'none' }}>
+          v1.0.2-FINAL
+        </div>
 
       </nav>
     );

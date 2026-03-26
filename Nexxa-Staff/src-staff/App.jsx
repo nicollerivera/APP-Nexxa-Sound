@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-
 import QuotationsView from './components/QuotationsView';
 import CatalogManagerView from './components/CatalogManagerView';
 import LogisticsCalendarView from './components/LogisticsCalendarView';
@@ -106,7 +105,7 @@ const TimeInput = ({ value, onChange, label }) => {
         right: '-20%',
         width: '100px',
         height: '100px',
-        background: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
+        background: 'var(--primary-cyan)',
         filter: 'blur(40px)',
         opacity: 0.15,
         zIndex: 0,
@@ -151,7 +150,7 @@ const TimeInput = ({ value, onChange, label }) => {
         <span style={{
           fontSize: '1.2rem',
           fontWeight: '100',
-          color: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
+          color: 'var(--primary-cyan)',
           opacity: 0.5,
           marginBottom: '4px'
         }}>:</span>
@@ -176,13 +175,13 @@ const TimeInput = ({ value, onChange, label }) => {
         marginTop: '8px',
         fontSize: '0.55rem',
         fontWeight: '900',
-        color: '#fff',
-        background: isAM ? 'var(--primary-cyan)' : 'var(--primary-purple)',
+        color: '#000',
+        background: 'var(--primary-cyan)',
         padding: '3px 10px',
         borderRadius: '50px',
         textTransform: 'uppercase',
         letterSpacing: '1px',
-        boxShadow: isAM ? '0 5px 15px rgba(0, 242, 255, 0.4)' : '0 5px 15px rgba(188, 111, 241, 0.4)',
+        boxShadow: 'var(--gold-glow)',
         transition: 'all 0.3s ease'
       }}>
         {display.period}
@@ -234,7 +233,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
       }}>{label}</span>
       <div style={{
         position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10, 10, 15, 0.7)',
-        border: '1px solid rgba(188, 111, 241, 0.2)', borderRadius: '50px', padding: '14px 28px', gap: '24px', width: 'fit-content', boxShadow: '0 0 20px rgba(188, 111, 241, 0.15), inset 0 2px 10px rgba(0,0,0,0.5)'
+        border: '1px solid var(--primary-cyan)', borderRadius: '50px', padding: '14px 28px', gap: '24px', width: 'fit-content', boxShadow: 'var(--gold-glow), inset 0 2px 10px rgba(0,0,0,0.5)'
       }}>
         <div style={{ position: 'relative', cursor: 'pointer' }}>
           <span style={{ color: '#fff', fontWeight: '900', fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
@@ -272,7 +271,22 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
+const APP_VERSION = '1.4.2-logistics'; // UI Simplification Step 1
+
 function App() {
+  // --- VERSIONING & CLEANUP ---
+  React.useEffect(() => {
+    const lastVersion = localStorage.getItem('nexxa_app_version');
+    if (lastVersion && lastVersion !== APP_VERSION) {
+      console.log(`[VERSION] Updating from ${lastVersion} to ${APP_VERSION}. Clearing cache...`);
+      localStorage.clear();
+      localStorage.setItem('nexxa_app_version', APP_VERSION);
+      setTimeout(() => window.location.reload(true), 100);
+    } else {
+      localStorage.setItem('nexxa_app_version', APP_VERSION);
+    }
+  }, []);
+
 
   // --- MAGIC LINK RECEIVER (Auto-fill from URL) ---
   React.useEffect(() => {
@@ -475,7 +489,7 @@ function App() {
         return {
           id: doc.id,
           status: d.status || 'SENT',
-          createdAt: d.createdAt || d.timestamp || d.created_at || d.date || null,
+          createdAt: d.createdAt || d.timestamp || d.created_at || null,
           client: {
             name: (d.client?.name || d.clientName || 'Sin Nombre').trim(),
             phone: d.client?.phone || d.clientPhone || '',
@@ -501,29 +515,30 @@ function App() {
             avEndTime: d.eventDetails?.avEndTime || d.eventDetails?.avEnd || ''
           },
           financials: {
-            totalValue: Number(d.financials?.totalValue || d.totalValue || 0),
-            deposit: Number(d.financials?.deposit || d.deposit || 0),
+            totalValue: Number(d.financials?.totalValue || d.totalValue || d.valor_total || d.total || d.precio || d.price || d.valor || 0),
+            deposit: Number(d.financials?.deposit || d.deposit || d.abono || d.anticipo || 0),
             extraHourPrice: Number(d.financials?.extraHourPrice) || 85000
           },
           logistics: {
-            packName: pName.includes('ESSENTIAL') ? 'ONIX' : (pName || 'PERSONALIZADO'),
+            packName: (() => {
+                const raw = pName || '';
+                if (raw.includes('ONIX') || raw.includes('ESSENTIAL')) return 'ONIX';
+                if (raw.includes('MULTII')) return 'MULTII';
+                if (raw.includes('KAIZEN')) return 'KAIZEN';
+                if (raw.includes('MEMORIES')) return 'MEMORIES';
+                if (raw.includes('CELEBRATION')) return 'CELEBRATION';
+                return raw || 'PERSONALIZADO';
+            })(),
             selectedExtras: cleanExtras,
             makeupCount: Number(d.logistics?.makeupCount || d.makeupCount) || 1
           }
         };
-      }).filter(q => q && (q.client.name !== 'Sin Nombre' || q.id));
+      }).filter(q => q && q.id);
 
       setQuotations(liveQuo.sort((a, b) => {
         if (!a || !b) return 0;
 
-        // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
-        const statusOrder = { 'SENT': 0, 'APPROVED': 1, 'LOST': 2 };
-        const orderA = statusOrder[a.status] ?? 3;
-        const orderB = statusOrder[b.status] ?? 3;
-        
-        if (orderA !== orderB) return orderA - orderB;
-
-        // 2. ORDEN CRONOLÓGICO: Más reciente primero dentro de su sección
+        // CRITICAL SYNC: Strict Newest First (regardless of status)
         const dateA = a.createdAt ? parseFirestoreDate(a.createdAt) : new Date(0);
         const dateB = b.createdAt ? parseFirestoreDate(b.createdAt) : new Date(0);
         
@@ -532,7 +547,7 @@ function App() {
 
         if (timeA !== timeB) return timeB - timeA;
 
-        // 3. FALLBACK: ID
+        // FALLBACK: ID
         return (b.id || '').localeCompare(a.id || '');
       }));
     });
@@ -1018,7 +1033,127 @@ function App() {
     };
   });
 
-  // Auto-Save Draft Effect (Keep Local for privacy/speed until save)
+  // --- LEAD PARSER (WhatsApp Clipboard) ---
+  const handlePasteWhatsApp = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) return alert('Portapapeles vacío');
+
+      const newData = { ...newEvent, id: null, selectedExtras: {} };
+
+      // Extended Regex for Lead Parsing
+      const cMatch = text.match(/(?:Cliente|CLIENTE):\s*(.+)/i);
+      const pMatch = text.match(/(?:Celular|CELULAR|WhatsApp|TELEFONO|WhatsApp 1):\s*([\d\+\s\w]+)/i);
+      const dMatch = text.match(/(?:Fecha|FECHA):\s*(\d{4}-\d{2}-\d{2})/i);
+      const gMatch = text.match(/(?:Invitados|INVITADOS):\s*(\d+)/i);
+      const packMatch = text.match(/(?:Paquete|PAQUETE|Plan|Plan Seleccionado):\s*(.+)/i);
+      const totalMatch = text.match(/(?:Total|TOTAL|Precio|Valor|Estimado|ESTIMADO):\s*[\$]?\s*([\d\.\,]+)/i);
+
+      if (cMatch) newData.clientName = cMatch[1].trim();
+      if (pMatch) newData.clientPhone = pMatch[1].trim().replace(/[^\d\+]/g, '');
+      if (dMatch) newData.date = dMatch[1];
+      if (gMatch) newData.guestCount = gMatch[1];
+      
+      if (packMatch) {
+         const p = packMatch[1].toUpperCase();
+         if (p.includes('ONIX')) newData.packName = 'ONIX';
+         else if (p.includes('MULTII')) newData.packName = 'MULTII';
+         else if (p.includes('KAIZEN')) newData.packName = 'KAIZEN';
+         else newData.packName = 'Personalizado';
+      }
+      
+      if (totalMatch) {
+         const cleanString = totalMatch[1].replace(/[\.,]/g, '');
+         const parsedVal = Number(cleanString);
+         if (!isNaN(parsedVal)) {
+            newData.totalValue = parsedVal;
+            newData.deposit = Math.round(parsedVal * 0.3);
+         }
+      }
+
+      // --- ADVANCED HORARY PARSER ---
+      const parseRange = (line) => {
+        const m = line.match(/(\d{1,2}(?::\d{2})?)\s*(AM|PM)?\s*(?:a|to|-)\s*(\d{1,2}(?::\d{2})?)\s*(AM|PM)?/i);
+        if (!m) return null;
+        const convert = (time, p) => {
+          let h, min;
+          if (time.includes(':')) {
+            [h, min] = time.split(':').map(Number);
+          } else {
+            h = Number(time);
+            min = 0;
+          }
+          if (p?.toUpperCase() === 'PM' && h < 12) h += 12;
+          if (p?.toUpperCase() === 'AM' && h === 12) h = 0;
+          return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+        };
+        return { start: convert(m[1], m[2]), end: convert(m[3], m[4]) };
+      };
+
+      const lines = text.split('\n');
+      lines.forEach(line => {
+        const upLine = line.toUpperCase();
+        // Implicit Pack Detection (as titles)
+        if (upLine.includes('* ONIX')) newData.packName = 'ONIX';
+        if (upLine.includes('* MULTII')) newData.packName = 'MULTII';
+        if (upLine.includes('* KAIZEN')) newData.packName = 'KAIZEN';
+
+        if (upLine.includes('360')) {
+          newData.selectedExtras['extra_cam360'] = true;
+          const range = parseRange(line);
+          if (range) { newData.camStartTime = range.start; newData.camEndTime = range.end; }
+        }
+        if (upLine.includes('FOTOGRAFIA') || upLine.includes('PHOTO')) {
+          newData.selectedExtras['extra_photo'] = true;
+          const range = parseRange(line);
+          if (range) { newData.photoStartTime = range.start; newData.photoEndTime = range.end; }
+        }
+        if (upLine.includes('AUDIOVISUAL') || upLine.includes('DJ')) {
+          newData.selectedExtras['extra_av'] = true;
+          const range = parseRange(line);
+          if (range) { 
+            newData.djStartTime = range.start; newData.djEndTime = range.end; 
+            newData.avStartTime = range.start; newData.avEndTime = range.end;
+            if (!newData.startTime) newData.startTime = range.start;
+            if (!newData.endTime) newData.endTime = range.end;
+          }
+        }
+        if (upLine.includes('DECORACION')) {
+          if (upLine.includes('ONIX')) newData.selectedExtras['extra_decor_onix'] = true;
+          if (upLine.includes('MULTII')) newData.selectedExtras['extra_decor_multii'] = true;
+          if (upLine.includes('KAIZEN')) newData.selectedExtras['extra_decor_kaizen'] = true;
+          const range = parseRange(line);
+          if (range) { newData.decorStartTime = range.start; newData.decorEndTime = range.end; }
+        }
+        if (upLine.includes('KITS 111') || upLine.includes('KIT 111')) newData.selectedExtras['acc_essential'] = true;
+        if (upLine.includes('MAQUILLAJE')) newData.selectedExtras['extra_makeup'] = true;
+      });
+
+      // --- FINANCIAL CALCULATION SYNC ---
+      // 1. Calculate the sum of detected extras to find the "Missing Base"
+      const detectedExtras = getDynamicExtras(newData).filter(ex => newData.selectedExtras[ex.id]);
+      const extrasSum = detectedExtras.reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
+      
+      const parsedTotal = parseInt(text.match(/TOTAL ESTIMADO:\s*\$?\s*([\d.]+)/i)?.[1].replace(/\./g, '')) || 0;
+      
+      // 2. If the total is higher than the extras, the difference is the Base Price (Service Cost)
+      if (parsedTotal > extrasSum) {
+        newData.manualBasePrice = parsedTotal - extrasSum;
+      } else {
+        newData.manualBasePrice = 0;
+      }
+
+      newData.totalValue = parsedTotal || extrasSum || 0;
+      newData.isImported = true;
+      setNewEvent(newData);
+      alert(`✅ Lead "${newData.clientName}" importado exitosamente.\nTotal: ${formatPeso(newData.totalValue)}\n(Base: ${formatPeso(newData.manualBasePrice)} + Extras: ${formatPeso(extrasSum)})`);
+    } catch (err) {
+      console.error("DEBUG NEXXA - Parser Error:", err);
+      alert('Error procesando el portapapeles.');
+    }
+  };
+
+  // Auto-Save Draft Effect
   React.useEffect(() => {
     localStorage.setItem('nexxa_draft_event', JSON.stringify(newEvent));
   }, [newEvent]);
@@ -1102,7 +1237,9 @@ function App() {
       financials: {
         totalValue: total,
         deposit: Number(newEvent.deposit) || 0,
-        balance: total - (Number(newEvent.deposit) || 0)
+        balance: total - (Number(newEvent.deposit) || 0),
+        manualBasePrice: Number(newEvent.manualBasePrice) || 0,
+        manualBaseDescription: newEvent.manualBaseDescription || ''
       },
       logistics: {
         packName: newEvent.packName,
@@ -1123,7 +1260,7 @@ function App() {
 
       alert('✅ Cotización Guardada y Enviada.');
       setView('quotations');
-      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Onix', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', color: '#00f2ff' });
+      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Onix', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', color: '#C9A84C' });
       localStorage.removeItem('nexxa_draft_event');
     } catch (err) {
       console.error(err);
@@ -1427,46 +1564,60 @@ function App() {
 
   // --- DYNAMIC PRICING CALCULATOR (Staff Sync) ---
   const currentConf = PRICING_DYNAMIC[newEvent.packName] || {};
-  const djDur = getHours(newEvent.djStartTime || newEvent.startTime || '20:00', newEvent.djEndTime || newEvent.endTime || newEvent.djStartTime || '20:00');
-  const photoDur = getHours(newEvent.photoStartTime || newEvent.startTime || '20:00', newEvent.photoEndTime || newEvent.endTime || newEvent.photoStartTime || '20:00');
-  const camDur = getHours(newEvent.camStartTime || newEvent.startTime || '20:00', newEvent.camEndTime || newEvent.endTime || newEvent.camStartTime || '20:00');
-  const decorDur = getHours(newEvent.decorStartTime || subtractMinutes(newEvent.startTime || '20:00', 60), newEvent.decorEndTime || subtractMinutes(newEvent.startTime || '20:00', -60));
-  const avDur = getHours(newEvent.avStartTime || newEvent.startTime || '20:00', newEvent.avEndTime || newEvent.endTime || newEvent.avStartTime || '20:00');
+  // Use specific times IF provided; otherwise, assume BASE duration (no extra charges)
+  const djDur = (newEvent.djStartTime && newEvent.djEndTime) ? getHours(newEvent.djStartTime, newEvent.djEndTime) : 4;
+  const photoDur = (newEvent.photoStartTime && newEvent.photoEndTime) ? getHours(newEvent.photoStartTime, newEvent.photoEndTime) : 4;
+  const camDur = (newEvent.camStartTime && newEvent.camEndTime) ? getHours(newEvent.camStartTime, newEvent.camEndTime) : 2;
+  const decorDur = (newEvent.decorStartTime && newEvent.decorEndTime) ? getHours(newEvent.decorStartTime, newEvent.decorEndTime) : 2;
+  const avDur = (newEvent.avStartTime && newEvent.avEndTime) ? getHours(newEvent.avStartTime, newEvent.avEndTime) : 4;
 
   const extraDJ = Math.max(0, Math.ceil(djDur - 4));
   const extraPhoto = Math.max(0, Math.ceil(photoDur - 4));
   const extraCam = Math.max(0, Math.ceil(camDur - 2));
 
-  const hasDJ = newEvent.selectedExtras?.extra_dj || currentConf.roles?.includes('DJs Profesionales') || currentConf.roles?.includes('DJs');
-  const hasPhoto = newEvent.selectedExtras?.extra_photo || currentConf.roles?.includes('Fotografía Profesional');
-  const hasCam = newEvent.selectedExtras?.extra_cam360 || currentConf.roles?.includes('Cámara 360°');
-  const hasAV = newEvent.selectedExtras?.extra_av || currentConf.items?.includes('Sonido Pro') || currentConf.items?.includes('Sonido Line Array');
+  const hasDJ = newEvent.selectedExtras?.extra_dj || currentConf.roles?.includes('DJs Profesionales') || currentConf.roles?.includes('DJs') || (newEvent.djStartTime && newEvent.djEndTime);
+  const hasPhoto = newEvent.selectedExtras?.extra_photo || currentConf.roles?.includes('Fotografía Profesional') || (newEvent.photoStartTime && newEvent.photoEndTime);
+  const hasCam = newEvent.selectedExtras?.extra_cam360 || currentConf.roles?.includes('Cámara 360°') || (newEvent.camStartTime && newEvent.camEndTime);
+  const hasAV = newEvent.selectedExtras?.extra_av || currentConf.items?.includes('Sonido Pro') || currentConf.items?.includes('Sonido Line Array') || (newEvent.avStartTime && newEvent.avEndTime);
 
-  const extrasDJPrice = hasDJ ? (extraDJ * STITCH_DATA.hourlyRates.dj) : 0;
-  const extrasPhotoPrice = hasPhoto ? (extraPhoto * STITCH_DATA.hourlyRates.photo) : 0;
-  const extrasCamPrice = hasCam ? (extraCam * STITCH_DATA.hourlyRates.cam360) : 0;
-  const extrasAVPrice = hasAV ? (Math.max(0, Math.ceil(avDur - 4)) * STITCH_DATA.hourlyRates.av) : 0;
+  const basePriceValue = parseInt(currentConf.base) || 0;
+  const extrasDJPrice = hasDJ ? (extraDJ * (parseInt(STITCH_DATA.hourlyRates.dj) || 0)) : 0;
+  const extrasPhotoPrice = hasPhoto ? (extraPhoto * (parseInt(STITCH_DATA.hourlyRates.photo) || 0)) : 0;
+  const extrasCamPrice = hasCam ? (extraCam * (parseInt(STITCH_DATA.hourlyRates.cam360) || 0)) : 0;
+  const extrasAVPrice = hasAV ? (Math.max(0, Math.ceil(avDur - 4)) * (parseInt(STITCH_DATA.hourlyRates.av) || 0)) : 0;
 
   const activeExtrasArr = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id]);
-  const otherExtrasPrice = activeExtrasArr.reduce((acc, ex) => acc + (Number(ex.price) || 0), 0);
+  const otherExtrasPrice = activeExtrasArr.reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
 
-  const computedTotal = (Number(currentConf.base) || 0) + 
-                        (isNaN(extrasDJPrice) ? 0 : extrasDJPrice) + 
-                        (isNaN(extrasPhotoPrice) ? 0 : extrasPhotoPrice) + 
-                        (isNaN(extrasCamPrice) ? 0 : extrasCamPrice) + 
-                        (isNaN(extrasAVPrice) ? 0 : extrasAVPrice) + 
-                        (isNaN(otherExtrasPrice) ? 0 : otherExtrasPrice);
+  // CRITICAL FIX: Ensure Base Price is ALWAYS part of the sum
+  // If it's a known package, use its base. If it's Personalized but has a manualBasePrice (from Lead), use it.
+  const effectiveBasePrice = (newEvent.packName === 'PERSONALIZADO') 
+    ? (parseInt(newEvent.manualBasePrice) || 0) 
+    : basePriceValue;
 
-  // Auto-update totalValue and dependent prices in the form seamlessly
+  const computedTotal = effectiveBasePrice + 
+                        extrasDJPrice + 
+                        extrasPhotoPrice + 
+                        extrasCamPrice + 
+                        extrasAVPrice + 
+                        otherExtrasPrice;
+
+  // Auto-update totalValue for accuracy
   useEffect(() => {
-    if (computedTotal > 0 && Number(newEvent.totalValue) !== computedTotal) {
-        setNewEvent(prev => ({ 
-           ...prev, 
-           totalValue: computedTotal,
-           deposit: computedTotal * 0.3
-        }));
+    // If it's an imported lead and we have multiple values, we MUST preserve what was calculated
+    // but the user wants synchronization.
+    if (computedTotal > 0) {
+        // If the current totalValue is 0, empty, or differs from computedTotal in a NEW/RESTORED state, sync it.
+        // We allow the sync to happen to FIX the $1.55M vs $2.09M issue.
+        if (!newEvent.totalValue || Number(newEvent.totalValue) === 0 || (!newEvent.isImported && Number(newEvent.totalValue) !== computedTotal)) {
+             setNewEvent(prev => ({ 
+                ...prev, 
+                totalValue: computedTotal,
+                deposit: Math.round(computedTotal * 0.3)
+             }));
+        }
     }
-  }, [computedTotal, newEvent.id, newEvent.totalValue]);
+  }, [computedTotal, newEvent.id, newEvent.isImported]);
 
 
   // --- EDIT & STATUS HANDLERS ---
@@ -1671,10 +1822,13 @@ function App() {
       },
       financials: {
         totalValue: total,
+        basePrice: parseInt(currentConf.base) || 0, // NEW: Include principal service cost
         deposit: dep,
         balance: total - dep,
+        manualBasePrice: Number(newEvent.manualBasePrice) || 0,
+        manualBaseDescription: newEvent.manualBaseDescription || '',
         extraHourPrice: Number(newEvent.extraHourPrice) || (newEvent.packName === 'Essential' ? 85000 : 135000),
-        extraExpenses: newEvent.extraExpenses || [] // Preserve if editing
+        extraExpenses: newEvent.extraExpenses || []
       },
       logistics: {
         packName: newEvent.packName,
@@ -1702,7 +1856,7 @@ function App() {
       alert(status === 'DRAFT' ? '📝 Borrador Guardado' : (newEvent.id ? '✅ Evento Actualizado' : '✅ Evento Creado'));
 
       setView('events');
-      const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', camStartTime: '', camEndTime: '', avStartTime: '', avEndTime: '', color: '#00f2ff' };
+      const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', camStartTime: '', camEndTime: '', avStartTime: '', avEndTime: '', color: '#C9A84C' };
       setNewEvent(emptyState);
       localStorage.removeItem('nexxa_draft_event'); // Clear transient draft
     } catch (err) {
@@ -1736,6 +1890,18 @@ function App() {
       deposit: evt.financials?.deposit || 0,
       selectedExtras: evt.logistics?.selectedExtras || {},
       extraExpenses: evt.financials?.extraExpenses || [],
+      manualBasePrice: (() => {
+        const savedBase = Number(evt.financials?.manualBasePrice) || 0;
+        if (savedBase > 0) return savedBase;
+        // Auto-Recovery: Total - Extras
+        const total = Number(evt.financials?.totalValue) || 0;
+        const extras = getDynamicExtras({ selectedExtras: evt.logistics?.selectedExtras || {}, extraQtys: evt.logistics?.extraQtys || {} });
+        const extrasSum = extras.filter(ex => evt.logistics?.selectedExtras?.[ex.id]).reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
+        return Math.max(0, total - extrasSum);
+      })(),
+      manualBaseDescription: evt.financials?.manualBaseDescription || '',
+      deposit: evt.financials?.deposit || Math.round((Number(evt.financials?.totalValue) || 0) * 0.3),
+      isImported: true,
       savedItems: evt.logistics.items, // Carry over checklist
       savedFlow: evt.logistics.flow, // Carry over flow
       warehouseTime: evt.eventDetails.warehouseTime || '',
@@ -3682,6 +3848,7 @@ function App() {
     if (confirm('¿Eliminar?')) setInventory(inventory.filter(i => i.id !== id));
   };
   const [editingItem, setEditingItem] = useState(null);
+
   const handleEditInventory = (e) => {
     e.preventDefault();
     if (!e?.target) return;
@@ -3701,137 +3868,6 @@ function App() {
 
 
       // --- PARSER DE WHATSAPP ---
-      const handlePasteFromWhatsApp = async () => {
-        try {
-          const text = await navigator.clipboard.readText();
-          if (!text) return alert('Portapapeles vacío');
-
-          const newData = { ...newEvent };
-
-          // Regex Parser V4 (Super Robust Header Support)
-          // Identifica el inicio de cualquier sección común
-          // Regex Parser V5 (Stricter Newline Logic & Synonyms)
-          // Identifica el inicio de cualquier sección común
-          const sectionStartRegex = /(?:👤|📅|⏰|📍|👥|📦|➕|🎉|💰|📝|🚚|Cliente|Ofrece|Fecha|Horario|Ubicación|Dirección|Lugar|Invitados|Paquete|Extras|Adicionales|Ocasión|Valor|Total|Costo|Indicaciones|Recibir|Material|Nombre|Titular|Servicios|Incluye)/i;
-
-          const getSection = (startPattern, text) => {
-            // Updated V6: Allow content before the key on the same line (e.g. timestamps "[10:00] ", bullets "- ", etc)
-            // Remove strict lookahead newline requirement for better single-line compatibility, but keep preference for distinct sections.
-            const r = new RegExp(`(?:^|\\n|\\r)(?:[^:\\n]{0,50})[\\*\\s]*${startPattern.source}[\\*\\s]*(?::|\\s+)\\s*([\\s\\S]*?)(?=(?:\\n|\\s+)[*_]*${sectionStartRegex.source}|$)`, 'i');
-            const m = text.match(r);
-            return m ? m[1].trim() : null;
-          };
-
-          const rawClient = getSection(/(?:👤|Cliente|Nombre|Titular|Quien reserva)/, text);
-          const rawDate = getSection(/(?:📅|Fecha|Día)/, text);
-          const rawTime = getSection(/(?:⏰|Horario|Hora)/, text);
-          const rawLoc = getSection(/(?:📍|Ubicación|Dirección|Lugar)/, text);
-          const rawGuests = getSection(/(?:👥|Invitados|Personas)/, text);
-          const rawPack = getSection(/(?:📦|Paquete|Servicio)/, text);
-          const rawExtras = getSection(/(?:➕|Extras|Adicionales|Incluye|Servicios)/, text);
-          const rawOccasion = getSection(/(?:🎉|Ocasión|Motivo)/, text);
-          const rawExtraRate = getSection(/(?:💰|Valor Hora Extra|Total|Valor|Costo)/, text);
-          const rawIndications = getSection(/(?:📝|Indicaciones|Notas|Observaciones)/, text);
-          const rawMaterials = getSection(/(?:🚚|Recibir material)/, text);
-
-          if (rawClient) newData.clientName = rawClient.split('\n')[0].trim();
-          if (rawDate) newData.date = rawDate.split('\n')[0].trim();
-
-          if (rawTime) {
-            const tMatch = rawTime.match(/(\d{1,2}(?::\d{2})?)\s?(AM|PM).*?(\d{1,2}(?::\d{2})?)\s?(AM|PM)/i);
-            if (tMatch) {
-              const parseTime = (t, ap) => {
-                if (!t) return '20:00';
-                const [hStr, mStr] = t.includes(':') ? t.split(':') : [t, '00'];
-                let h = parseInt(hStr || 0, 10);
-                let m = parseInt(mStr || 0, 10);
-                if (isNaN(h)) h = 20;
-                if (isNaN(m)) m = 0;
-                if (ap && ap.toUpperCase() === 'PM' && h !== 12) h += 12;
-                if (ap && ap.toUpperCase() === 'AM' && h === 12) h = 0;
-                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-              }
-              newData.startTime = parseTime(tMatch[1], tMatch[2]);
-              newData.endTime = parseTime(tMatch[3], tMatch[4]);
-            }
-          }
-
-          if (rawLoc) newData.location = rawLoc.replace(/\n/g, ', ').trim();
-          if (rawGuests) newData.guestCount = rawGuests.match(/\d+/)?.[0] || '10';
-
-          if (rawPack) {
-            const pName = rawPack.toLowerCase();
-            if (pName.includes('essential')) newData.packName = 'Essential';
-            else if (pName.includes('memories')) newData.packName = 'Memories';
-            else if (pName.includes('celebration')) newData.packName = 'Celebration';
-            else newData.packName = 'Personalizado';
-          }
-
-          if (rawOccasion) newData.occasion = rawOccasion.trim();
-          if (rawExtraRate) newData.extraHourPrice = rawExtraRate.replace(/[$.]/g, '').trim();
-          if (rawIndications) newData.indications = rawIndications.trim();
-
-          if (rawMaterials) {
-            const mMatch = rawMaterials.match(/(\d{1,2}(?::\d{2})?)\s?(AM|PM)/i);
-            if (mMatch) {
-              const parseTime = (t, ap) => {
-                let [hStr, mStr] = t.split(':');
-                let h = parseInt(hStr || 0, 10);
-                let m = parseInt(mStr || 0, 10);
-                if (isNaN(h)) h = 0;
-                if (isNaN(m)) m = 0;
-                if (ap) {
-                  if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;
-                  if (ap.toUpperCase() === 'AM' && h === 12) h = 0;
-                }
-                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-              }
-              newData.materialsTime = parseTime(mMatch[1], mMatch[2]);
-            }
-          }
-
-          // Parse Extras (Enhanced Keywords & Technical IDs)
-          const newExtras = {};
-          if (rawExtras) {
-            const exText = rawExtras.toLowerCase();
-
-            // Debugging Regex
-            const hasMakeup = /makeup|maquillaje|neon|artista/i.test(exText);
-            const hasEssential = /acc_essential|essential/i.test(exText) && exText.includes('accesorios');
-            const hasMemories = /acc_memories|memories/i.test(exText) && exText.includes('accesorios');
-            const hasCelebration = /acc_celebration|celebration|full/i.test(exText) && exText.includes('accesorios');
-
-            // Direct Technical ID check (ignores 'accesorios' prefix requirement)
-            const idEssential = exText.includes('acc_essential');
-            const idMemories = exText.includes('acc_memories');
-            const idCelebration = exText.includes('acc_celebration');
-
-            if (hasMakeup) {
-              newExtras['extra_makeup'] = true;
-            }
-            if (hasEssential || idEssential) {
-              newExtras['acc_essential'] = true;
-            }
-            if (hasMemories || idMemories) {
-              newExtras['acc_memories'] = true;
-            }
-            if (hasCelebration || idCelebration) {
-              newExtras['acc_celebration'] = true;
-            }
-          }
-          newData.selectedExtras = newExtras;
-
-          if (!newData.clientName) alert(`⚠️ Advertencia: No se detectó el nombre del Cliente.\n\nContenido detectado (Inicio): "${text.substring(0, 50)}..."\n\nRevise que el mensaje tenga el formato "Cliente: [Nombre]"`);
-          alert(`✅ Datos Importados:\nCliente: ${newData.clientName || 'No detectado'}\nPaquete: ${newData.packName || 'No detectado'}\nExtras Detectados: ${Object.keys(newExtras).length}\nTexto Extras: "${rawExtras || 'No encontrado'}"`);
-
-          setNewEvent(newData);
-          setTimeout(() => updateEvent('recalc', null), 100); // Trigger recalc
-
-        } catch (err) {
-          console.error(err);
-          alert('No se pudo leer el portapapeles. Asegúrate de dar permiso.');
-        }
-      };
 
       // --- DATA DINÁMICA DE EXTRAS (Moved to App Scope as getDynamicExtras) ---
       // Kept here as reference or we just use the scoped one. 
@@ -3864,8 +3900,9 @@ function App() {
           updated.startTime = value;
           // Auto-sync if not manually changed or if they match old default
           if (!updated.djStartTime || updated.djStartTime === '08:00') updated.djStartTime = value;
-          if (!updated.photoStartTime || updated.photoStartTime === '08:00') updated.photoStartTime = value;
-          if (!updated.avStartTime || updated.avStartTime === '08:00') updated.avStartTime = value;
+          // Note: Photo/AV/Cam defaults are NOT tied to main event start automatically 
+          // if we want to avoid double-charging for their full duration extras.
+          // They should be explicitly set by the user or landing page.
 
           // RULE: Decorator starts 1 hr before DJ, lasts 2 hours
           if (!updated.decorStartTime || updated.decorStartTime === '08:00') {
@@ -4082,51 +4119,13 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <input required type="date" value={newEvent.date} onChange={e => updateEvent('date', e.target.value)} style={{ width: '100%', fontSize: '0.85rem', height: '40px' }} />
                     </div>
 
-                    <div>
-                      <select style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} value={newEvent.leadSource || ''} onChange={e => updateEvent('leadSource', e.target.value)}>
-                        <option value="">¿Cómo nos conoció?</option>
-                        <option value="Facebook">📘 Facebook</option>
-                        <option value="Instagram">📸 Instagram</option>
-                        <option value="Google">🔍 Google</option>
-                        <option value="Recomendación">👥 Recomendación</option>
-                        <option value="WhatsApp">💬 WhatsApp</option>
-                        <option value="TikTok">🎵 TikTok</option>
-                        <option value="Otro">🌐 Otro</option>
-                      </select>
-                    </div>
-
-                    <div style={{ gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '10px' }}>
-                       <div style={{ position: 'relative' }}>
-                          <label style={{ fontSize: '0.55rem', fontWeight: '900', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>🕒 Inicio Evento</label>
-                          <select 
-                            style={{ width: '100%', fontSize: '0.9rem', height: '40px', fontWeight: 'bold' }} 
-                            value={newEvent.startTime} 
-                            onChange={e => updateEvent('startTime', e.target.value)}
-                          >
-                            <option value="">--:--</option>
-                            {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t}>{getDisplayTimeUI(t).full}</option>)}
-                          </select>
-                       </div>
-                       <div style={{ position: 'relative' }}>
-                          <label style={{ fontSize: '0.55rem', fontWeight: '900', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>⌛ Fin Evento</label>
-                          <select 
-                            style={{ width: '100%', fontSize: '0.9rem', height: '40px', fontWeight: 'bold' }} 
-                            value={newEvent.endTime} 
-                            onChange={e => updateEvent('endTime', e.target.value)}
-                          >
-                            <option value="">--:--</option>
-                            {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t}>{getDisplayTimeUI(t).full}</option>)}
-                          </select>
-                       </div>
-                    </div>
 
                     <div>
                       <input placeholder="🎉 Ocasión (Boda/Cumple)" value={newEvent.occasion} onChange={e => updateEvent('occasion', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
                     </div>
 
-                    <div style={{ gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px', marginTop: '4px' }}>
-                      <input required placeholder="🏠 Barrio" value={newEvent.neighborhood || ''} onChange={e => updateEvent('neighborhood', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
-                      <input required placeholder="📍 Dirección" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <input required placeholder="📍 Ubicación (Dirección o Local)" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
                     </div>
                   </div>
                   </>
@@ -4144,24 +4143,75 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
               </div>
 
               {sectionState.s3 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <div style={{ padding: '4px' }}>
-                    <MiniTimeInput
-                      label="🎧 Horario DJ (Protocolo / Servicio)"
-                      labelColor="var(--primary-cyan)"
-                      startVal={newEvent.djStartTime}
-                      endVal={newEvent.djEndTime}
-                      onStartChange={val => updateEvent('djStartTime', val)}
-                      onEndChange={val => updateEvent('djEndTime', val)}
-                    />
-                  </div>
-                  
-                  {/* Summary of active durations in this section */}
-                  <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {djDur > 0 && <span style={{ padding: '8px 14px', background: 'rgba(0, 242, 255, 0.1)', borderRadius: '25px', fontSize: '0.65rem', border: '1px solid rgba(0, 242, 255, 0.2)', color: 'var(--primary-cyan)', fontWeight: 'bold' }}>DJ: {djDur.toFixed(1)}h</span>}
-                    {photoDur > 0 && <span style={{ padding: '8px 14px', background: 'rgba(250, 204, 21, 0.1)', borderRadius: '25px', fontSize: '0.65rem', border: '1px solid rgba(250, 204, 21, 0.2)', color: '#facc15', fontWeight: 'bold' }}>FOTO: {photoDur.toFixed(1)}h</span>}
-                    {decorDur > 0 && <span style={{ padding: '8px 14px', background: 'rgba(188, 111, 241, 0.1)', borderRadius: '25px', fontSize: '0.65rem', border: '1px solid rgba(188, 111, 241, 0.2)', color: 'var(--primary-purple)', fontWeight: 'bold' }}>DECOR: {decorDur.toFixed(1)}h</span>}
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {getDynamicExtras(newEvent)
+                    .filter(ex => (newEvent.selectedExtras?.[ex.id] || ex.isIncluded) && ex.needsTime)
+                    .map(ex => (
+                      <div key={ex.id} style={{ 
+                        padding: '12px', 
+                        background: 'rgba(255,255,255,0.02)', 
+                        borderRadius: '16px', 
+                        border: '1px solid rgba(255,255,255,0.05)' 
+                      }}>
+                        <MiniTimeInput
+                          label={`${ex.name}`}
+                          labelColor={ex.id === 'extra_av' ? 'var(--primary-cyan)' : 'var(--primary-purple)'}
+                          startVal={(() => {
+                            if (ex.id === 'extra_photo') return newEvent.photoStartTime;
+                            if (ex.id === 'extra_cam360') return newEvent.camStartTime;
+                            if (ex.id === 'extra_av') return newEvent.avStartTime;
+                            if (ex.id.includes('_decor_')) return newEvent.decorStartTime;
+                            if (ex.id === 'extra_makeup') return newEvent.makeupStartTime;
+                            if (ex.id === 'acc_memories') return newEvent.memoriesStartTime;
+                            if (ex.id === 'acc_celebration') return newEvent.celebrationStartTime;
+                            return '';
+                          })()}
+                          endVal={(() => {
+                            if (ex.id === 'extra_photo') return newEvent.photoEndTime;
+                            if (ex.id === 'extra_cam360') return newEvent.camEndTime;
+                            if (ex.id === 'extra_av') return newEvent.avEndTime;
+                            if (ex.id.includes('_decor_')) return newEvent.decorEndTime;
+                            if (ex.id === 'extra_makeup') return newEvent.makeupEndTime;
+                            if (ex.id === 'acc_memories') return newEvent.memoriesEndTime;
+                            if (ex.id === 'acc_celebration') return newEvent.celebrationEndTime;
+                            return '';
+                          })()}
+                          onStartChange={(val) => {
+                            let field = '';
+                            if (ex.id === 'extra_photo') field = 'photoStartTime';
+                            else if (ex.id === 'extra_cam360') field = 'camStartTime';
+                            else if (ex.id === 'extra_av') {
+                              field = 'avStartTime';
+                              updateEvent('djStartTime', val); // Sync main DJ field
+                            }
+                            else if (ex.id.includes('_decor_')) field = 'decorStartTime';
+                            else if (ex.id === 'extra_makeup') field = 'makeupStartTime';
+                            else if (ex.id === 'acc_memories') field = 'memoriesStartTime';
+                            else if (ex.id === 'acc_celebration') field = 'celebrationStartTime';
+                            if (field) updateEvent(field, val);
+                          }}
+                          onEndChange={(val) => {
+                            let field = '';
+                            if (ex.id === 'extra_photo') field = 'photoEndTime';
+                            else if (ex.id === 'extra_cam360') field = 'camEndTime';
+                            else if (ex.id === 'extra_av') {
+                              field = 'avEndTime';
+                              updateEvent('djEndTime', val); // Sync main DJ field
+                            }
+                            else if (ex.id.includes('_decor_')) field = 'decorEndTime';
+                            else if (ex.id === 'extra_makeup') field = 'makeupEndTime';
+                            else if (ex.id === 'acc_memories') field = 'memoriesEndTime';
+                            else if (ex.id === 'acc_celebration') field = 'celebrationEndTime';
+                            if (field) updateEvent(field, val);
+                          }}
+                        />
+                      </div>
+                    ))}
+                  {getDynamicExtras(newEvent).filter(ex => (newEvent.selectedExtras?.[ex.id] || ex.isIncluded) && ex.needsTime).length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '20px', opacity: 0.5, fontSize: '0.8rem' }}>
+                      Selecciona servicios en la Sección 2 para definir sus horarios.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -4236,54 +4286,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                   </div>
                                 </div>
 
-                                {extra.needsTime && isActive && (
-                                  <MiniTimeInput
-                                    label="🕒 Franja Horaria (Requerida)"
-                                    labelColor="var(--primary-purple)"
-                                    startVal={(() => {
-                                        if (extra.id === 'extra_photo') return newEvent.photoStartTime;
-                                        if (extra.id === 'extra_cam360') return newEvent.camStartTime;
-                                        if (extra.id === 'extra_av') return newEvent.avStartTime;
-                                        if (extra.id.includes('_decor_')) return newEvent.decorStartTime;
-                                        if (extra.id === 'extra_makeup') return newEvent.makeupStartTime || '20:00';
-                                        if (extra.id === 'acc_memories') return newEvent.memoriesStartTime;
-                                        if (extra.id === 'acc_celebration') return newEvent.celebrationStartTime;
-                                        return '';
-                                    })()}
-                                    endVal={(() => {
-                                        if (extra.id === 'extra_photo') return newEvent.photoEndTime;
-                                        if (extra.id === 'extra_cam360') return newEvent.camEndTime;
-                                        if (extra.id === 'extra_av') return newEvent.avEndTime;
-                                        if (extra.id.includes('_decor_')) return newEvent.decorEndTime;
-                                        if (extra.id === 'extra_makeup') return newEvent.makeupEndTime || '22:00';
-                                        if (extra.id === 'acc_memories') return newEvent.memoriesEndTime;
-                                        if (extra.id === 'acc_celebration') return newEvent.celebrationEndTime;
-                                        return '';
-                                    })()}
-                                    onStartChange={(val) => {
-                                        let field = '';
-                                        if (extra.id === 'extra_photo') field = 'photoStartTime';
-                                        else if (extra.id === 'extra_cam360') field = 'camStartTime';
-                                        else if (extra.id === 'extra_av') field = 'avStartTime';
-                                        else if (extra.id.includes('_decor_')) field = 'decorStartTime';
-                                        else if (extra.id === 'extra_makeup') field = 'makeupStartTime';
-                                        else if (extra.id === 'acc_memories') field = 'memoriesStartTime';
-                                        else if (extra.id === 'acc_celebration') field = 'celebrationStartTime';
-                                        if (field) updateEvent(field, val);
-                                    }}
-                                    onEndChange={(val) => {
-                                        let field = '';
-                                        if (extra.id === 'extra_photo') field = 'photoEndTime';
-                                        else if (extra.id === 'extra_cam360') field = 'camEndTime';
-                                        else if (extra.id === 'extra_av') field = 'avEndTime';
-                                        else if (extra.id.includes('_decor_')) field = 'decorEndTime';
-                                        else if (extra.id === 'extra_makeup') field = 'makeupEndTime';
-                                        else if (extra.id === 'acc_memories') field = 'memoriesEndTime';
-                                        else if (extra.id === 'acc_celebration') field = 'celebrationEndTime';
-                                        if (field) updateEvent(field, val);
-                                    }}
-                                  />
-                                )}
 
                                 {extra.id.includes('_decor_') && isActive && (
                                   <div style={{ marginTop: '10px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: isActive ? '1px solid var(--primary-cyan)' : '1px solid rgba(255,255,255,0.05)' }}>
@@ -4358,7 +4360,27 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         {/* HEADER MESSAGE / PLAN SPECS */}
                         {p === 'PERSONALIZADO' ? (
                           <div style={{ color: 'var(--primary-cyan)', fontWeight: 'bold', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            Configuración Personalizada
+                            <div style={{ marginBottom: '10px' }}>
+                              <span>Configuración Personalizada:</span>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(0,212,255,0.2)' }}>
+                              <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>COSTO BASE (SERVICIOS PRINCIPALES)</label>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <input 
+                                  type="text"
+                                  value={formatInputNumber(newEvent.manualBasePrice || 0)}
+                                  onChange={e => updateEvent('manualBasePrice', parseInputNumber(e.target.value))}
+                                  style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--primary-cyan)', fontSize: '1.2rem', fontWeight: '950', outline: 'none', padding: 0 }}
+                                />
+                                <input 
+                                  type="text"
+                                  placeholder="Detalle: DJ, Sonido, Luces, etc..."
+                                  value={newEvent.manualBaseDescription || ''}
+                                  onChange={e => updateEvent('manualBaseDescription', e.target.value)}
+                                  style={{ width: '100%', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: '0.65rem', fontWeight: 'bold', outline: 'none', padding: 0, marginTop: '5px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '5px' }}
+                                />
+                              </div>
+                            </div>
                           </div>
                         ) : hasPlan ? (
                           <div style={{ paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -4410,7 +4432,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                           return (
                             <div style={{ marginTop: '5px', paddingTop: '5px', borderTop: hasPlan ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
                               {activeExtras.map(ex => (
-                                <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#bc6ff1', fontSize: '0.65rem', marginBottom: '2px' }}>
+                                <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#C9A84C', fontSize: '0.65rem', marginBottom: '2px' }}>
                                   <span>+ {ex.name} {ex.qty > 1 ? `(x${ex.qty})` : ''}:</span>
                                   <strong>${ex.price.toLocaleString()}</strong>
                                 </div>
@@ -4424,7 +4446,25 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   </div>
 
                 <div style={{ flex: 1 }}>
-                  <small style={{ color: '#888', marginBottom: '2px' }}>Valor Total (Calculado):</small>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                    <small style={{ color: '#888', fontWeight: '900', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Cotización Calculada (Smart):</small>
+                    <div 
+                      className="pulse-required"
+                      style={{ 
+                        background: 'rgba(0, 212, 255, 0.25)', 
+                        border: '2.5px solid #00d4ff', 
+                        color: '#fff', 
+                        fontSize: '0.9rem', 
+                        padding: '6px 14px', 
+                        borderRadius: '12px', 
+                        fontWeight: '1000',
+                        boxShadow: '0 0 25px rgba(0, 212, 255, 0.4)',
+                        letterSpacing: '-0.5px'
+                      }}
+                    >
+                      {formatPeso(computedTotal)}
+                    </div>
+                  </div>
                   <input
                     required
                     placeholder="$ 0"
@@ -4433,8 +4473,23 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     onChange={e => {
                       updateEvent('totalValue', parseInputNumber(e.target.value));
                     }}
-                    style={{ fontWeight: 'bold', color: '#00d4ff', fontSize: '1.4rem', height: '50px' }}
+                    style={{ 
+                      fontWeight: '900', 
+                      color: Number(newEvent.totalValue) === computedTotal ? '#00d4ff' : '#facc15', 
+                      fontSize: '1.8rem', 
+                      height: '60px',
+                      background: 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${Number(newEvent.totalValue) === computedTotal ? 'rgba(0,212,255,0.3)' : 'rgba(250,204,21,0.3)'}`
+                    }}
                   />
+                  {Number(newEvent.totalValue) !== computedTotal && (
+                    <button 
+                      onClick={() => setNewEvent(prev => ({ ...prev, totalValue: computedTotal, deposit: Math.round(computedTotal * 0.3) }))}
+                      style={{ fontSize: '0.6rem', color: '#facc15', background: 'none', border: 'none', textDecoration: 'underline', padding: 0, cursor: 'pointer' }}
+                    >
+                      Sincronizar con cálculo automático ⚡
+                    </button>
+                  )}
                 </div>
               </div>
               <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'flex-end', overflow: 'visible' }}>
@@ -4960,7 +5015,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   padding: '8px', borderRadius: '10px',
                   background: evt.logistics?.flow?.misionSent?.PHOTO ? 'rgba(34, 197, 94, 0.1)' : 'rgba(188, 111, 241, 0.1)',
                   border: `1px solid ${evt.logistics?.flow?.misionSent?.PHOTO ? '#22c55e' : 'rgba(188, 111, 241, 0.2)'}`,
-                  color: evt.logistics?.flow?.misionSent?.PHOTO ? '#22c55e' : '#bc6ff1',
+                  color: evt.logistics?.flow?.misionSent?.PHOTO ? '#22c55e' : '#C9A84C',
                   fontSize: '0.6rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
                 }}
               >
@@ -5182,7 +5237,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         visible: (isMemories || isCelebration) || (!isEssential && (evt.eventDetails?.photoStartTime || hasRole('FOTÓGRAFO')))
                       },
                       {
-                        id: 'DECOR', label: 'DECOR', color: '#bc6ff1',
+                        id: 'DECOR', label: 'DECOR', color: '#C9A84C',
                         startField: 'eventDetails.decorStartTime', endField: 'eventDetails.decorEndTime',
                         sVal: evt.eventDetails?.decorStartTime || evt.eventDetails?.startTime,
                         eVal: evt.eventDetails?.decorEndTime || evt.eventDetails?.endTime,
@@ -7288,8 +7343,23 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       celebrationEndTime: quo.eventDetails?.celebrationEndTime || '',
                       decorColor: quo.eventDetails?.decorColor || '',
                       decorTheme: quo.eventDetails?.decorTheme || '',
-                      materialExplanation: '',
-                      paymentMethod: quo.financials?.paymentMethod || 'Nequi'
+                      manualBasePrice: (() => {
+                        const savedBase = Number(quo.financials?.manualBasePrice) || 0;
+                        if (savedBase > 0) return savedBase;
+                        // Auto-Recovery: Total - Extras
+                        const total = Number(quo.financials?.totalValue) || 0;
+                        const extras = getDynamicExtras({ selectedExtras: quo.logistics?.selectedExtras || {}, extraQtys: quo.logistics?.extraQtys || {} });
+                        const extrasSum = extras.filter(ex => quo.logistics?.selectedExtras?.[ex.id]).reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
+                        return Math.max(0, total - extrasSum);
+                      })(),
+                      manualBaseDescription: quo.financials?.manualBaseDescription || '',
+                      isImported: true,
+                      indications: quo.eventDetails?.indications || 'Ninguna',
+                      materials: quo.logistics?.materials || '',
+                      materialExplanation: quo.logistics?.materials || '',
+                      warehouseTime: quo.logistics?.warehouseTime || '',
+                      paymentMethod: quo.financials?.paymentMethod || 'Nequi',
+                      deposit: Number(quo.financials?.deposit) || Math.round((Number(quo.financials?.totalValue) || 0) * 0.3)
                     });
                     setView('create');
                   }}
@@ -7312,10 +7382,28 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   <IconArrowLeft size={14} /> VOLVER A EVENTOS
                 </button>
                 <h2 style={{ fontSize: '2.2rem', fontWeight: '900', margin: 0 }}>Centro de <span style={{ opacity: 0.3 }}>Control</span></h2>
-                <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '2px', fontSize: '0.65rem' }}>GESTIÓN DE PERFIL Y APP</small>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <small style={{ color: 'var(--primary-purple)', fontWeight: '800', letterSpacing: '2px', fontSize: '0.65rem' }}>GESTIÓN DE PERFIL Y APP</small>
+                  <span style={{ fontSize: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', opacity: 0.5 }}>{APP_VERSION}</span>
+                </div>
               </header>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div style={{ background: 'rgba(255,56,96,0.05)', border: '1px solid rgba(255,56,96,0.2)', padding: '15px', borderRadius: '20px', marginBottom: '10px' }}>
+                   <p style={{ margin: '0 0 10px 0', fontSize: '0.65rem', color: '#ff3860', fontWeight: '800' }}>¿PROBLEMAS DE SINCRONIZACIÓN?</p>
+                   <button 
+                    onClick={() => {
+                        if(confirm("Se borrarán los borradores y la sesión. ¿Continuar?")) {
+                            localStorage.clear();
+                            window.location.reload(true);
+                        }
+                    }}
+                    style={{ width: '100%', padding: '12px', background: '#ff3860', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '950', fontSize: '0.7rem', cursor: 'pointer' }}
+                   >
+                     LIMPIAR CACHE Y FORZAR RECARGA
+                   </button>
+                </div>
+
                 {/* PERFIL */}
                 <div
                   className="sales-list-item"
@@ -7959,7 +8047,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
             RECARGAR APLICACIÓN
           </button>
         </div>
-        <div style={{ position: 'fixed', bottom: '10px', right: '10px', fontSize: '10px', color: 'rgba(255,255,255,0.05)', zIndex: 9999 }}>v1.0.2-2603</div>
+        <div style={{ position: 'fixed', bottom: '10px', right: '10px', fontSize: '10px', color: 'rgba(255,255,255,0.05)', zIndex: 9999 }}>{APP_VERSION}</div>
       </div>
     );
   }

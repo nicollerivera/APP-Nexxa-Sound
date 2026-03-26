@@ -41,18 +41,11 @@ const QuotationsView = ({
     const [selectedMonth] = useState(new Date().getMonth());
     const [selectedYear] = useState(new Date().getFullYear());
 
-    // Sorting logic
+    // Sorting logic - Unified for best UX (Strict Newest First)
     const sortedQuotations = [...quotations].sort((a, b) => {
         if (!a || !b) return 0;
 
-        // 1. PRIORIDAD: ESTADO 'SENT' (Leads nuevos) ARRIBA
-        const statusOrder = { 'SENT': 0, 'APPROVED': 1, 'LOST': 2 };
-        const orderA = statusOrder[a.status] ?? 3;
-        const orderB = statusOrder[b.status] ?? 3;
-        
-        if (orderA !== orderB) return orderA - orderB;
-
-        // 2. ORDEN CRONOLÓGICO: Más reciente primero dentro de su sección
+        // PRIORIDAD ABSOLUTA: ORDEN CRONOLÓGICO DESCENDENTE (Llegada)
         const dateA = a.createdAt ? parseFirestoreDate(a.createdAt) : new Date(0);
         const dateB = b.createdAt ? parseFirestoreDate(b.createdAt) : new Date(0);
         
@@ -61,7 +54,7 @@ const QuotationsView = ({
 
         if (timeA !== timeB) return timeB - timeA;
 
-        // 3. FALLBACK: ID
+        // FALLBACK: ID
         return (b.id || '').localeCompare(a.id || '');
     });
 
@@ -72,14 +65,14 @@ const QuotationsView = ({
 
     // Stats
     const monthLeads = quotations.filter(q => {
-        if (!q || !q.createdAt) return false;
-        const d = parseFirestoreDate(q.createdAt);
+        if (!q) return false;
+        const d = q.createdAt ? parseFirestoreDate(q.createdAt) : new Date(0);
         return d && d.getMonth && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
     }).length;
 
     const monthWon = quotations.filter(q => {
-        if (!q || !q.createdAt || !q.status) return false;
-        const d = parseFirestoreDate(q.createdAt);
+        if (!q || !q.status) return false;
+        const d = q.createdAt ? parseFirestoreDate(q.createdAt) : new Date(0);
         return d && d.getMonth && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear && q.status === 'APPROVED';
     }).length;
 
@@ -151,6 +144,8 @@ const QuotationsView = ({
                             return null; // No renderizar cotizaciones sin nombre
                         }
 
+                        const arrivalDate = quo.createdAt ? parseFirestoreDate(quo.createdAt) : null;
+
                         return (
                             <div key={quo.id} className="sales-list-item" onClick={() => onEdit && onEdit(quo)} style={{
                                 padding: '16px', borderRadius: '24px', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative', overflow: 'hidden', cursor: 'pointer'
@@ -159,11 +154,25 @@ const QuotationsView = ({
                                     <span style={{ fontSize: '0.55rem', fontWeight: '950', color: '#000', letterSpacing: '1px' }}>{quo.status}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingRight: '40px' }}>
-                                    <div>
-                                        <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#fff' }}>{clientName}</h4>
+                                    <div style={{ width: '100%' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                            <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#fff' }}>{clientName}</h4>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--primary-cyan)' }}>{formatPeso(quo.financials?.totalValue || 0)}</div>
+                                        </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
-                                            <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, fontWeight: '700', color: 'var(--primary-cyan)' }}>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', opacity: 0.6 }}>
+                                                <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: '900', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px' }}>
+                                                    {arrivalDate ? `📥 RECIBIDO: ${arrivalDate.getDate()}/${arrivalDate.getMonth() + 1} ${arrivalDate.getHours()}:${String(arrivalDate.getMinutes()).padStart(2, '0')}` : '📥 RECIBIDO: Sin fecha'}
+                                                </p>
+                                                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary-purple)' }}>
+                                                    📱 {quo.client?.phone || quo.clientPhone || 'Sin tel'}
+                                                </p>
+                                            </div>
+                                            <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, fontWeight: '700', color: 'var(--primary-cyan)', marginTop: '4px' }}>
                                                 📅 {quo.eventDetails?.date} • {quo.eventDetails?.neighborhood || 'Barrio por definir'}
+                                            </p>
+                                            <p style={{ margin: 0, fontSize: '0.7rem', opacity: 0.6, fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                ✨ {quo.eventDetails?.occasion || 'Sin ocasión'} • {quo.eventDetails?.guestCount || '10'} pax
                                             </p>
                                             {quo.eventDetails?.location && (
                                                 <p style={{ margin: 0, fontSize: '0.7rem', opacity: 0.4, fontWeight: '500', color: '#fff' }}>
@@ -175,7 +184,6 @@ const QuotationsView = ({
                                             </p>
                                         </div>
                                     </div>
-                                    <div style={{ fontWeight: '900', fontSize: '1.1rem', color: 'var(--primary-cyan)' }}>{formatPeso(quo.financials?.totalValue || 0)}</div>
                                 </div>
 
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', width: '100%', alignItems: 'center' }}>

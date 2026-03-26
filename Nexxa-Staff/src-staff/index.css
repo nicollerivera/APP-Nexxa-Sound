@@ -1,31 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Outfit:wght@400;700;900&family=Space+Grotesk:wght@300;700&family=Fira+Code:wght@400;700&family=Cormorant+Garamond:ital,wght@1,400;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:ital,wght@1,400;1,700;1,900&family=JetBrains+Mono:wght@400;700&display=swap');
 
 :root {
-  --bg-color: #030303;
+  --bg-color: #0D0D12;
   --surface-color: rgba(255, 255, 255, 0.03);
   --surface-hover: rgba(255, 255, 255, 0.06);
 
-  --primary-cyan: #00f2ff;
-  --primary-purple: #bc6ff1;
-  --primary-pink: #ff007a;
-  --success-green: #00ffa3;
+  --primary-cyan: #00F2FF; /* Cian Neón */
+  --primary-purple: #7B61FF; /* Púrpura Plasma */
+  --primary-pink: #F0EFF4; /* Blanco Fantasma */
+  --success-green: #00ff88; /* Verde Neón */
   --danger-red: #ff385c;
 
-  --brand-gradient: linear-gradient(135deg, #bc6ff1 0%, #00f2ff 100%);
-  --purple-relief: 0 0 15px rgba(188, 111, 241, 0.4);
-  --glass-bg: rgba(255, 255, 255, 0.02);
-  --glass-border: rgba(188, 111, 241, 0.2);
-  --glass-highlight: rgba(188, 111, 241, 0.08);
+  --brand-gradient: linear-gradient(135deg, #00F2FF 0%, #7B61FF 100%);
+  --cyan-glow: 0 0 20px rgba(0, 242, 255, 0.4);
+  --purple-glow: 0 0 20px rgba(123, 97, 255, 0.4);
+  --glass-bg: rgba(10, 10, 20, 0.7);
+  --glass-border: rgba(0, 242, 255, 0.2);
+  --glass-highlight: rgba(123, 97, 255, 0.08);
 
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-primary: #F0EFF4;
+  --text-secondary: rgba(240, 239, 244, 0.5);
   --glow-cyan: 0 0 20px rgba(0, 242, 255, 0.3);
-  --glow-purple: 0 0 25px rgba(188, 111, 241, 0.35);
+  --glow-gold: 0 0 25px rgba(123, 97, 255, 0.35); /* En realidad es Glow Púrpura ahora */
 
-  --font-family: 'Inter', 'Outfit', system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', sans-serif;
-  --font-mono: 'Fira Code', monospace;
-  --font-serif: 'Cormorant Garamond', serif;
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: 'Playfair Display', serif;
 }
 
 /* Hide Number Input Arrows */

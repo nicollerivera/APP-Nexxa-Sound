@@ -129,7 +129,7 @@ export const getDynamicExtras = (guests, makeupCount, extraQtys = {}) => {
 
   const items = [
     {
-      id: 'extra_makeup',
+      id: 'maquillaje_neon',
       name: `Maquillaje Neón`,
       price: makeupPrice,
       qty: mQty,

@@ -47,12 +47,12 @@ const CreateEventView = ({
     const needsPhoto = (pName) => {
         if (!pName) return false;
         const low = pName.toLowerCase();
-        return low.includes('onix') || low.includes('multii') || low.includes('kaizen') || low.includes('silver') || low.includes('elite') || low.includes('diamond');
+        return low.includes('onix') || low.includes('multii') || low.includes('kaizen') || low.includes('silver') || low.includes('elite') || low.includes('diamond') || low.includes('memories') || low.includes('celebration');
     };
     const needsDecor = (pName) => {
         if (!pName) return false;
         const low = pName.toLowerCase();
-        return low.includes('multii') || low.includes('kaizen') || low.includes('elite') || low.includes('diamond');
+        return low.includes('multii') || low.includes('kaizen') || low.includes('elite') || low.includes('diamond') || low.includes('celebration');
     };
 
     // AUTO-SYNC INICIAL Y AL CAMBIAR PAQUETE
@@ -192,6 +192,7 @@ const CreateEventView = ({
                 }
             }
 
+            // EXTRACT EXTRAS
             const newExtras = {};
             if (rawExtras) {
                 const exText = rawExtras.toLowerCase();
@@ -208,14 +209,58 @@ const CreateEventView = ({
                 if (hasEssential || idEssential) newExtras['acc_essential'] = true;
                 if (hasMemories || idMemories) newExtras['acc_memories'] = true;
                 if (hasCelebration || idCelebration) newExtras['acc_celebration'] = true;
+                
+                // Detection for other common extras to match them with their prices
+                if (exText.includes('360')) newExtras['extra_cam360'] = true;
+                if (exText.includes('decoracion')) newExtras['extra_decor_onix'] = true;
+                if (exText.includes('audiovisual')) newExtras['extra_av'] = true;
             }
             newData.selectedExtras = newExtras;
 
+            // --- AUTO-RELLENO POR PAQUETE (Importación) ---
+            const p = newData.packName ? String(newData.packName).toUpperCase() : '';
+            if (p.includes('ONIX') || p.includes('SILVER')) {
+                newData.selectedExtras = { ...newData.selectedExtras, extra_dj: true, extra_photo: true, extra_cam360: true, extra_decor_onix: true };
+                newData.photoDuration = 4;
+            } else if (p.includes('MULTII') || p.includes('ELITE')) {
+                newData.selectedExtras = { ...newData.selectedExtras, extra_dj: true, extra_photo: true, extra_av: true };
+                newData.photoDuration = 4;
+            } else if (p.includes('KAIZEN') || p.includes('DIAMOND')) {
+                newData.selectedExtras = { ...newData.selectedExtras, extra_dj: true, extra_photo: true, extra_cam360: true, extra_av: true, extra_makeup: true };
+                newData.photoDuration = 6;
+            }
+
+            // --- FINANCIAL SYNC (Logistics App) ---
+            const totalMatch = text.match(/TOTAL ESTIMADO:\s*\$?\s*([\d.]+)/i);
+            const parsedTotalValue = totalMatch ? parseInt(totalMatch[1].replace(/\./g, '')) : 0;
+            
+            // Current Extras Sum (Manual calc inside parser for better initial guess)
+            let extrasPriceSum = 0;
+            const extrasMapLocal = new Map();
+            (catalog?.extras || []).forEach(ex => extrasMapLocal.set(ex.id, ex.price || 0));
+            // Placeholder prices if catalog is not available in parser
+            if (newData.selectedExtras['extra_makeup']) extrasPriceSum += 120000;
+            if (newData.selectedExtras['extra_cam360']) extrasPriceSum += 550000;
+            if (newData.selectedExtras['extra_decor_onix']) extrasPriceSum += 200000;
+            if (newData.selectedExtras['extra_av']) extrasPriceSum += 450000;
+            if (newData.selectedExtras['acc_essential']) extrasPriceSum += 85000; 
+
+            // IMPORTANT: If we are in Personalizado mode, we must enforce the parsed total
+            newData.totalValue = parsedTotalValue || extrasPriceSum || 0;
+            if (parsedTotalValue > 0) {
+               newData.manualBasePrice = Math.max(0, parsedTotalValue - extrasPriceSum); 
+            } else {
+               newData.manualBasePrice = 0;
+            }
+            
+            // Force Abono calc
+            newData.deposit = Math.round((newData.totalValue * 0.3) / 5000) * 5000;
+
             if (!newData.clientName) alert(`⚠️ Advertencia: No se detectó el nombre del Cliente.\n\nContenido detectado (Inicio): "${text.substring(0, 50)}..."`);
-            alert(`✅ Datos Importados:\nCliente: ${newData.clientName || 'No detectado'}\nPaquete: ${newData.packName || 'No detectado'}\nExtras Detectados: ${Object.keys(newExtras).length}`);
+            alert(`✅ Lead "${newData.clientName || 'Nuevo'}" Importado:\nTotal: ${formatPeso(newData.totalValue)}\nBase: ${formatPeso(newData.manualBasePrice)}\nExtras: ${formatPeso(extrasPriceSum)}`);
 
             setNewEvent(newData);
-            setTimeout(() => updateEvent('recalc', null), 100);
+            // No longer need immediate recalc if we calculated everything here
 
         } catch (err) {
             console.error(err);
@@ -243,6 +288,17 @@ const CreateEventView = ({
             // Quitamos el reset de makeupCount para que no salte el precio si el usuario ya lo ajustó
         } else if (field === 'packName') {
             updated.packName = value;
+            const p = value ? String(value).toUpperCase() : '';
+            if (p.includes('ONIX') || p.includes('SILVER')) {
+                updated.selectedExtras = { ...updated.selectedExtras, extra_dj: true, extra_photo: true, extra_cam360: true, extra_decor_onix: true };
+                if (!updated.photoDuration) updated.photoDuration = 4;
+            } else if (p.includes('MULTII') || p.includes('ELITE')) {
+                updated.selectedExtras = { ...updated.selectedExtras, extra_dj: true, extra_photo: true, extra_av: true };
+                if (!updated.photoDuration) updated.photoDuration = 4;
+            } else if (p.includes('KAIZEN') || p.includes('DIAMOND')) {
+                updated.selectedExtras = { ...updated.selectedExtras, extra_dj: true, extra_photo: true, extra_cam360: true, extra_av: true, extra_makeup: true };
+                if (!updated.photoDuration) updated.photoDuration = 6;
+            }
         } else if (field === 'startTime') {
             const prevStart = newEvent.startTime; // Valor anterior
             updated.startTime = value;
@@ -329,8 +385,20 @@ const CreateEventView = ({
 
         const currentExtrasList = getDynamicExtras(guests, updated.makeupCount);
 
-        if (catalog && pack && start && end && pack !== 'Personalizado') {
-            const conf = catalog.packages.find(p => p.name === pack);
+        const getNormPack = (name) => {
+            const n = String(name || '').toUpperCase();
+            if (n.includes('KAIZEN') || n.includes('DIAMOND')) return 'Kaizen';
+            if (n.includes('MULTII') || n.includes('ELITE')) return 'Multii';
+            if (n.includes('ONIX') || n.includes('SILVER')) return 'Onix';
+            if (n.includes('MEMORIES')) return 'Memories';
+            if (n.includes('ESSENTIAL')) return 'Essential';
+            return 'Personalizado';
+        };
+
+        if (catalog && pack && start && end && getNormPack(pack) !== 'Personalizado') {
+            const normName = getNormPack(pack);
+            const conf = catalog.packages.find(p => p.id === normName || p.name.includes(normName.toUpperCase()));
+            
             if (conf) {
                 const duration = getHours(start, end);
                 const extraEventHours = Math.max(0, Math.ceil(duration - appConfig.baseHours));
@@ -341,8 +409,8 @@ const CreateEventView = ({
                 let totalExtrasValue = 0;
                 totalExtrasValue += extraEventHours * djExtraPrice;
 
-                const hasPhoto = (pack === 'Memories' || pack === 'Celebration');
-                if (hasPhoto) {
+                const hasPhotoField = needsPhoto(pack);
+                if (hasPhotoField) {
                     if (pDuration > 0) {
                         const extraPhotoHours = Math.max(0, Math.ceil(pDuration - appConfig.baseHours));
                         totalExtrasValue += extraPhotoHours * photoExtraPrice;
@@ -352,34 +420,49 @@ const CreateEventView = ({
                 }
 
                 let calculatedTotal = basePrice + totalExtrasValue;
-                const allPossibleExtras = [
-                    ...(catalog?.extras || []).filter(e => !['acc_essential', 'acc_memories', 'acc_celebration', 'makeup'].includes(e.id)),
-                    ...currentExtrasList
-                ];
-                allPossibleExtras.forEach(ex => {
-                    if (selExtras[ex.id]) calculatedTotal += ex.price;
+                
+                // --- CALCULAR EXTRAS (Evitar Duplicados) ---
+                const extrasMap = new Map();
+                // 1. Añadir extras del Catálogo (maquillaje_neon, camara_360, etc)
+                (catalog?.extras || []).forEach(ex => extrasMap.set(ex.id, ex.price || 0));
+                // 2. Añadir extras Dinámicos (Kits por personas)
+                currentExtrasList.forEach(ex => extrasMap.set(ex.id, ex.price || 0));
+
+                // 3. Sumar si están seleccionados
+                Object.keys(selExtras).forEach(extraId => {
+                    if (selExtras[extraId]) {
+                        calculatedTotal += (extrasMap.get(extraId) || 0);
+                    }
                 });
 
-                // Round to nearest 5000 (Sync with Web Stitch)
+                // Redondear a los 5000 más cercanos
                 updated.totalValue = Math.round(calculatedTotal / 5000) * 5000;
-
-                if (pDuration > 0 && hasPhoto) {
-                    updated.extraHourPrice = djExtraPrice;
-                } else {
-                    updated.extraHourPrice = djExtraPrice + (hasPhoto ? photoExtraPrice : 0);
-                }
+                updated.extraHourPrice = djExtraPrice + (hasPhotoField ? photoExtraPrice : 0);
             }
 
         } else if (pack === 'Personalizado') {
-            if (!updated.totalValue && !newEvent.id) {
-                let sum = 0;
-                currentExtrasList.forEach(ex => { if (selExtras[ex.id]) sum += ex.price; });
-                updated.totalValue = Math.round(sum / 5000) * 5000;
-            }
+            // FIXED: Factor in BOTH manualBasePrice AND extensions value
+            let sum = parseInt(updated.manualBasePrice) || 0;
+            
+            // 1. ADD EXTENSIONS (Extra Hours) - critical fix for financial sync
+            sum += totalExtrasValue; 
+
+            // 2. ADD CHECKED EXTRAS (Catalog/Kits)
+            const extrasMap = new Map();
+            (catalog?.extras || []).forEach(ex => extrasMap.set(ex.id, ex.price || 0));
+            currentExtrasList.forEach(ex => extrasMap.set(ex.id, ex.price || 0));
+
+            Object.keys(selExtras).forEach(extraId => {
+                if (selExtras[extraId]) sum += (extrasMap.get(extraId) || 0);
+            });
+            
+            updated.totalValue = Math.round(sum / 5000) * 5000;
         }
 
         if (updated.totalValue > 0) {
-            updated.deposit = Math.round((updated.totalValue * appConfig.depositPercentage) / 5000) * 5000;
+            updated.deposit = Math.round((updated.totalValue * 0.3) / 5000) * 5000;
+        } else {
+            updated.deposit = 0;
         }
 
         setNewEvent(updated);
@@ -846,14 +929,31 @@ const CreateEventView = ({
                             </div>
 
                             <div style={{ flex: 1 }}>
-                                <small style={{ color: '#888', marginBottom: '2px' }}>Valor Total (Calculado):</small>
+                                <div style={{ marginBottom: '8px' }}>
+                                    <label style={{ fontSize: '0.65rem', color: '#888', textTransform: 'uppercase' }}>Costo Base (Servicio)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="$ Base"
+                                        value={formatInputNumber(newEvent.manualBasePrice || 0)}
+                                        onChange={e => updateEvent('manualBasePrice', parseInputNumber(e.target.value))}
+                                        style={{ height: '35px', borderColor: 'rgba(255,255,255,0.05)', fontSize: '0.9rem', color: '#facc15' }}
+                                    />
+                                </div>
+                                <small style={{ color: 'var(--primary-cyan)', fontWeight: '900' }}>VALOR TOTAL FINAL:</small>
                                 <input
                                     required
                                     placeholder="$ 0"
                                     type="text"
                                     value={formatInputNumber(newEvent.totalValue)}
                                     onChange={e => updateEvent('totalValue', parseInputNumber(e.target.value))}
-                                    style={{ fontWeight: 'bold', color: '#00d4ff', fontSize: '1.4rem', height: '50px' }}
+                                    style={{ 
+                                        fontWeight: '950', 
+                                        color: '#00d4ff', 
+                                        fontSize: '1.6rem', 
+                                        height: '55px',
+                                        border: '1px solid var(--primary-cyan)',
+                                        boxShadow: '0 0 15px rgba(0,212,255,0.1)' 
+                                    }}
                                 />
                             </div>
                         </div>

@@ -39,14 +39,20 @@ export const getHours = (start, end) => {
 
 export const parseLocalStrDate = (dateStr) => {
   if (!dateStr || typeof dateStr !== 'string') return new Date();
-  const [year, month, day] = dateStr.split('-').map(Number);
+  // Safe ISO parsing (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss...)
+  const dateOnly = dateStr.split('T')[0];
+  const [year, month, day] = dateOnly.split('-').map(Number);
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return new Date();
   return new Date(year, month - 1, day);
 };
 
 export const parseFirestoreDate = (date) => {
-  if (!date) return new Date(0); // Treat missing date as epoch (bottom) for sorting
+  if (!date) return new Date(0);
   if (date.toDate) return date.toDate();
-  if (typeof date === 'string' && date.includes('-')) return parseLocalStrDate(date);
+  if (typeof date === 'string') {
+    if (date.includes('T')) return new Date(date);
+    if (date.includes('-')) return parseLocalStrDate(date);
+  }
   return new Date(date);
 };
 export const formatT = (t) => {
