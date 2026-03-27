@@ -4255,7 +4255,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                   </div>
                                 )}
 
-                                {isActive && (
+                                {isActive && (extra.needsTime || ['extra_photo', 'extra_cam360', 'extra_av', 'extra_makeup'].includes(extra.id) || extra.id.includes('_decor_') || (extra.isIncluded !== true && extra.price !== 0)) && (
                                   <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '10px', padding: '16px', background: 'rgba(0, 242, 255, 0.05)', borderRadius: '20px', border: '1.5px solid rgba(0, 242, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                       <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary-cyan)' }}></div>
