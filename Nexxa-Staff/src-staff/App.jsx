@@ -1730,9 +1730,6 @@ function App() {
     const total = Number(newEvent.totalValue) || 0;
     const dep = Number(newEvent.deposit) || 0;
 
-    const total = Number(newEvent.totalValue) || 0;
-    const dep = Number(newEvent.deposit) || 0;
-
     // 1. DEFINIR ITEMS USANDO EL HELPER DINÁMICO
     const defaultItems = buildLogisticsItems(newEvent);
 
@@ -4094,7 +4091,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.6)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.11)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4339,7 +4336,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                             style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.9rem', outline: 'none', width: '100%', fontWeight: '900' }}
                                           />
                                         </div>
-                                  </div>
+                                      </div>
                                 )}
                               </div>
                             );
@@ -4466,11 +4463,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
                         {/* ADICIONALES SELECCIONADOS (KITS, NEON, ETC) */}
                         {(() => {
-                          const activeExtras = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id]);
-                          if (activeExtras.length === 0) return null;
+                          const activeExtrasList = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id]);
+                          if (activeExtrasList.length === 0) return null;
                           return (
                             <div style={{ marginTop: '5px', paddingTop: '5px', borderTop: hasPlan ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                              {activeExtras.map(ex => (
+                              {activeExtrasList.map(ex => (
                                 <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#C9A84C', fontSize: '0.65rem', marginBottom: '2px' }}>
                                   <span>+ {ex.name} {ex.qty > 1 ? `(x${ex.qty})` : ''}:</span>
                                   <strong>{ex.isIncluded ? 'INCLUIDO' : `$${ex.price.toLocaleString()}`}</strong>
