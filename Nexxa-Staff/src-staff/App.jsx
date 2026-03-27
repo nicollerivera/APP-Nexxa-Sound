@@ -4093,7 +4093,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.45)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.46)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6839,21 +6839,23 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         };
 
                         const getTimeRange = (keyword) => {
-                            // Priorizamos buscar en las indicaciones del protocolo (donde están los horarios reales)
-                            const protocolText = (quo.indications || quo.eventDetails?.indications || JSON.stringify(quo) || '').toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ');
+                            const protocolText = (quo.indications || quo.eventDetails?.indications || JSON.stringify(quo) || '').toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ');
                             
-                            // Buscamos la última ocurrencia del servicio para evitar la lista de items
                             const idx = protocolText.lastIndexOf(keyword.toUpperCase());
                             if (idx === -1) return null;
                             
+                            // Extraemos una ventana grande después de la palabra clave
                             const sub = protocolText.substring(idx, idx + 450); 
-                            const hPat = /(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)/i;
-                            const rangePat = new RegExp(hPat.source + '\\s*(?:TO|A|-|Y|HASTA|\\.)\\s*' + hPat.source, 'i');
-                            const m = rangePat.exec(sub);
                             
-                            if (m) {
-                                const start = to24(m[1]);
-                                let end = to24(m[2]);
+                            // Buscamos TODAS las horas en esa ventana
+                            const hPatGlobal = /(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)/gi;
+                            const matches = sub.match(hPatGlobal);
+                            
+                            if (matches && matches.length >= 2) {
+                                const start = to24(matches[0]);
+                                let end = to24(matches[1]);
+                                
+                                // Si son iguales o falló, forzar 4h
                                 if (!end || end === start) {
                                     let h = parseInt(start.split(':')[0], 10);
                                     end = `${String((h + 4) % 24).padStart(2, '0')}:${start.split(':')[1] || '00'}`;
