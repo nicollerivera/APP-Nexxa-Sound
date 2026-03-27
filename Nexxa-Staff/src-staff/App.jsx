@@ -4085,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.16)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.17)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4256,10 +4256,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
                                 {isActive && (extra.needsTime || ['extra_photo', 'extra_cam360', 'extra_av', 'extra_makeup'].includes(extra.id) || extra.id.includes('_decor_') || (extra.isIncluded !== true && extra.price !== 0)) && (
                                   <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '10px', padding: '16px', background: 'rgba(0, 242, 255, 0.05)', borderRadius: '20px', border: '1.5px solid rgba(0, 242, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary-cyan)' }}></div>
-                                      <span style={{ fontSize: '0.65rem', fontWeight: '900', color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px' }}>Servicio Activo</span>
-                                    </div>
+                                    {/* CONTENIDO DE CONFIGURACIÓN DE SERVICIO */}
                                     {/* TIME PICKER IF NEEDED */}
                                     {(extra.needsTime || ['extra_photo', 'extra_cam360', 'extra_av', 'extra_makeup'].includes(extra.id) || extra.id.includes('_decor_')) && (
                                       <MiniTimeInput
