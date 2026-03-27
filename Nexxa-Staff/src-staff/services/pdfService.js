@@ -91,6 +91,7 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
             'PHOTO': 'FOTÓGRAFO',
             'FOTO': 'FOTÓGRAFO',
             'DECOR': 'DECORADOR',
+            'AV': 'AV / OPERADOR',
             'GENERAL': 'DJ / OPERADOR'
         };
         const staffRole = (roleMapping[role.toUpperCase()] || role).toUpperCase().trim();
@@ -265,6 +266,9 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
             }
             if (evt.eventDetails?.decorStartTime) {
                 rows.push(['', '', `DECOR: ${formatT(evt.eventDetails.decorStartTime)} - ${formatT(evt.eventDetails.decorEndTime)}`, '']);
+            }
+            if (evt.eventDetails?.avStartTime) {
+                rows.push(['', '', `AV: ${formatT(evt.eventDetails.avStartTime)} - ${formatT(evt.eventDetails.avEndTime)}`, '']);
             }
         } else {
             rows.push([
@@ -560,6 +564,13 @@ export const generateQuotationPDF = async (quo, getDynamicExtras) => {
             doc.text('H. Decoración:', col2X, y + 20);
             doc.setFont('helvetica', 'normal');
             doc.text(`${formatT(quo.eventDetails.decorStartTime)} - ${formatT(quo.eventDetails.decorEndTime)}`, colVal2X, y + 20);
+        }
+        if (quo.eventDetails?.avStartTime) {
+            y += 10;
+            doc.setFont('helvetica', 'bold');
+            doc.text('H. Audiovisual:', col2X, y + 20);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`${formatT(quo.eventDetails.avStartTime)} - ${formatT(quo.eventDetails.avEndTime)}`, colVal2X, y + 20);
         }
 
         y += 45;

@@ -27,11 +27,11 @@ const needsDecor = (pName, selectedExtras = {}) => {
 };
 const needsCam360 = (pName, selectedExtras = {}) => {
   const p = (pName || '').toUpperCase();
-  return p.includes('ONIX') || p.includes('MULTII') || p.includes('KAIZEN') || selectedExtras?.extra_cam360;
+  return p.includes('MULTII') || p.includes('KAIZEN') || selectedExtras?.extra_cam360;
 };
 const needsAV = (pName, selectedExtras = {}) => {
   const p = (pName || '').toUpperCase();
-  return p.includes('ONIX') || p.includes('KAIZEN') || selectedExtras?.extra_av;
+  return p.includes('ONIX') || p.includes('MULTII') || p.includes('KAIZEN') || selectedExtras?.extra_av;
 };
 import {
   collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, addDoc,
@@ -242,7 +242,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
           <select 
             value={startVal || ''} 
             onChange={(e) => onStartChange(e.target.value)}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', background: '#111', color: '#fff' }}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', background: '#111', color: '#fff', zIndex: 20 }}
           >
             <option value="" disabled style={{ background: '#111', color: '#fff' }}>Hora</option>
             {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t} style={{ background: '#111', color: '#fff' }}>{getDisplayTimeUI(t).full}</option>)}
@@ -258,7 +258,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
           <select 
             value={endVal || ''} 
             onChange={(e) => onEndChange(e.target.value)}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', background: '#111', color: '#fff' }}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', background: '#111', color: '#fff', zIndex: 20 }}
           >
              <option value="" disabled style={{ background: '#111', color: '#fff' }}>Hora</option>
              {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t} style={{ background: '#111', color: '#fff' }}>{getDisplayTimeUI(t).full}</option>)}
@@ -271,7 +271,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = '1.4.2-logistics'; // UI Simplification Step 1
+const APP_VERSION = '1.4.6-logistics-force-refresh'; // UI Simplification Step 1
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -512,7 +512,9 @@ function App() {
             cam360StartTime: d.eventDetails?.cam360StartTime || d.eventDetails?.camStart || d.eventDetails?.videoStartTime || '',
             cam360EndTime: d.eventDetails?.cam360EndTime || d.eventDetails?.camEnd || d.eventDetails?.videoEndTime || '',
             avStartTime: d.eventDetails?.avStartTime || d.eventDetails?.avStart || '',
-            avEndTime: d.eventDetails?.avEndTime || d.eventDetails?.avEnd || ''
+            avEndTime: d.eventDetails?.avEndTime || d.eventDetails?.avEnd || '',
+            decorStartTime: d.eventDetails?.decorStartTime || d.eventDetails?.decorStart || '',
+            decorEndTime: d.eventDetails?.decorEndTime || d.eventDetails?.decorEnd || ''
           },
           financials: {
             totalValue: Number(d.financials?.totalValue || d.totalValue || d.valor_total || d.total || d.precio || d.price || d.valor || 0),
@@ -1023,12 +1025,10 @@ function App() {
       photoEndTime: '',
       avStartTime: '',
       avEndTime: '',
+      cam360StartTime: '',
+      cam360EndTime: '',
       decorStartTime: '',
       decorEndTime: '',
-      memoriesStartTime: '',
-      memoriesEndTime: '',
-      celebrationStartTime: '',
-      celebrationEndTime: '',
       paymentMethod: 'Nequi'
     };
   });
@@ -1101,7 +1101,7 @@ function App() {
         if (upLine.includes('360')) {
           newData.selectedExtras['extra_cam360'] = true;
           const range = parseRange(line);
-          if (range) { newData.camStartTime = range.start; newData.camEndTime = range.end; }
+          if (range) { newData.cam360StartTime = range.start; newData.cam360EndTime = range.end; }
         }
         if (upLine.includes('FOTOGRAFIA') || upLine.includes('PHOTO')) {
           newData.selectedExtras['extra_photo'] = true;
@@ -1180,9 +1180,17 @@ function App() {
     }
 
     // Mandatory Roles based on Package
-    if (newEvent.packName === 'Multii' || newEvent.packName === 'Kaizen') {
-      if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
-        return alert(`⚠️ EL PAQUETE ${newEvent.packName.toUpperCase()} REQUIERE HORARIO DE FOTOGRAFÍA.`);
+    const pKey = (newEvent.packName || '').toUpperCase();
+    if (pKey === 'MULTII' || pKey === 'KAIZEN' || pKey === 'ONIX') {
+      if (!newEvent.photoStartTime) return alert(`⚠️ SE REQUIERE HORARIO DE FOTOGRAFÍA PARA ${pKey}.`);
+      if (pKey === 'MULTII' || pKey === 'ONIX' || pKey === 'KAIZEN') {
+        if (!newEvent.avStartTime) return alert(`⚠️ SE REQUIERE HORARIO DE AUDIOVISUALES PARA ${pKey}.`);
+      }
+      if (pKey === 'MULTII' || pKey === 'KAIZEN') {
+        if (!newEvent.cam360StartTime) return alert(`⚠️ SE REQUIERE HORARIO DE CÁMARA 360 PARA ${pKey}.`);
+      }
+      if (pKey === 'MULTII') {
+        if (!newEvent.decorStartTime) return alert(`⚠️ SE REQUIERE HORARIO DE DECORACIÓN PARA MULTII.`);
       }
     }
 
@@ -1232,7 +1240,11 @@ function App() {
         photoStartTime: newEvent.photoStartTime || '',
         photoEndTime: newEvent.photoEndTime || '',
         decorStartTime: newEvent.decorStartTime || '',
-        decorEndTime: newEvent.decorEndTime || ''
+        decorEndTime: newEvent.decorEndTime || '',
+        avStartTime: newEvent.avStartTime || '',
+        avEndTime: newEvent.avEndTime || '',
+        cam360StartTime: newEvent.cam360StartTime || '',
+        cam360EndTime: newEvent.cam360EndTime || ''
       },
       financials: {
         totalValue: total,
@@ -1244,7 +1256,7 @@ function App() {
       logistics: {
         packName: newEvent.packName,
         selectedExtras: newEvent.selectedExtras || {},
-        makeupCount: newEvent.makeupCount,
+        makeupCount: newEvent.makeupCount || 1,
         managerName: newEvent.managerName || 'Por asignar',
         flow: { staffConfirmed: false, equipmentDelivered: false, equipmentReturned: false, staffPaid: false },
         items: defaultItems
@@ -1260,7 +1272,7 @@ function App() {
 
       alert('✅ Cotización Guardada y Enviada.');
       setView('quotations');
-      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Onix', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', color: '#C9A84C' });
+      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Onix', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', avStartTime: '', avEndTime: '', camStartTime: '', camEndTime: '', decorStartTime: '', decorEndTime: '', color: '#C9A84C' });
       localStorage.removeItem('nexxa_draft_event');
     } catch (err) {
       console.error(err);
@@ -1320,27 +1332,7 @@ function App() {
         }
       };
 
-      // Generate Inventory Items
-      let defaultItems = [];
-      const packName = quo.logistics.packName;
-      const createItem = (name, qty, area) => ({ name, qty, area, status: 'PENDING', deliveredTime: null, returnedTime: null });
-
-      const djItems = [
-        createItem('CABINAS ACTIVAS 15 Pulgadas + TRÍPODES', needsDecor(packName) ? 4 : 2, 'DJ'),
-        createItem('PC PORTÁTIL + CARGADOR + CABLE AUDIO 2 a 1', 1, 'DJ'),
-        createItem('LUCES LED x4 + SOPORTE TRÍPODE', needsDecor(packName) ? 2 : 1, 'DJ'),
-        createItem('MÁQUINA HUMO + CONTROL + LÍQUIDO', 1, 'DJ'),
-        createItem('KIT ENERGIA (3 PODER, 2 MULT, 2 EXT, 2 ADAPT)', 1, 'DJ'),
-        createItem('MAQUILLAJE NEON (PINTURAS, PINCEL, MAQUILLADOR, 2H)', 1, 'DJ')
-      ];
-      const photoItems = [createItem('CÁMARA', 1, 'PHOTO'), createItem('MICRO SD', 1, 'PHOTO')];
-      const decorItems = [createItem('BOMBAS', 150, 'DECOR'), createItem('INFLADOR', 1, 'DECOR')];
-
-      if (needsDecor(packName)) defaultItems = [...djItems, ...photoItems, ...decorItems];
-      else if (needsPhoto(packName)) defaultItems = [...djItems, ...photoItems];
-      else defaultItems = [...djItems];
-
-      eventObj.logistics.items = defaultItems;
+      eventObj.logistics.items = buildLogisticsItems(quo);
 
       // 3. Save Event
       await setDoc(doc(db, "events", eventId), eventObj);
@@ -1437,9 +1429,9 @@ function App() {
   // ==========================================
   const STITCH_DATA = {
     protocols: {
-      'ONIX':      { price: 1250000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_onix', 'extra_av'] },
-      'MULTII':    { price: 1440000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii'] },
-      'KAIZEN':    { price: 1940000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup'] },
+      'ONIX':      { price: 1250000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] },
+      'MULTII':    { price: 1440000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] },
+      'KAIZEN':    { price: 1940000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'] },
       'CELEBRATION': { price: 850000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Pro', 'Decoración'], includedExtras: ['extra_photo', 'extra_decor_onix'] },
       'MEMORIES':    { price: 650000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Pro'], includedExtras: ['extra_photo'] }
     },
@@ -1487,7 +1479,7 @@ function App() {
     const qty = (typeof userMakeupCount === 'number') ? userMakeupCount : recommendedMakeup;
 
     const photoDur = getHours(evt?.photoStartTime || '20:00', evt?.photoEndTime || evt?.photoStartTime || '20:00');
-    const camDur = getHours(evt?.camStartTime || '20:00', evt?.camEndTime || evt?.camStartTime || '20:00');
+    const camDur = getHours(evt?.cam360StartTime || '20:00', evt?.cam360EndTime || evt?.cam360StartTime || '20:00');
     const avDur = getHours(evt?.avStartTime || '20:00', evt?.avEndTime || evt?.avStartTime || '20:00');
 
     const extraPhotoCost = STITCH_DATA.extras.photo;
@@ -1553,12 +1545,26 @@ function App() {
         // Force guest count for Logistics Kits 111, 444, 777
         if (ex.isAcc && !ex.isItem) sQty = g; 
         
-        const pack = (evt?.packName || '').toUpperCase();
-        const proto = STITCH_DATA.protocols[pack];
-        const isIncluded = proto?.includedExtras?.includes(ex.id) || false;
+        // Robust lookup for protocol (Case insensitive and stripping prices/extras from string)
+        const packStr = (evt?.packName || '').trim().toUpperCase();
+        
+        // ULTIMATE REGEX OVERRIDE (Case Insensitive)
+        let isIncluded = false;
+        if (/MULTII/i.test(packStr)) {
+          if (['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'].includes(ex.id)) isIncluded = true;
+        } else if (/ONIX/i.test(packStr)) {
+          if (['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'].includes(ex.id)) isIncluded = true;
+        } else if (/KAIZEN/i.test(packStr)) {
+          if (['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'].includes(ex.id)) isIncluded = true;
+        } else {
+          const packKey = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => packStr.includes(k)) || packStr;
+          const proto = STITCH_DATA.protocols[packKey];
+          isIncluded = proto?.includedExtras?.includes(ex.id) || false;
+        }
 
-        const finalPrice = (isIncluded) ? 0 : ((ex.isItem || ex.isMakeup) ? ex.price * sQty : ex.price);
-        return { ...ex, basePrice: ex.price, qty: sQty, price: finalPrice, displayPrice: finalPrice, isIncluded };
+        const basePrice = newEvent.extraPriceOverrides?.[ex.id] !== undefined ? Number(newEvent.extraPriceOverrides[ex.id]) : ex.price;
+        const finalPrice = (isIncluded) ? 0 : ((ex.isItem || ex.isMakeup) ? basePrice * sQty : basePrice);
+        return { ...ex, name: `${ex.name}`, basePrice: basePrice, qty: sQty, price: finalPrice, displayPrice: finalPrice, isIncluded };
     });
   };
 
@@ -1567,7 +1573,7 @@ function App() {
   // Use specific times IF provided; otherwise, assume BASE duration (no extra charges)
   const djDur = (newEvent.djStartTime && newEvent.djEndTime) ? getHours(newEvent.djStartTime, newEvent.djEndTime) : 4;
   const photoDur = (newEvent.photoStartTime && newEvent.photoEndTime) ? getHours(newEvent.photoStartTime, newEvent.photoEndTime) : 4;
-  const camDur = (newEvent.camStartTime && newEvent.camEndTime) ? getHours(newEvent.camStartTime, newEvent.camEndTime) : 2;
+  const camDur = (newEvent.cam360StartTime && newEvent.cam360EndTime) ? getHours(newEvent.cam360StartTime, newEvent.cam360EndTime) : 2;
   const decorDur = (newEvent.decorStartTime && newEvent.decorEndTime) ? getHours(newEvent.decorStartTime, newEvent.decorEndTime) : 2;
   const avDur = (newEvent.avStartTime && newEvent.avEndTime) ? getHours(newEvent.avStartTime, newEvent.avEndTime) : 4;
 
@@ -1577,7 +1583,7 @@ function App() {
 
   const hasDJ = newEvent.selectedExtras?.extra_dj || currentConf.roles?.includes('DJs Profesionales') || currentConf.roles?.includes('DJs') || (newEvent.djStartTime && newEvent.djEndTime);
   const hasPhoto = newEvent.selectedExtras?.extra_photo || currentConf.roles?.includes('Fotografía Profesional') || (newEvent.photoStartTime && newEvent.photoEndTime);
-  const hasCam = newEvent.selectedExtras?.extra_cam360 || currentConf.roles?.includes('Cámara 360°') || (newEvent.camStartTime && newEvent.camEndTime);
+  const hasCam = newEvent.selectedExtras?.extra_cam360 || currentConf.roles?.includes('Cámara 360°') || (newEvent.cam360StartTime && newEvent.cam360EndTime);
   const hasAV = newEvent.selectedExtras?.extra_av || currentConf.items?.includes('Sonido Pro') || currentConf.items?.includes('Sonido Line Array') || (newEvent.avStartTime && newEvent.avEndTime);
 
   const basePriceValue = parseInt(currentConf.base) || 0;
@@ -1602,13 +1608,53 @@ function App() {
                         extrasAVPrice + 
                         otherExtrasPrice;
 
+  // --- HELPER: GENERAR ITEMS DE LOGÍSTICA ---
+  const buildLogisticsItems = (evt) => {
+    const p = (evt.packName || '').toUpperCase();
+    const protoKey = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => p.includes(k)) || 'PERSONALIZADO';
+    const protoBase = STITCH_DATA.protocols[protoKey] || {};
+    
+    // 1. Ítems base del protocolo
+    let items = (protoBase.items || []).map(name => ({
+      name,
+      qty: 1,
+      checked: false,
+      area: name.includes('SONIDO') || name.includes('CABINA') || name.includes('LUCES') ? 'DJ' : 
+            name.includes('CÁMARA') || name.includes('PLATAFORMA') || name.includes('360') ? 'VIDEO' :
+            name.includes('DECORACIÓN') || name.includes('BOMBAS') ? 'DECOR' : 'LOGÍSTICA'
+    }));
+
+    if (items.length === 0) {
+      items = [
+        { name: 'SISTEMA AUDIO NEXXA PRO', qty: 1, checked: false, area: 'DJ' },
+        { name: 'SISTEMA ILUMINACIÓN STITCH', qty: 1, checked: false, area: 'DJ' },
+        { name: 'KIT ENERGÍA COMPLETO', qty: 1, checked: false, area: 'LOGÍSTICA' }
+      ];
+    }
+
+    // 2. Ítems de extras dinámicos (seleccionados o incluidos por paquete)
+    const dynamicExtras = getDynamicExtras(evt);
+    dynamicExtras.forEach(ex => {
+      const isActive = !!(evt.selectedExtras && evt.selectedExtras[ex.id]) || ex.isIncluded;
+      if (isActive) {
+        // Evitar duplicados (por nombre o indicio de nombre)
+        if (!items.some(i => i.name === ex.name || i.name.toUpperCase().includes(ex.name.toUpperCase().substring(0, 8)))) {
+          items.push({
+            name: ex.name,
+            qty: ex.qty || 1,
+            checked: false,
+            area: ex.category || 'EXTRAS'
+          });
+        }
+      }
+    });
+
+    return items;
+  };
+
   // Auto-update totalValue for accuracy
   useEffect(() => {
-    // If it's an imported lead and we have multiple values, we MUST preserve what was calculated
-    // but the user wants synchronization.
     if (computedTotal > 0) {
-        // If the current totalValue is 0, empty, or differs from computedTotal in a NEW/RESTORED state, sync it.
-        // We allow the sync to happen to FIX the $1.55M vs $2.09M issue.
         if (!newEvent.totalValue || Number(newEvent.totalValue) === 0 || (!newEvent.isImported && Number(newEvent.totalValue) !== computedTotal)) {
              setNewEvent(prev => ({ 
                 ...prev, 
@@ -1650,10 +1696,10 @@ function App() {
         }
       }
       if (needsCam360(newEvent.packName, newEvent.selectedExtras)) {
-        if (!newEvent.camStartTime || !newEvent.camEndTime) {
+        if (!newEvent.cam360StartTime || !newEvent.cam360EndTime) {
           return alert(`⚠️ SE REQUIERE HORARIO DE CÁMARA 360.`);
         }
-        const camDur = getHours(newEvent.camStartTime, newEvent.camEndTime);
+        const camDur = getHours(newEvent.cam360StartTime, newEvent.cam360EndTime);
         if (camDur <= 0) {
           return alert('⚠️ EL HORARIO DE CÁMARA 360 NO PUEDE SER DE 0 HORAS.');
         }
@@ -1684,60 +1730,13 @@ function App() {
     const total = Number(newEvent.totalValue) || 0;
     const dep = Number(newEvent.deposit) || 0;
 
-    // 1. DEFINIR ITEMS (Calculated based on Package + Extras?)
-    // Note: Currently simple package mapping.
-    const p = (newEvent.packName || '').toUpperCase();
-    if (p.includes('ONIX')) {
-      defaultItems = [
-        { name: 'SISTEMA AUDIO NEXXA PRO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'SISTEMA ILUMINACIÓN ONIX', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CÁMARA FOTOGRAFÍA PRO', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'MICRO SD 32GB', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'KIT DECORACIÓN ÓNIX', qty: 1, checked: false, area: 'DECOR' },
-        { name: 'KIT ENERGIA COMPLETO', qty: 1, checked: false, area: 'LOGÍSTICA' }
-      ];
-    } else if (p.includes('MULTII')) {
-      defaultItems = [
-        { name: 'SISTEMA AUDIO NEXXA XL', qty: 1, checked: false, area: 'DJ' },
-        { name: 'SISTEMA ILUMINACIÓN STITCH PRO', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CÁMARA FOTOGRAFÍA PRO', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'PLATAFORMA CÁMARA 360', qty: 1, checked: false, area: 'VIDEO' },
-        { name: 'KIT DECORACIÓN MULTII (MOCO DE GORILA)', qty: 1, checked: false, area: 'DECOR' },
-        { name: 'KIT ENERGIA COMPLETO', qty: 1, checked: false, area: 'LOGÍSTICA' }
-      ];
-    } else if (p.includes('KAIZEN')) {
-      defaultItems = [
-        { name: 'FULL STACK SONIDO KAIZEN', qty: 1, checked: false, area: 'DJ' },
-        { name: 'SISTEMA ILUMINACIÓN STITCH MASTER', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CÁMARA FOTOGRAFÍA MASTER', qty: 1, checked: false, area: 'PHOTO' },
-        { name: 'PLATAFORMA CÁMARA 360 XL', qty: 1, checked: false, area: 'VIDEO' },
-        { name: 'DECORACIÓN KAIZEN COMPLETA', qty: 1, checked: false, area: 'DECOR' },
-        { name: 'KIT MAQUILLAJE NEÓN UV', qty: 1, checked: false, area: 'STYLE' },
-        { name: 'KIT ENERGIA FULL PRO', qty: 1, checked: false, area: 'LOGÍSTICA' }
-      ];
-    } else {
-      defaultItems = [
-        { name: 'KIT SONIDO BÁSICO NEXXA', qty: 1, checked: false, area: 'DJ' },
-        { name: 'KIT ILUMINACIÓN BÁSICO NEXXA', qty: 1, checked: false, area: 'DJ' },
-        { name: 'CABLEADO Y EXTENSIONES AC', qty: 1, checked: false, area: 'LOGÍSTICA' }
-      ];
-    }
+    const total = Number(newEvent.totalValue) || 0;
+    const dep = Number(newEvent.deposit) || 0;
 
-    // 1.1 AÑADIR MATERIALES DE EXTRAS SELECCIONADOS
-    const dynamicExtras = getDynamicExtras(newEvent);
-    dynamicExtras.forEach(ex => {
-      if (newEvent.selectedExtras && newEvent.selectedExtras[ex.id]) {
-        // Solo añadir si no existe ya para evitar duplicados en ediciones
-        if (ex && !defaultItems.some(i => i && i.name === ex.name)) {
-          defaultItems.push({
-            name: ex.name,
-            qty: ex.qty || 1,
-            checked: false,
-            area: ex.area || 'Decor'
-          });
-        }
-      }
-    });
+    // 1. DEFINIR ITEMS USANDO EL HELPER DINÁMICO
+    const defaultItems = buildLogisticsItems(newEvent);
+
+    // 1.1 LOS ITEMS YA INCLUYEN EXTRAS GRACIAS AL HELPER
 
     // 2. VERIFICACIÓN DE STOCK (Only for CONFIRMED)
     let conflictMsg = '';
@@ -1808,8 +1807,8 @@ function App() {
         occasion: newEvent.occasion || 'Evento Social',
         location: newEvent.location ? newEvent.location.replace(/"/g, '') : '',
         neighborhood: newEvent.neighborhood || '',
-        startTime: newEvent.startTime,
-        endTime: newEvent.endTime,
+        startTime: newEvent.startTime || '',
+        endTime: newEvent.endTime || '',
         djStartTime: newEvent.djStartTime || newEvent.startTime,
         djEndTime: newEvent.djEndTime || newEvent.endTime,
         materialsTime: newEvent.materialsTime || '',
@@ -1818,7 +1817,11 @@ function App() {
         photoStartTime: newEvent.photoStartTime || '',
         photoEndTime: newEvent.photoEndTime || '',
         decorStartTime: newEvent.decorStartTime || '',
-        decorEndTime: newEvent.decorEndTime || ''
+        decorEndTime: newEvent.decorEndTime || '',
+        avStartTime: newEvent.avStartTime || '',
+        avEndTime: newEvent.avEndTime || '',
+        cam360StartTime: newEvent.cam360StartTime || '',
+        cam360EndTime: newEvent.cam360EndTime || ''
       },
       financials: {
         totalValue: total,
@@ -3895,12 +3898,27 @@ function App() {
           updated.guestCount = value;
           updated.makeupCount = null;
         } else if (field === 'packName') {
-          updated.packName = (value === 'ESSENTIAL' ? 'ONIX' : value);
+          const val = (value || '').toUpperCase();
+          const p = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => val.includes(k)) || val;
+          updated.packName = p;
+          
+          // AUTO-SELECT INCLUDED EXTRAS: When a package is picked, ensure its included services are checked
+          const proto = STITCH_DATA.protocols[p];
+          if (proto?.includedExtras || /MULTII/i.test(p) || /ONIX/i.test(p) || /KAIZEN/i.test(p)) {
+            const newExtras = { ...(updated.selectedExtras || {}) };
+            const forced = proto?.includedExtras || (/MULTII/i.test(p) ? ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] : (/ONIX/i.test(p) ? ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] : ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration']));
+            
+            forced.forEach(extId => {
+              newExtras[extId] = true;
+            });
+            updated.selectedExtras = newExtras;
+          }
         } else if (field === 'startTime') {
           updated.startTime = value;
           // Auto-sync if not manually changed or if they match old default
           if (!updated.djStartTime || updated.djStartTime === '08:00') updated.djStartTime = value;
-          // Note: Photo/AV/Cam defaults are NOT tied to main event start automatically 
+          if (!updated.avStartTime || updated.avStartTime === '08:00') updated.avStartTime = value;
+          // Note: Photo/Cam defaults are NOT tied to main event start automatically 
           // if we want to avoid double-charging for their full duration extras.
           // They should be explicitly set by the user or landing page.
 
@@ -3923,6 +3941,12 @@ function App() {
         } else if (field === 'djEndTime') {
           updated.djEndTime = value;
           if (!updated.endTime) updated.endTime = value;
+        } else if (field === 'changeExtraPrice') {
+          const { id, price } = value;
+          const newOverrides = { ...(updated.extraPriceOverrides || {}) };
+          if (price === '' || price === null) delete newOverrides[id];
+          else newOverrides[id] = Number(price);
+          updated.extraPriceOverrides = newOverrides;
         } else {
           updated[field] = value;
         }
@@ -4070,7 +4094,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: 'var(--primary-cyan)' }}>1. Datos del Evento</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.6)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4127,94 +4151,32 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     <div style={{ gridColumn: 'span 2' }}>
                       <input required placeholder="📍 Ubicación (Dirección o Local)" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
                     </div>
+
+                    {/* FRANJA HORARIA PRINCIPAL (DJ/EVENTO) */}
+                    <div style={{ gridColumn: 'span 2', marginTop: '10px', padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <TimeInput label="Inicio Evento" value={newEvent.startTime} onChange={val => updateEvent('startTime', val)} />
+                        <TimeInput label="Fin Evento" value={newEvent.endTime} onChange={val => updateEvent('endTime', val)} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <MiniTimeInput 
+                            label="Horario DJ / Sonido" 
+                            labelColor="var(--primary-purple)"
+                            startVal={newEvent.djStartTime || newEvent.startTime} 
+                            endVal={newEvent.djEndTime || newEvent.endTime}
+                            onStartChange={val => updateEvent('djStartTime', val)}
+                            onEndChange={val => updateEvent('djEndTime', val)}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   </>
               )}
             </div>
 
-            {/* SECCIÓN 3: HORARIOS DEL PERSONAL (GRANULAR) */}
-            <div className="form-section">
-              <div
-                onClick={() => toggleSection('s3')}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '15px' : '0' }}
-              >
-                <h3 style={{ color: 'var(--primary-cyan)' }}>3. Horarios del Personal</h3>
-                <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s3 ? '▼' : '▶'}</span>
-              </div>
 
-              {sectionState.s3 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {getDynamicExtras(newEvent)
-                    .filter(ex => (newEvent.selectedExtras?.[ex.id] || ex.isIncluded) && ex.needsTime)
-                    .map(ex => (
-                      <div key={ex.id} style={{ 
-                        padding: '12px', 
-                        background: 'rgba(255,255,255,0.02)', 
-                        borderRadius: '16px', 
-                        border: '1px solid rgba(255,255,255,0.05)' 
-                      }}>
-                        <MiniTimeInput
-                          label={`${ex.name}`}
-                          labelColor={ex.id === 'extra_av' ? 'var(--primary-cyan)' : 'var(--primary-purple)'}
-                          startVal={(() => {
-                            if (ex.id === 'extra_photo') return newEvent.photoStartTime;
-                            if (ex.id === 'extra_cam360') return newEvent.camStartTime;
-                            if (ex.id === 'extra_av') return newEvent.avStartTime;
-                            if (ex.id.includes('_decor_')) return newEvent.decorStartTime;
-                            if (ex.id === 'extra_makeup') return newEvent.makeupStartTime;
-                            if (ex.id === 'acc_memories') return newEvent.memoriesStartTime;
-                            if (ex.id === 'acc_celebration') return newEvent.celebrationStartTime;
-                            return '';
-                          })()}
-                          endVal={(() => {
-                            if (ex.id === 'extra_photo') return newEvent.photoEndTime;
-                            if (ex.id === 'extra_cam360') return newEvent.camEndTime;
-                            if (ex.id === 'extra_av') return newEvent.avEndTime;
-                            if (ex.id.includes('_decor_')) return newEvent.decorEndTime;
-                            if (ex.id === 'extra_makeup') return newEvent.makeupEndTime;
-                            if (ex.id === 'acc_memories') return newEvent.memoriesEndTime;
-                            if (ex.id === 'acc_celebration') return newEvent.celebrationEndTime;
-                            return '';
-                          })()}
-                          onStartChange={(val) => {
-                            let field = '';
-                            if (ex.id === 'extra_photo') field = 'photoStartTime';
-                            else if (ex.id === 'extra_cam360') field = 'camStartTime';
-                            else if (ex.id === 'extra_av') {
-                              field = 'avStartTime';
-                              updateEvent('djStartTime', val); // Sync main DJ field
-                            }
-                            else if (ex.id.includes('_decor_')) field = 'decorStartTime';
-                            else if (ex.id === 'extra_makeup') field = 'makeupStartTime';
-                            else if (ex.id === 'acc_memories') field = 'memoriesStartTime';
-                            else if (ex.id === 'acc_celebration') field = 'celebrationStartTime';
-                            if (field) updateEvent(field, val);
-                          }}
-                          onEndChange={(val) => {
-                            let field = '';
-                            if (ex.id === 'extra_photo') field = 'photoEndTime';
-                            else if (ex.id === 'extra_cam360') field = 'camEndTime';
-                            else if (ex.id === 'extra_av') {
-                              field = 'avEndTime';
-                              updateEvent('djEndTime', val); // Sync main DJ field
-                            }
-                            else if (ex.id.includes('_decor_')) field = 'decorEndTime';
-                            else if (ex.id === 'extra_makeup') field = 'makeupEndTime';
-                            else if (ex.id === 'acc_memories') field = 'memoriesEndTime';
-                            else if (ex.id === 'acc_celebration') field = 'celebrationEndTime';
-                            if (field) updateEvent(field, val);
-                          }}
-                        />
-                      </div>
-                    ))}
-                  {getDynamicExtras(newEvent).filter(ex => (newEvent.selectedExtras?.[ex.id] || ex.isIncluded) && ex.needsTime).length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '20px', opacity: 0.5, fontSize: '0.8rem' }}>
-                      Selecciona servicios en la Sección 2 para definir sus horarios.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
 
             {/* SECCIÓN 2: EXTRAS (ACCORDION) */}
             <div className="form-section">
@@ -4234,17 +4196,20 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       acc[ex.category].push(ex);
                       return acc;
                     }, {})
-                  ).map(([category, catExtras]) => (
-                    <div key={category} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-                      <div 
-                        onClick={() => toggleCatSection(category)}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '12px 0' }}
-                      >
-                        <label style={{ fontSize: '0.65rem', color: 'var(--primary-purple)', fontWeight: '950', textTransform: 'uppercase', margin: 0, display: 'block', opacity: 1, letterSpacing: '2px' }}>{category}</label>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--primary-purple)', opacity: 0.7 }}>{catSectionState[category] ? '▼' : '▶'}</span>
-                      </div>
+                  ).map(([category, catExtras]) => {
+                    const containsActive = catExtras.some(ex => !!(newEvent.selectedExtras && newEvent.selectedExtras[ex.id]) || ex.isIncluded);
+                    const isOpen = !!catSectionState[category] || (containsActive && !newEvent.id);
+                    return (
+                      <div key={category} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
+                        <div 
+                          onClick={() => toggleCatSection(category)}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '12px 0' }}
+                        >
+                          <label style={{ fontSize: '0.65rem', color: 'var(--primary-purple)', fontWeight: '950', textTransform: 'uppercase', margin: 0, display: 'block', opacity: 1, letterSpacing: '2px' }}>{category}</label>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--primary-purple)', opacity: 0.7 }}>{isOpen ? '▼' : '▶'}</span>
+                        </div>
 
-                      {catSectionState[category] && (
+                        {isOpen && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '5px' }}>
                           {catExtras.map(extra => {
                             const isActive = !!(newEvent.selectedExtras && newEvent.selectedExtras[extra.id]) || extra.isIncluded;
@@ -4300,6 +4265,79 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                         <input type="color" value={newEvent.decorColor || '#C9A84C'} onChange={(e) => updateEvent('decorColor', e.target.value)} style={{ position: 'absolute', top: '-10px', left: '-10px', opacity: 0, width: '200%', height: '200%', cursor: 'pointer' }} />
                                       </label>
                                       <input type="text" placeholder="Ej: Neón, Floral, Despedida..." value={newEvent.decorTheme || ''} onChange={(e) => updateEvent('decorTheme', e.target.value)} style={{ flex: 1, minWidth: '150px', background: '#1a1a24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '10px 15px', borderRadius: '20px', fontSize: '0.8rem', outline: 'none' }} />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isActive && (
+                                  <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '10px', padding: '16px', background: 'rgba(0, 242, 255, 0.05)', borderRadius: '20px', border: '1.5px solid rgba(0, 242, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary-cyan)' }}></div>
+                                      <span style={{ fontSize: '0.65rem', fontWeight: '900', color: 'var(--primary-cyan)', textTransform: 'uppercase', letterSpacing: '1px' }}>Servicio Activo</span>
+                                    </div>
+                                    {/* TIME PICKER IF NEEDED */}
+                                    {(extra.needsTime || ['extra_photo', 'extra_cam360', 'extra_av', 'extra_makeup'].includes(extra.id) || extra.id.includes('_decor_')) && (
+                                      <MiniTimeInput
+                                        label={`Horario ${extra.name}`}
+                                        labelColor={'var(--primary-cyan)'}
+                                        startVal={(() => {
+                                          if (extra.id === 'extra_photo') return newEvent.photoStartTime;
+                                          if (extra.id === 'extra_cam360') return newEvent.cam360StartTime;
+                                          if (extra.id === 'extra_av') return newEvent.avStartTime;
+                                          if (extra.id.includes('_decor_')) return newEvent.decorStartTime;
+                                          if (extra.id === 'extra_makeup') return newEvent.makeupStartTime;
+                                          if (extra.id === 'acc_memories') return newEvent.memoriesStartTime;
+                                          if (extra.id === 'acc_celebration') return newEvent.celebrationStartTime;
+                                          return '';
+                                        })()}
+                                        endVal={(() => {
+                                          if (extra.id === 'extra_photo') return newEvent.photoEndTime;
+                                          if (extra.id === 'extra_cam360') return newEvent.cam360EndTime;
+                                          if (extra.id === 'extra_av') return newEvent.avEndTime;
+                                          if (extra.id.includes('_decor_')) return newEvent.decorEndTime;
+                                          if (extra.id === 'extra_makeup') return newEvent.makeupEndTime;
+                                          if (extra.id === 'acc_memories') return newEvent.memoriesEndTime;
+                                          if (extra.id === 'acc_celebration') return newEvent.celebrationEndTime;
+                                          return '';
+                                        })()}
+                                        onStartChange={(val) => {
+                                          let field = '';
+                                          if (extra.id === 'extra_photo') field = 'photoStartTime';
+                                          else if (extra.id === 'extra_cam360') field = 'cam360StartTime';
+                                          else if (extra.id === 'extra_av') { field = 'avStartTime'; updateEvent('djStartTime', val); }
+                                          else if (extra.id.includes('_decor_')) field = 'decorStartTime';
+                                          else if (extra.id === 'extra_makeup') field = 'makeupStartTime';
+                                          else if (extra.id === 'acc_memories') field = 'memoriesStartTime';
+                                          else if (extra.id === 'acc_celebration') field = 'celebrationStartTime';
+                                          if (field) updateEvent(field, val);
+                                        }}
+                                        onEndChange={(val) => {
+                                          let field = '';
+                                          if (extra.id === 'extra_photo') field = 'photoEndTime';
+                                          else if (extra.id === 'extra_cam360') field = 'cam360EndTime';
+                                          else if (extra.id === 'extra_av') { field = 'avEndTime'; updateEvent('djEndTime', val); }
+                                          else if (extra.id.includes('_decor_')) field = 'decorEndTime';
+                                          else if (extra.id === 'extra_makeup') field = 'makeupEndTime';
+                                          else if (extra.id === 'acc_memories') field = 'memoriesEndTime';
+                                          else if (extra.id === 'acc_celebration') field = 'celebrationEndTime';
+                                          if (field) updateEvent(field, val);
+                                        }}
+                                      />
+                                    )}
+
+                                    {/* PRICE OVERRIDE IF SELECTED */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                      <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Precio Personalizado (Opcional)</label>
+                                      <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', padding: '10px 15px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                        <span style={{ color: 'var(--primary-cyan)', fontWeight: '900', marginRight: '5px' }}>$</span>
+                                        <input 
+                                          type="number" 
+                                          placeholder={extra.basePrice}
+                                          value={newEvent.extraPriceOverrides?.[extra.id] || ''} 
+                                          onChange={(e) => updateEvent('changeExtraPrice', { id: extra.id, price: e.target.value })}
+                                          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.9rem', outline: 'none', width: '100%', fontWeight: '900' }}
+                                        />
+                                      </div>
                                     </div>
                                   </div>
                                 )}
@@ -5215,6 +5253,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       if (field === 'eventDetails.endTime' || field === 'eventDetails.djEndTime') {
                         const oldEnd = evt.eventDetails?.djEndTime || evt.eventDetails?.endTime;
                         if (evt.eventDetails?.photoEndTime === oldEnd) updates['eventDetails.photoEndTime'] = timeString;
+                        if (evt.eventDetails?.avEndTime === oldEnd) updates['eventDetails.avEndTime'] = timeString;
                         if (evt.eventDetails?.decorEndTime === oldEnd) updates['eventDetails.decorEndTime'] = timeString;
                       }
 
@@ -5242,6 +5281,13 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         sVal: evt.eventDetails?.decorStartTime || evt.eventDetails?.startTime,
                         eVal: evt.eventDetails?.decorEndTime || evt.eventDetails?.endTime,
                         visible: isCelebration || (!isEssential && !isMemories && (evt.eventDetails?.decorStartTime || hasRole('DECORADOR')))
+                      },
+                      {
+                        id: 'AV', label: 'AV', color: 'var(--primary-cyan)',
+                        startField: 'eventDetails.avStartTime', endField: 'eventDetails.avEndTime',
+                        sVal: evt.eventDetails?.avStartTime || evt.eventDetails?.startTime,
+                        eVal: evt.eventDetails?.avEndTime || evt.eventDetails?.endTime,
+                        visible: needsAV(evt.logistics?.packName, evt.logistics?.selectedExtras) || !!evt.eventDetails?.avStartTime
                       }
                     ];
 
@@ -7331,16 +7377,22 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       photoEndTime: quo.eventDetails?.photoEndTime || '',
                       decorStartTime: quo.eventDetails?.decorStartTime || '',
                       decorEndTime: quo.eventDetails?.decorEndTime || '',
-                      camStartTime: quo.eventDetails?.cam360StartTime || '',
-                      camEndTime: quo.eventDetails?.cam360EndTime || '',
+                      cam360StartTime: quo.eventDetails?.cam360StartTime || '',
+                      cam360EndTime: quo.eventDetails?.cam360EndTime || '',
                       avStartTime: quo.eventDetails?.avStartTime || '',
                       avEndTime: quo.eventDetails?.avEndTime || '',
                       essentialStartTime: quo.eventDetails?.essentialStartTime || '',
                       essentialEndTime: quo.eventDetails?.essentialEndTime || '',
                       memoriesStartTime: quo.eventDetails?.memoriesStartTime || '',
                       memoriesEndTime: quo.eventDetails?.memoriesEndTime || '',
-                      celebrationStartTime: quo.eventDetails?.celebrationStartTime || '',
-                      celebrationEndTime: quo.eventDetails?.celebrationEndTime || '',
+                      celebrationStartTime: quo.eventDetails?.decorStartTime || quo.eventDetails?.celebrationStartTime || '',
+                      celebrationEndTime: quo.eventDetails?.decorEndTime || quo.eventDetails?.celebrationEndTime || '',
+                      decorStartTime: quo.eventDetails?.decorStartTime || '',
+                      decorEndTime: quo.eventDetails?.decorEndTime || '',
+                      avStartTime: quo.eventDetails?.avStartTime || '',
+                      avEndTime: quo.eventDetails?.avEndTime || '',
+                      cam360StartTime: quo.eventDetails?.cam360StartTime || '',
+                      cam360EndTime: quo.eventDetails?.cam360EndTime || '',
                       decorColor: quo.eventDetails?.decorColor || '',
                       decorTheme: quo.eventDetails?.decorTheme || '',
                       manualBasePrice: (() => {
