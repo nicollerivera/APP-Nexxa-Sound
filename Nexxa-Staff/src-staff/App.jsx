@@ -508,11 +508,11 @@ function App() {
           logistics: {
             packName: (() => {
                 const s = (pName || d.paquete || d.packName || '').toUpperCase();
-                if (s.includes('KAIZEN') || s.includes('DIAMOND') || s.includes('PLATINUM')) return 'KAIZEN';
-                if (s.includes('MULTII') || s.includes('ELITE')) return 'MULTII';
-                if (s.includes('ONIX') || s.includes('ESSENTIAL') || s.includes('SILVER') || s.includes('GOLD')) return 'ONIX';
-                if (s.includes('MEMORIES')) return 'MEMORIES';
-                if (s.includes('CELEBRATION')) return 'CELEBRATION';
+                if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA')) return 'KAIZEN';
+                if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
+                if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV') || s.includes('GOLD')) return 'ONIX';
+                if (s.includes('MEMOR')) return 'MEMORIES';
+                if (s.includes('CELEB')) return 'CELEBRATION';
                 return 'PERSONALIZADO';
             })(),
             selectedExtras: cleanExtras,
@@ -4087,7 +4087,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.21)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.22)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4111,12 +4111,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     </div>
 
                     <div style={{ gridColumn: 'span 2', marginTop: '2px' }}>
-                      <select style={{ width: '100%', padding: '10px', fontSize: '0.85rem', border: '1px solid rgba(188, 111, 241, 0.3)', height: '42px', background: 'rgba(188, 111, 241, 0.05)' }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
+                      <select style={{ width: '100%', padding: '10px', fontSize: '0.85rem', border: '1px solid rgba(188, 111, 241, 0.3)', height: '42px', background: 'rgba(188, 111, 241, 0.05)', color: '#fff' }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
                         <option value="">Selecciona el Plan...</option>
                         <option value="ONIX">ONIX ($1.22M)</option>
                         <option value="MULTII">MULTII ($1.44M)</option>
                         <option value="KAIZEN">KAIZEN ($1.94M)</option>
-                        <option value="Personalizado">Personalizado</option>
+                        <option value="PERSONALIZADO">Personalizado</option>
                       </select>
                     </div>
 
@@ -6814,11 +6814,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       neighborhood: quo.eventDetails?.neighborhood || '',
                       packName: (() => {
                         const s = (quo.logistics?.packName || quo.paquete || quo.packName || '').toUpperCase();
-                        if (s.includes('KAIZEN') || s.includes('DIAMOND') || s.includes('PLATINUM')) return 'KAIZEN';
-                        if (s.includes('MULTII') || s.includes('ELITE')) return 'MULTII';
-                        if (s.includes('ONIX') || s.includes('ESSENTIAL') || s.includes('SILVER') || s.includes('GOLD')) return 'ONIX';
-                        if (s.includes('MEMORIES')) return 'MEMORIES';
-                        if (s.includes('CELEBRATION')) return 'CELEBRATION';
+                        if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA')) return 'KAIZEN';
+                        if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
+                        if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV') || s.includes('GOLD')) return 'ONIX';
+                        if (s.includes('MEMOR')) return 'MEMORIES';
+                        if (s.includes('CELEB')) return 'CELEBRATION';
                         return 'PERSONALIZADO';
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
