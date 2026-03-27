@@ -4085,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.27)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.28)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6817,6 +6817,45 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV')) return 'ONIX';
                         return ''; 
                       })(),
+                      ...(() => {
+                        const text = (quo.eventDetails?.indications || quo.indications || JSON.stringify(quo)).toUpperCase();
+                        const timeRegex = /HORARIO:\s*(\d{1,2}:\d{2}\s*[APM]{2})\s*A\s*(\d{1,2}:\d{2}\s*[APM]{2})/gi;
+                        const extractMatch = (serviceKey) => {
+                            const idx = text.indexOf(serviceKey.toUpperCase());
+                            if (idx === -1) return null;
+                            const sub = text.substring(idx, idx + 100);
+                            const match = /HORARIO:\s*(\d{1,2}:\d{2}\s*(?:AM|PM))\s*A\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/i.exec(sub);
+                            if (match) {
+                                return {
+                                    start: convertTo24h(match[1]),
+                                    end: convertTo24h(match[2])
+                                };
+                            }
+                            return null;
+                        };
+
+                        const convertTo24h = (str) => {
+                            if (!str) return '';
+                            let [time, modifier] = str.toUpperCase().trim().split(/\s+/);
+                            let [hours, minutes] = time.split(':');
+                            if (hours === '12') hours = '00';
+                            if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+                            return `${String(hours).padStart(2, '0')}:${minutes}`;
+                        };
+
+                        const photo = extractMatch('FOTOGRAFÍA') || extractMatch('PHOTO');
+                        const av = extractMatch('AUDIOVISUAL') || extractMatch('AV');
+                        const cam = extractMatch('360') || extractMatch('AÉREA');
+                        
+                        return {
+                            photoStartTime: photo?.start || quo.eventDetails?.startTime || '',
+                            photoEndTime: photo?.end || quo.eventDetails?.endTime || '',
+                            avStartTime: av?.start || quo.eventDetails?.startTime || '',
+                            avEndTime: av?.end || quo.eventDetails?.endTime || '',
+                            cam360StartTime: cam?.start || quo.eventDetails?.startTime || '',
+                            cam360EndTime: cam?.end || quo.eventDetails?.endTime || ''
+                        };
+                      })(),
                       totalValue: quo.financials?.totalValue || 0,
                       deposit: (() => {
                         const total = Number(quo.financials?.totalValue) || 0;
@@ -6846,12 +6885,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         if (p.includes('memories') || p.includes('celebration')) return 120000;
                         return 85000;
                       })(),
-                      photoStartTime: quo.eventDetails?.photoStartTime || quo.eventDetails?.startTime || '',
-                      photoEndTime: quo.eventDetails?.photoEndTime || quo.eventDetails?.endTime || '',
-                      avStartTime: quo.eventDetails?.avStartTime || quo.eventDetails?.startTime || '',
-                      avEndTime: quo.eventDetails?.avEndTime || quo.eventDetails?.endTime || '',
-                      cam360StartTime: quo.eventDetails?.cam360StartTime || quo.eventDetails?.startTime || '',
-                      cam360EndTime: quo.eventDetails?.cam360EndTime || quo.eventDetails?.endTime || '',
                       decorStartTime: quo.eventDetails?.decorStartTime || '',
                       decorEndTime: quo.eventDetails?.decorEndTime || '',
                       indications: quo.eventDetails?.indications || 'Ninguna',
