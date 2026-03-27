@@ -4085,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.40)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.42)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6813,8 +6813,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         
                         const to24 = (t) => {
                             if (!t) return null;
-                            const s = t.toString().trim().toUpperCase().replace(/\./g, '');
-                            const m = /(\d{1,2}):?(\d{2})?\s*(AM|PM)/i.exec(s);
+                            // Limpieza profunda de caracteres invisibles y puntos
+                            const s = t.toString().toUpperCase().replace(/[\. ]+/g, '').trim();
+                            const m = /(\d{1,2})(?::(\d{2}))?(AM|PM)/.exec(s);
                             if (!m) return null;
                             let h = parseInt(m[1], 10);
                             const min = m[2] || '00';
@@ -6825,19 +6826,24 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         };
 
                         const getTimeRange = (keyword) => {
-                            const idx = raw.indexOf(keyword.toUpperCase());
+                            // Priorizamos buscar en las indicaciones del protocolo (donde están los horarios reales)
+                            const protocolText = (quo.indications || quo.eventDetails?.indications || JSON.stringify(quo) || '').toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ');
+                            
+                            // Buscamos la última ocurrencia del servicio para evitar la lista de items
+                            const idx = protocolText.lastIndexOf(keyword.toUpperCase());
                             if (idx === -1) return null;
-                            const sub = raw.substring(idx, idx + 400); // Dar más margen
-                            // Regex Específica para la Web: Busca el patrón "H:MM AM TO H:MM PM" visto en captura
-                            const m = /(\d{1,2}:\d{2}\s*(?:AM|PM))\s*(?:TO|A|-)\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/i.exec(sub);
+                            
+                            const sub = protocolText.substring(idx, idx + 450); 
+                            const hPat = /(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)/i;
+                            const rangePat = new RegExp(hPat.source + '\\s*(?:TO|A|-|Y|HASTA|\\.)\\s*' + hPat.source, 'i');
+                            const m = rangePat.exec(sub);
+                            
                             if (m) {
                                 const start = to24(m[1]);
                                 let end = to24(m[2]);
-                                // Si el fin es igual al inicio (error de web), forzar 4 horas
-                                if (start === end && start) {
+                                if (!end || end === start) {
                                     let h = parseInt(start.split(':')[0], 10);
-                                    let newH = (h + 4) % 24;
-                                    end = `${String(newH).padStart(2, '0')}:${start.split(':')[1]}`;
+                                    end = `${String((h + 4) % 24).padStart(2, '0')}:${start.split(':')[1] || '00'}`;
                                 }
                                 return { s: start, e: end };
                             }
