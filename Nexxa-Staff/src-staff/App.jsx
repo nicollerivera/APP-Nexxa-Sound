@@ -4085,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.28)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.29)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6819,28 +6819,34 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       })(),
                       ...(() => {
                         const text = (quo.eventDetails?.indications || quo.indications || JSON.stringify(quo)).toUpperCase();
-                        const timeRegex = /HORARIO:\s*(\d{1,2}:\d{2}\s*[APM]{2})\s*A\s*(\d{1,2}:\d{2}\s*[APM]{2})/gi;
+                        
+                        const convertTo24h = (str) => {
+                            if (!str) return '';
+                            let s = str.toUpperCase().replace(/\./g, '').trim();
+                            // Handle cases like "8:00PM" or "8:00 PM"
+                            let mMatch = /(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(s);
+                            if (!mMatch) return '';
+                            let h = parseInt(mMatch[1], 10);
+                            let m = mMatch[2];
+                            let mod = mMatch[3];
+                            if (mod === 'PM' && h < 12) h += 12;
+                            if (mod === 'AM' && h === 12) h = 0;
+                            return `${String(h).padStart(2, '0')}:${m}`;
+                        };
+
                         const extractMatch = (serviceKey) => {
                             const idx = text.indexOf(serviceKey.toUpperCase());
                             if (idx === -1) return null;
-                            const sub = text.substring(idx, idx + 100);
-                            const match = /HORARIO:\s*(\d{1,2}:\d{2}\s*(?:AM|PM))\s*A\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/i.exec(sub);
-                            if (match) {
+                            const sub = text.substring(idx, idx + 150);
+                            // Robust regex for AM/PM with or without dots and spaces
+                            const m = /HORARIO:\s*(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))\s*A\s*(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))/i.exec(sub);
+                            if (m) {
                                 return {
-                                    start: convertTo24h(match[1]),
-                                    end: convertTo24h(match[2])
+                                    start: convertTo24h(m[1]),
+                                    end: convertTo24h(m[2])
                                 };
                             }
                             return null;
-                        };
-
-                        const convertTo24h = (str) => {
-                            if (!str) return '';
-                            let [time, modifier] = str.toUpperCase().trim().split(/\s+/);
-                            let [hours, minutes] = time.split(':');
-                            if (hours === '12') hours = '00';
-                            if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
-                            return `${String(hours).padStart(2, '0')}:${minutes}`;
                         };
 
                         const photo = extractMatch('FOTOGRAFÍA') || extractMatch('PHOTO');
@@ -6848,12 +6854,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         const cam = extractMatch('360') || extractMatch('AÉREA');
                         
                         return {
-                            photoStartTime: photo?.start || quo.eventDetails?.startTime || '',
-                            photoEndTime: photo?.end || quo.eventDetails?.endTime || '',
-                            avStartTime: av?.start || quo.eventDetails?.startTime || '',
-                            avEndTime: av?.end || quo.eventDetails?.endTime || '',
-                            cam360StartTime: cam?.start || quo.eventDetails?.startTime || '',
-                            cam360EndTime: cam?.end || quo.eventDetails?.endTime || ''
+                            photoStartTime: photo?.start || quo.eventDetails?.startTime || '20:00',
+                            photoEndTime: photo?.end || quo.eventDetails?.endTime || '00:00',
+                            avStartTime: av?.start || quo.eventDetails?.startTime || '20:00',
+                            avEndTime: av?.end || quo.eventDetails?.endTime || '00:00',
+                            cam360StartTime: cam?.start || quo.eventDetails?.startTime || '20:00',
+                            cam360EndTime: cam?.end || quo.eventDetails?.endTime || '22:00'
                         };
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
