@@ -227,47 +227,30 @@ const TimeInput = ({ value, onChange, label }) => {
 // --- MINI TIME INPUT (FOR EXTRAS) ---
 const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, labelColor = '#8b9bb4' }) => {
   return (
-    <div style={{ marginTop: '12px', marginLeft: '2px' }}>
-      <span style={{ 
-        fontSize: '0.65rem', color: labelColor, fontWeight: '950', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px', display: 'inline-block', fontFamily: 'monospace'
-      }}>{label}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      {label && <span style={{ fontSize: '0.55rem', color: labelColor, fontWeight: '950', letterSpacing: '0.5px', textTransform: 'uppercase', opacity: 0.6 }}>{label}</span>}
       <div style={{
-        position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10, 10, 15, 0.7)',
-        border: '1px solid var(--primary-cyan)', borderRadius: '50px', padding: '14px 28px', gap: '24px', width: 'fit-content', boxShadow: 'var(--gold-glow), inset 0 2px 10px rgba(0,0,0,0.5)'
+        position: 'relative', display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.4)',
+        border: '1px solid rgba(0,242,255,0.3)', borderRadius: '12px', padding: '6px 14px', gap: '10px', width: 'fit-content'
       }}>
         <div style={{ position: 'relative', cursor: 'pointer' }}>
-          <span style={{ color: '#fff', fontWeight: '900', fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
-            {getDisplayTimeUI(startVal).full}
-          </span>
-          <select 
-            value={startVal || ''} 
-            onChange={(e) => onStartChange(e.target.value)}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', background: '#111', color: '#fff', zIndex: 20 }}
-          >
-            <option value="" disabled style={{ background: '#111', color: '#fff' }}>Hora</option>
+          <span style={{ color: '#fff', fontWeight: '900', fontSize: '0.8rem' }}>{getDisplayTimeUI(startVal).full}</span>
+          <select value={startVal || ''} onChange={(e) => onStartChange(e.target.value)} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 5 }}>
             {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t} style={{ background: '#111', color: '#fff' }}>{getDisplayTimeUI(t).full}</option>)}
           </select>
         </div>
-
-        <div style={{ width: '24px', height: '1px', background: 'rgba(255,255,255,0.08)' }}></div>
-
+        <div style={{ width: '10px', height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
         <div style={{ position: 'relative', cursor: 'pointer' }}>
-          <span style={{ color: '#fff', fontWeight: '900', fontSize: '0.95rem', letterSpacing: '-0.5px' }}>
-            {getDisplayTimeUI(endVal).full}
-          </span>
-          <select 
-            value={endVal || ''} 
-            onChange={(e) => onEndChange(e.target.value)}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', background: '#111', color: '#fff', zIndex: 20 }}
-          >
-             <option value="" disabled style={{ background: '#111', color: '#fff' }}>Hora</option>
-             {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t} style={{ background: '#111', color: '#fff' }}>{getDisplayTimeUI(t).full}</option>)}
+          <span style={{ color: '#fff', fontWeight: '900', fontSize: '0.8rem' }}>{getDisplayTimeUI(endVal).full}</span>
+          <select value={endVal || ''} onChange={(e) => onEndChange(e.target.value)} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 5 }}>
+            {COMMON_TIME_OPTIONS.map(t => <option key={t} value={t} style={{ background: '#111', color: '#fff' }}>{getDisplayTimeUI(t).full}</option>)}
           </select>
         </div>
       </div>
     </div>
   );
 };
+
 
 
 
@@ -1607,6 +1590,18 @@ function App() {
                         extrasCamPrice + 
                         extrasAVPrice + 
                         otherExtrasPrice;
+
+  // AUTO-SYNC LOGIC: If the user hasn't manually overridden the price significantly, keep it in sync
+  React.useEffect(() => {
+    if (newEvent.totalValue === undefined) return;
+    const currentVal = Number(newEvent.totalValue);
+    // If it's a new quotation or the user is just building it, auto-sync
+    if (!currentVal || Math.abs(currentVal - computedTotal) < 100) {
+      if (currentVal !== computedTotal) {
+        setNewEvent(prev => ({ ...prev, totalValue: computedTotal, deposit: Math.round(computedTotal * 0.3) }));
+      }
+    }
+  }, [computedTotal, newEvent.packName]);
 
   // --- HELPER: GENERAR ITEMS DE LOGÍSTICA ---
   const buildLogisticsItems = (evt) => {
@@ -4090,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.14)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.15)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
