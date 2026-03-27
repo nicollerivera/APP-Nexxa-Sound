@@ -507,13 +507,13 @@ function App() {
           },
           logistics: {
             packName: (() => {
-                const raw = pName || '';
-                if (raw.includes('ONIX') || raw.includes('ESSENTIAL')) return 'ONIX';
-                if (raw.includes('MULTII')) return 'MULTII';
-                if (raw.includes('KAIZEN')) return 'KAIZEN';
-                if (raw.includes('MEMORIES')) return 'MEMORIES';
-                if (raw.includes('CELEBRATION')) return 'CELEBRATION';
-                return raw || 'PERSONALIZADO';
+                const s = (pName || d.paquete || d.packName || '').toUpperCase();
+                if (s.includes('KAIZEN') || s.includes('DIAMOND') || s.includes('PLATINUM')) return 'KAIZEN';
+                if (s.includes('MULTII') || s.includes('ELITE')) return 'MULTII';
+                if (s.includes('ONIX') || s.includes('ESSENTIAL') || s.includes('SILVER') || s.includes('GOLD')) return 'ONIX';
+                if (s.includes('MEMORIES')) return 'MEMORIES';
+                if (s.includes('CELEBRATION')) return 'CELEBRATION';
+                return 'PERSONALIZADO';
             })(),
             selectedExtras: cleanExtras,
             makeupCount: Number(d.logistics?.makeupCount || d.makeupCount) || 1
@@ -4097,7 +4097,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.19)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.20)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6817,12 +6817,13 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       location: quo.eventDetails?.location || '',
                       neighborhood: quo.eventDetails?.neighborhood || '',
                       packName: (() => {
-                        const p = (quo.logistics?.packName || '').toUpperCase();
-                        if (p.includes('MEMORIES')) return 'MEMORIES';
-                        if (p.includes('CELEBRATION')) return 'CELEBRATION';
-                        if (p.includes('MULTII')) return 'MULTII';
-                        if (p.includes('KAIZEN')) return 'KAIZEN';
-                        return 'ONIX'; // 'Essential' now maps to ONIX
+                        const s = (quo.logistics?.packName || quo.paquete || quo.packName || '').toUpperCase();
+                        if (s.includes('KAIZEN') || s.includes('DIAMOND') || s.includes('PLATINUM')) return 'KAIZEN';
+                        if (s.includes('MULTII') || s.includes('ELITE')) return 'MULTII';
+                        if (s.includes('ONIX') || s.includes('ESSENTIAL') || s.includes('SILVER') || s.includes('GOLD')) return 'ONIX';
+                        if (s.includes('MEMORIES')) return 'MEMORIES';
+                        if (s.includes('CELEBRATION')) return 'CELEBRATION';
+                        return 'PERSONALIZADO';
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
                       deposit: (() => {
