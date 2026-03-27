@@ -509,11 +509,11 @@ function App() {
           },
           logistics: {
             packName: (() => {
-                const s = (pName || '').toUpperCase();
+                const s = JSON.stringify(d).toUpperCase();
                 if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA')) return 'KAIZEN';
                 if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
-                if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV') || s.includes('GOLD')) return 'ONIX';
-                return 'ONIX'; // Si viene de la web y no se detecta, el mìnimo es ONIX
+                if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV')) return 'ONIX';
+                return ''; // No asumir nada por defecto
             })(),
             selectedExtras: cleanExtras,
             makeupCount: Number(d.logistics?.makeupCount || d.makeupCount) || 1
@@ -4085,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.26)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.27)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6815,7 +6815,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA') || s.includes('DIAMOND') || s.includes('PLATINUM')) return 'KAIZEN';
                         if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
                         if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV')) return 'ONIX';
-                        return 'ONIX';
+                        return ''; 
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
                       deposit: (() => {
