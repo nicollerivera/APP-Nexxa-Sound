@@ -4154,18 +4154,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         <TimeInput label="Inicio Evento" value={newEvent.startTime} onChange={val => updateEvent('startTime', val)} />
                         <TimeInput label="Fin Evento" value={newEvent.endTime} onChange={val => updateEvent('endTime', val)} />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <MiniTimeInput 
-                            label="Horario DJ / Sonido" 
-                            labelColor="var(--primary-purple)"
-                            startVal={newEvent.djStartTime || newEvent.startTime} 
-                            endVal={newEvent.djEndTime || newEvent.endTime}
-                            onStartChange={val => updateEvent('djStartTime', val)}
-                            onEndChange={val => updateEvent('djEndTime', val)}
-                          />
-                        </div>
-                      </div>
                     </div>
                   </div>
                   </>
