@@ -1799,21 +1799,29 @@ function App() {
         occasion: newEvent.occasion || 'Evento Social',
         location: newEvent.location ? newEvent.location.replace(/"/g, '') : '',
         neighborhood: newEvent.neighborhood || '',
+        // Format: Maintain strings for UI, but handle logic below
         startTime: newEvent.startTime || '',
         endTime: newEvent.endTime || '',
         djStartTime: newEvent.djStartTime || newEvent.startTime,
         djEndTime: newEvent.djEndTime || newEvent.endTime,
-        materialsTime: newEvent.materialsTime || '',
-        warehouseTime: newEvent.warehouseTime || '',
-        indications: newEvent.indications || 'Ninguna',
+        // ISO 8601 MAPPING (For external sync and precision)
+        startISO: newEvent.date && newEvent.startTime ? new Date(`${newEvent.date}T${newEvent.startTime}:00`).toISOString() : null,
+        endISO: newEvent.date && newEvent.endTime ? new Date(`${newEvent.date}T${newEvent.endTime}:00`).toISOString() : null,
+        
         photoStartTime: newEvent.photoStartTime || '',
         photoEndTime: newEvent.photoEndTime || '',
+        photoStartISO: newEvent.date && newEvent.photoStartTime ? new Date(`${newEvent.date}T${newEvent.photoStartTime}:00`).toISOString() : null,
+        
         decorStartTime: newEvent.decorStartTime || '',
         decorEndTime: newEvent.decorEndTime || '',
+        
         avStartTime: newEvent.avStartTime || '',
         avEndTime: newEvent.avEndTime || '',
+        avStartISO: newEvent.date && newEvent.avStartTime ? new Date(`${newEvent.date}T${newEvent.avStartTime}:00`).toISOString() : null,
+
         cam360StartTime: newEvent.cam360StartTime || '',
-        cam360EndTime: newEvent.cam360EndTime || ''
+        cam360EndTime: newEvent.cam360EndTime || '',
+        camStartISO: newEvent.date && newEvent.cam360StartTime ? new Date(`${newEvent.date}T${newEvent.cam360StartTime}:00`).toISOString() : null
       },
       financials: {
         totalValue: total,
@@ -4085,7 +4093,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.42)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.45)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6790,16 +6798,21 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
                 return (
                   <div key={quo.id} className="sales-list-item" onClick={() => {
+                    // Mapeo Inteligente: Detectar snake_case y camelCase de la web
+                    const ev = quo.eventDetails || {};
+                    const sTime = ev.startTime || ev.start_time || quo.startTime || quo.start_time || '';
+                    const eTime = ev.endTime || ev.end_time || quo.endTime || quo.end_time || '';
+                    
                     setNewEvent({
                       id: quo.id,
                       clientName: clientName,
                       clientPhone: quo.client?.phone || '',
                       clientPhone2: quo.client?.phone2 || '',
-                      date: quo.eventDetails?.date || '',
-                      startTime: quo.eventDetails?.startTime || '',
-                      endTime: quo.eventDetails?.endTime || '',
-                      location: quo.eventDetails?.location || '',
-                      neighborhood: quo.eventDetails?.neighborhood || '',
+                      date: ev.date || quo.date || '',
+                      startTime: sTime,
+                      endTime: eTime,
+                      location: ev.location || quo.location || '',
+                      neighborhood: ev.neighborhood || quo.neighborhood || '',
                       packName: (() => {
                         const s = JSON.stringify(quo).toUpperCase();
                         if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA') || s.includes('DIAMOND') || s.includes('PLATINUM')) return 'KAIZEN';
