@@ -468,7 +468,9 @@ function App() {
           });
         }
 
-        const pName = (d.paquete || d.packName || d.package || d.pack || d.bundle || d.logistics?.packName || d.logistics?.paquete || d.logistics?.package || d.eventDetails?.packName || '').toUpperCase();
+        const pDetails = (d.eventDetails?.indications || d.indications || d.eventDetails?.occasion || d.occasion || '').toUpperCase();
+        const pNameRaw = (d.paquete || d.packName || d.package || d.pack || d.bundle || d.logistics?.packName || d.logistics?.paquete || d.logistics?.package || d.eventDetails?.packName || '').toUpperCase();
+        const pName = (pNameRaw + " " + pDetails);
 
         return {
           id: doc.id,
@@ -4083,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.24)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.25)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6809,7 +6811,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       location: quo.eventDetails?.location || '',
                       neighborhood: quo.eventDetails?.neighborhood || '',
                       packName: (() => {
-                        const s = (quo.paquete || quo.packName || quo.package || quo.pack || (quo.logistics?.packName || '').toString() || '').toUpperCase();
+                        const sBasic = (quo.paquete || quo.packName || quo.package || quo.pack || (quo.logistics?.packName || '').toString() || '').toUpperCase();
+                        const sDetails = (quo.eventDetails?.indications || quo.indications || '').toUpperCase();
+                        const s = sBasic + " " + sDetails;
                         if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA') || s.includes('DIAMOND') || s.includes('PLATINUM')) return 'KAIZEN';
                         if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
                         if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV')) return 'ONIX';
