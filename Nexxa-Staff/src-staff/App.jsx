@@ -1887,7 +1887,6 @@ function App() {
       packName: evt.logistics?.packName || 'Essential',
       managerName: evt.logistics?.managerName || '',
       totalValue: evt.financials?.totalValue || 0,
-      deposit: evt.financials?.deposit || 0,
       selectedExtras: evt.logistics?.selectedExtras || {},
       extraExpenses: evt.financials?.extraExpenses || [],
       manualBasePrice: (() => {
@@ -4091,7 +4090,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.11)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.12)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4213,7 +4212,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                             const isAcc = extra.id.startsWith('acc_') && !extra.isItem;
                             const accQty = extra.qty;
                             return (
-                              <div key={extra.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <React.Fragment key={extra.id}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div
                                   onClick={() => updateEvent('toggleExtra', extra.id)}
                                   style={{
@@ -4247,6 +4247,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                     <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
                                   </div>
                                 </div>
+                              </div>
 
 
                                 {extra.id.includes('_decor_') && isActive && (
@@ -4337,8 +4338,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                           />
                                         </div>
                                       </div>
+                                    )}
+                                  </div>
                                 )}
-                              </div>
+                              </React.Fragment>
                             );
                           })}
                         </div>
@@ -7360,7 +7363,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         return '';
                       })(),
                       totalValue: Number(quo.financials?.totalValue) || 0,
-                      deposit: Number(quo.financials?.deposit) || 0,
                       managerName: '',
                       guestCount: Number(quo.eventDetails?.guestCount) || 50,
                       selectedExtras: quo.logistics?.selectedExtras || {},
@@ -7368,48 +7370,31 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       makeupCount: quo.logistics?.makeupCount || 1,
                       occasion: quo.eventDetails?.occasion || '',
                       extraHourPrice: quo.financials?.extraHourPrice || 85000,
-                      indications: quo.eventDetails?.indications || 'Ninguna',
-                      materialsTime: '',
-                      warehouseTime: '',
-                      photoStartTime: quo.eventDetails?.photoStartTime || '',
-                      photoEndTime: quo.eventDetails?.photoEndTime || '',
-                      decorStartTime: quo.eventDetails?.decorStartTime || '',
-                      decorEndTime: quo.eventDetails?.decorEndTime || '',
-                      cam360StartTime: quo.eventDetails?.cam360StartTime || '',
-                      cam360EndTime: quo.eventDetails?.cam360EndTime || '',
-                      avStartTime: quo.eventDetails?.avStartTime || '',
-                      avEndTime: quo.eventDetails?.avEndTime || '',
-                      essentialStartTime: quo.eventDetails?.essentialStartTime || '',
-                      essentialEndTime: quo.eventDetails?.essentialEndTime || '',
-                      memoriesStartTime: quo.eventDetails?.memoriesStartTime || '',
-                      memoriesEndTime: quo.eventDetails?.memoriesEndTime || '',
-                      celebrationStartTime: quo.eventDetails?.decorStartTime || quo.eventDetails?.celebrationStartTime || '',
-                      celebrationEndTime: quo.eventDetails?.decorEndTime || quo.eventDetails?.celebrationEndTime || '',
-                      decorStartTime: quo.eventDetails?.decorStartTime || '',
-                      decorEndTime: quo.eventDetails?.decorEndTime || '',
-                      avStartTime: quo.eventDetails?.avStartTime || '',
-                      avEndTime: quo.eventDetails?.avEndTime || '',
-                      cam360StartTime: quo.eventDetails?.cam360StartTime || '',
-                      cam360EndTime: quo.eventDetails?.cam360EndTime || '',
-                      decorColor: quo.eventDetails?.decorColor || '',
-                      decorTheme: quo.eventDetails?.decorTheme || '',
-                      manualBasePrice: (() => {
-                        const savedBase = Number(quo.financials?.manualBasePrice) || 0;
-                        if (savedBase > 0) return savedBase;
-                        // Auto-Recovery: Total - Extras
-                        const total = Number(quo.financials?.totalValue) || 0;
-                        const extras = getDynamicExtras({ selectedExtras: quo.logistics?.selectedExtras || {}, extraQtys: quo.logistics?.extraQtys || {} });
-                        const extrasSum = extras.filter(ex => quo.logistics?.selectedExtras?.[ex.id]).reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
-                        return Math.max(0, total - extrasSum);
-                      })(),
-                      manualBaseDescription: quo.financials?.manualBaseDescription || '',
                       isImported: true,
                       indications: quo.eventDetails?.indications || 'Ninguna',
                       materials: quo.logistics?.materials || '',
                       materialExplanation: quo.logistics?.materials || '',
                       warehouseTime: quo.logistics?.warehouseTime || '',
+                      photoStartTime: quo.eventDetails?.photoStartTime || '',
+                      photoEndTime: quo.eventDetails?.photoEndTime || '',
+                      cam360StartTime: quo.eventDetails?.cam360StartTime || '',
+                      cam360EndTime: quo.eventDetails?.cam360EndTime || '',
+                      avStartTime: quo.eventDetails?.avStartTime || '',
+                      avEndTime: quo.eventDetails?.avEndTime || '',
+                      decorStartTime: quo.eventDetails?.decorStartTime || '',
+                      decorEndTime: quo.eventDetails?.decorEndTime || '',
+                      decorColor: quo.eventDetails?.decorColor || '',
+                      decorTheme: quo.eventDetails?.decorTheme || '',
                       paymentMethod: quo.financials?.paymentMethod || 'Nequi',
-                      deposit: Number(quo.financials?.deposit) || Math.round((Number(quo.financials?.totalValue) || 0) * 0.3)
+                      deposit: Number(quo.financials?.deposit) || Math.round((Number(quo.financials?.totalValue) || 0) * 0.3),
+                      manualBasePrice: (() => {
+                        const savedBase = Number(quo.financials?.manualBasePrice) || 0;
+                        if (savedBase > 0) return savedBase;
+                        const total = Number(quo.financials?.totalValue) || 0;
+                        const extras = getDynamicExtras({ selectedExtras: quo.logistics?.selectedExtras || {}, extraQtys: quo.logistics?.extraQtys || {} });
+                        const extrasSum = extras.filter(ex => quo.logistics?.selectedExtras?.[ex.id]).reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
+                        return Math.max(0, total - extrasSum);
+                      })()
                     });
                     setView('create');
                   }}
