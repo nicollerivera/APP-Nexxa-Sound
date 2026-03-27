@@ -4325,20 +4325,20 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                       />
                                     )}
 
-                                    {/* PRICE OVERRIDE IF SELECTED */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                      <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Precio Personalizado (Opcional)</label>
-                                      <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', padding: '10px 15px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                        <span style={{ color: 'var(--primary-cyan)', fontWeight: '900', marginRight: '5px' }}>$</span>
-                                        <input 
-                                          type="number" 
-                                          placeholder={extra.basePrice}
-                                          value={newEvent.extraPriceOverrides?.[extra.id] || ''} 
-                                          onChange={(e) => updateEvent('changeExtraPrice', { id: extra.id, price: e.target.value })}
-                                          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.9rem', outline: 'none', width: '100%', fontWeight: '900' }}
-                                        />
-                                      </div>
-                                    </div>
+                                    {/* PRICE OVERRIDE DISPLAY (DISABLED IF INCLUDED) */}
+                                    {(extra.isIncluded === true || extra.price === 0) ? null : (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Precio Personalizado (Opcional)</label>
+                                        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', padding: '10px 15px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                          <span style={{ color: 'var(--primary-cyan)', fontWeight: '900', marginRight: '5px' }}>$</span>
+                                          <input 
+                                            type="number" 
+                                            placeholder={extra.basePrice}
+                                            value={newEvent.extraPriceOverrides?.[extra.id] || ''} 
+                                            onChange={(e) => updateEvent('changeExtraPrice', { id: extra.id, price: e.target.value })}
+                                            style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.9rem', outline: 'none', width: '100%', fontWeight: '900' }}
+                                          />
+                                        </div>
                                   </div>
                                 )}
                               </div>
@@ -4347,10 +4347,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
 
 
@@ -4472,7 +4473,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                               {activeExtras.map(ex => (
                                 <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#C9A84C', fontSize: '0.65rem', marginBottom: '2px' }}>
                                   <span>+ {ex.name} {ex.qty > 1 ? `(x${ex.qty})` : ''}:</span>
-                                  <strong>${ex.price.toLocaleString()}</strong>
+                                  <strong>{ex.isIncluded ? 'INCLUIDO' : `$${ex.price.toLocaleString()}`}</strong>
                                 </div>
                               ))}
                             </div>
