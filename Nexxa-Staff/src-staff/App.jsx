@@ -510,10 +510,7 @@ function App() {
                 const s = (pName || d.paquete || d.packName || '').toUpperCase();
                 if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA')) return 'KAIZEN';
                 if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
-                if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV') || s.includes('GOLD')) return 'ONIX';
-                if (s.includes('MEMOR')) return 'MEMORIES';
-                if (s.includes('CELEB')) return 'CELEBRATION';
-                return 'PERSONALIZADO';
+                return 'ONIX'; // Deafult fallback for any web lead is ONIX if not specified
             })(),
             selectedExtras: cleanExtras,
             makeupCount: Number(d.logistics?.makeupCount || d.makeupCount) || 1
@@ -1415,9 +1412,7 @@ function App() {
     protocols: {
       'ONIX':      { price: 1250000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] },
       'MULTII':    { price: 1440000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] },
-      'KAIZEN':    { price: 1940000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'] },
-      'CELEBRATION': { price: 850000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Pro', 'Decoración'], includedExtras: ['extra_photo', 'extra_decor_onix'] },
-      'MEMORIES':    { price: 650000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Pro'], includedExtras: ['extra_photo'] }
+      'KAIZEN':    { price: 1940000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'] }
     },
     extras: {
       photo: 200000,   // Base for 4h
@@ -4087,7 +4082,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.22)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.23)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6816,10 +6811,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         const s = (quo.logistics?.packName || quo.paquete || quo.packName || '').toUpperCase();
                         if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA')) return 'KAIZEN';
                         if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
-                        if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV') || s.includes('GOLD')) return 'ONIX';
-                        if (s.includes('MEMOR')) return 'MEMORIES';
-                        if (s.includes('CELEB')) return 'CELEBRATION';
-                        return 'PERSONALIZADO';
+                        return 'ONIX';
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
                       deposit: (() => {
