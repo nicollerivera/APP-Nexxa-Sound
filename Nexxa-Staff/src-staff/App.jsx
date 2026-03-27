@@ -468,7 +468,7 @@ function App() {
           });
         }
 
-        const pName = (d.logistics?.packName || d.paquete || d.packName || '').toUpperCase();
+        const pName = (d.paquete || d.packName || d.package || d.pack || d.bundle || d.logistics?.packName || d.logistics?.paquete || d.logistics?.package || d.eventDetails?.packName || '').toUpperCase();
 
         return {
           id: doc.id,
@@ -507,10 +507,11 @@ function App() {
           },
           logistics: {
             packName: (() => {
-                const s = (pName || d.paquete || d.packName || '').toUpperCase();
+                const s = (pName || '').toUpperCase();
                 if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA')) return 'KAIZEN';
                 if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
-                return 'ONIX'; // Deafult fallback for any web lead is ONIX if not specified
+                if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV') || s.includes('GOLD')) return 'ONIX';
+                return 'ONIX'; // Si viene de la web y no se detecta, el mìnimo es ONIX
             })(),
             selectedExtras: cleanExtras,
             makeupCount: Number(d.logistics?.makeupCount || d.makeupCount) || 1
@@ -4082,7 +4083,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.23)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.24)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6808,9 +6809,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       location: quo.eventDetails?.location || '',
                       neighborhood: quo.eventDetails?.neighborhood || '',
                       packName: (() => {
-                        const s = (quo.logistics?.packName || quo.paquete || quo.packName || '').toUpperCase();
-                        if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA')) return 'KAIZEN';
+                        const s = (quo.paquete || quo.packName || quo.package || quo.pack || (quo.logistics?.packName || '').toString() || '').toUpperCase();
+                        if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA') || s.includes('DIAMOND') || s.includes('PLATINUM')) return 'KAIZEN';
                         if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
+                        if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV')) return 'ONIX';
                         return 'ONIX';
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
