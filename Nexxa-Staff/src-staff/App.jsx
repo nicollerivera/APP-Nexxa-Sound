@@ -343,6 +343,7 @@ function App() {
   const [damageReports, setDamageReports] = useState([]);
   const [globalTx, setGlobalTx] = useState([]);
   const [lastFatalError, setLastFatalError] = useState(null);
+  const lastSyncTotal = React.useRef(0);
 
   // Error listener for Mobile Debugging
   React.useEffect(() => {
@@ -1471,6 +1472,14 @@ function App() {
 
     const extras = [
       {
+        id: 'extra_dj',
+        name: `DJ & Sonido (Base 4h)`,
+        price: 0,
+        category: 'Core',
+        details: `Crossover & Operador Nexxa.`,
+        needsTime: true
+      },
+      {
         id: 'extra_makeup',
         name: `Maquillaje Neón`,
         price: STITCH_DATA.extras.makeup,
@@ -1534,11 +1543,13 @@ function App() {
         // ULTIMATE REGEX OVERRIDE (Case Insensitive)
         let isIncluded = false;
         if (/MULTII/i.test(packStr)) {
-          if (['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'].includes(ex.id)) isIncluded = true;
+          if (['extra_dj', 'extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'].includes(ex.id)) isIncluded = true;
         } else if (/ONIX/i.test(packStr)) {
-          if (['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'].includes(ex.id)) isIncluded = true;
+          if (['extra_dj', 'extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'].includes(ex.id)) isIncluded = true;
         } else if (/KAIZEN/i.test(packStr)) {
-          if (['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'].includes(ex.id)) isIncluded = true;
+          if (['extra_dj', 'extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'].includes(ex.id)) isIncluded = true;
+        } else if (/CELEBRATION|MEMORIES/i.test(packStr)) {
+          if (['extra_dj', 'extra_photo'].includes(ex.id)) isIncluded = true;
         } else {
           const packKey = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => packStr.includes(k)) || packStr;
           const proto = STITCH_DATA.protocols[packKey];
@@ -1591,14 +1602,15 @@ function App() {
                         extrasAVPrice + 
                         otherExtrasPrice;
 
-  // AUTO-SYNC LOGIC: If the user hasn't manually overridden the price significantly, keep it in sync
+  // AUTO-SYNC LOGIC: Perfect Sync
   React.useEffect(() => {
-    if (newEvent.totalValue === undefined) return;
     const currentVal = Number(newEvent.totalValue);
-    // If it's a new quotation or the user is just building it, auto-sync
-    if (!currentVal || Math.abs(currentVal - computedTotal) < 100) {
+    // If it was already synced or it's a new calc, keep syncing.
+    // If the difference is huge but it matches our LAST sync, it means the user is just changing hours.
+    if (!currentVal || currentVal === lastSyncTotal.current || Math.abs(currentVal - computedTotal) < 10) {
       if (currentVal !== computedTotal) {
         setNewEvent(prev => ({ ...prev, totalValue: computedTotal, deposit: Math.round(computedTotal * 0.3) }));
+        lastSyncTotal.current = computedTotal;
       }
     }
   }, [computedTotal, newEvent.packName]);
@@ -4085,7 +4097,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.17)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.19)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4143,17 +4155,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <input required placeholder="📍 Ubicación (Dirección o Local)" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
                     </div>
 
-                    {/* FRANJA HORARIA PRINCIPAL (DJ/EVENTO) */}
-                    <div style={{ gridColumn: 'span 2', marginTop: '10px' }}>
-                       <MiniTimeInput 
-                         label="Horario del Evento" 
-                         labelColor="var(--primary-purple)"
-                         startVal={newEvent.startTime} 
-                         endVal={newEvent.endTime}
-                         onStartChange={val => updateEvent('startTime', val)}
-                         onEndChange={val => updateEvent('endTime', val)}
-                       />
-                    </div>
+                    {/* ELIMINADO: Horario general por redundancia */}
                   </div>
                   </>
               )}
@@ -4260,49 +4262,45 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                     {/* TIME PICKER IF NEEDED */}
                                     {(extra.needsTime || ['extra_photo', 'extra_cam360', 'extra_av', 'extra_makeup'].includes(extra.id) || extra.id.includes('_decor_')) && (
                                       <MiniTimeInput
-                                        label={`Horario ${extra.name}`}
+                                        label={null}
                                         labelColor={'var(--primary-cyan)'}
                                         startVal={(() => {
+                                          if (extra.id === 'extra_dj') return newEvent.djStartTime;
                                           if (extra.id === 'extra_photo') return newEvent.photoStartTime;
                                           if (extra.id === 'extra_cam360') return newEvent.cam360StartTime;
                                           if (extra.id === 'extra_av') return newEvent.avStartTime;
                                           if (extra.id.includes('_decor_')) return newEvent.decorStartTime;
                                           if (extra.id === 'extra_makeup') return newEvent.makeupStartTime;
-                                          if (extra.id === 'acc_memories') return newEvent.memoriesStartTime;
-                                          if (extra.id === 'acc_celebration') return newEvent.celebrationStartTime;
                                           return '';
                                         })()}
                                         endVal={(() => {
+                                          if (extra.id === 'extra_dj') return newEvent.djEndTime;
                                           if (extra.id === 'extra_photo') return newEvent.photoEndTime;
                                           if (extra.id === 'extra_cam360') return newEvent.cam360EndTime;
                                           if (extra.id === 'extra_av') return newEvent.avEndTime;
                                           if (extra.id.includes('_decor_')) return newEvent.decorEndTime;
                                           if (extra.id === 'extra_makeup') return newEvent.makeupEndTime;
-                                          if (extra.id === 'acc_memories') return newEvent.memoriesEndTime;
-                                          if (extra.id === 'acc_celebration') return newEvent.celebrationEndTime;
                                           return '';
                                         })()}
                                         onStartChange={(val) => {
-                                          let field = '';
-                                          if (extra.id === 'extra_photo') field = 'photoStartTime';
-                                          else if (extra.id === 'extra_cam360') field = 'cam360StartTime';
-                                          else if (extra.id === 'extra_av') { field = 'avStartTime'; updateEvent('djStartTime', val); }
-                                          else if (extra.id.includes('_decor_')) field = 'decorStartTime';
-                                          else if (extra.id === 'extra_makeup') field = 'makeupStartTime';
-                                          else if (extra.id === 'acc_memories') field = 'memoriesStartTime';
-                                          else if (extra.id === 'acc_celebration') field = 'celebrationStartTime';
-                                          if (field) updateEvent(field, val);
+                                          let f = '';
+                                          if (extra.id === 'extra_dj') f = 'djStartTime';
+                                          else if (extra.id === 'extra_photo') f = 'photoStartTime';
+                                          else if (extra.id === 'extra_cam360') f = 'cam360StartTime';
+                                          else if (extra.id === 'extra_av') f = 'avStartTime';
+                                          else if (extra.id.includes('_decor_')) f = 'decorStartTime';
+                                          else if (extra.id === 'extra_makeup') f = 'makeupStartTime';
+                                          if (f) updateEvent(f, val);
                                         }}
                                         onEndChange={(val) => {
-                                          let field = '';
-                                          if (extra.id === 'extra_photo') field = 'photoEndTime';
-                                          else if (extra.id === 'extra_cam360') field = 'cam360EndTime';
-                                          else if (extra.id === 'extra_av') { field = 'avEndTime'; updateEvent('djEndTime', val); }
-                                          else if (extra.id.includes('_decor_')) field = 'decorEndTime';
-                                          else if (extra.id === 'extra_makeup') field = 'makeupEndTime';
-                                          else if (extra.id === 'acc_memories') field = 'memoriesEndTime';
-                                          else if (extra.id === 'acc_celebration') field = 'celebrationEndTime';
-                                          if (field) updateEvent(field, val);
+                                          let f = '';
+                                          if (extra.id === 'extra_dj') f = 'djEndTime';
+                                          else if (extra.id === 'extra_photo') f = 'photoEndTime';
+                                          else if (extra.id === 'extra_cam360') f = 'cam360EndTime';
+                                          else if (extra.id === 'extra_av') f = 'avEndTime';
+                                          else if (extra.id.includes('_decor_')) f = 'decorEndTime';
+                                          else if (extra.id === 'extra_makeup') f = 'makeupEndTime';
+                                          if (f) updateEvent(f, val);
                                         }}
                                       />
                                     )}
