@@ -4093,7 +4093,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.50)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.51)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -7403,18 +7403,26 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     const getTimeRange = (keyword) => {
                         const protocolText = (quo.indications || quo.eventDetails?.indications || JSON.stringify(quo) || '').toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ');
                         const idx = protocolText.lastIndexOf(keyword.toUpperCase());
-                        if (idx === -1) return null;
-                        const sub = protocolText.substring(idx, idx + 450); 
-                        const hPatGlobal = /(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)/gi;
+                        if (idx === -1) {
+                            console.warn(`[SYNC] Keyword not found: ${keyword}`);
+                            return null;
+                        }
+                        const sub = protocolText.substring(idx, idx + 600); 
+                        const hPatGlobal = /(\d{1,2}(?::\d{2})?\s*[AP][\.\s]*M[\.\s]*)/gi;
                         const matches = sub.match(hPatGlobal);
+                        
+                        console.log(`[SYNC] Parsing ${keyword}. Found matches:`, matches);
                         if (matches && matches.length >= 2) {
                             const start = to24(matches[0]);
                             let end = to24(matches[1]);
-                            if (!end || end === start) {
-                                let h = parseInt(start.split(':')[0], 10);
-                                end = `${String((h + 4) % 24).padStart(2, '0')}:${start.split(':')[1] || '00'}`;
+                            if (start && end) {
+                                console.log(`[SYNC] Matched ${keyword} -> Start: ${start}, End: ${end}`);
+                                if (end === start) {
+                                    let h = parseInt(start.split(':')[0], 10);
+                                    end = `${String((h + 4) % 24).padStart(2, '0')}:${start.split(':')[1] || '00'}`;
+                                }
+                                return { s: start, e: end };
                             }
-                            return { s: start, e: end };
                         }
                         return null;
                     };
