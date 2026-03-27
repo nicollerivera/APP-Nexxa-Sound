@@ -4144,11 +4144,15 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     </div>
 
                     {/* FRANJA HORARIA PRINCIPAL (DJ/EVENTO) */}
-                    <div style={{ gridColumn: 'span 2', marginTop: '10px', padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                        <TimeInput label="Inicio Evento" value={newEvent.startTime} onChange={val => updateEvent('startTime', val)} />
-                        <TimeInput label="Fin Evento" value={newEvent.endTime} onChange={val => updateEvent('endTime', val)} />
-                      </div>
+                    <div style={{ gridColumn: 'span 2', marginTop: '10px' }}>
+                       <MiniTimeInput 
+                         label="Horario del Evento" 
+                         labelColor="var(--primary-purple)"
+                         startVal={newEvent.startTime} 
+                         endVal={newEvent.endTime}
+                         onStartChange={val => updateEvent('startTime', val)}
+                         onEndChange={val => updateEvent('endTime', val)}
+                       />
                     </div>
                   </div>
                   </>
