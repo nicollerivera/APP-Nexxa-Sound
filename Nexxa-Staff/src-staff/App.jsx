@@ -1472,14 +1472,6 @@ function App() {
 
     const extras = [
       {
-        id: 'extra_dj',
-        name: `DJ & Sonido (Base 4h)`,
-        price: 0,
-        category: 'Core',
-        details: `Crossover & Operador Nexxa.`,
-        needsTime: true
-      },
-      {
         id: 'extra_makeup',
         name: `Maquillaje Neón`,
         price: STITCH_DATA.extras.makeup,
@@ -1543,13 +1535,11 @@ function App() {
         // ULTIMATE REGEX OVERRIDE (Case Insensitive)
         let isIncluded = false;
         if (/MULTII/i.test(packStr)) {
-          if (['extra_dj', 'extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'].includes(ex.id)) isIncluded = true;
+          if (['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'].includes(ex.id)) isIncluded = true;
         } else if (/ONIX/i.test(packStr)) {
-          if (['extra_dj', 'extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'].includes(ex.id)) isIncluded = true;
+          if (['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'].includes(ex.id)) isIncluded = true;
         } else if (/KAIZEN/i.test(packStr)) {
-          if (['extra_dj', 'extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'].includes(ex.id)) isIncluded = true;
-        } else if (/CELEBRATION|MEMORIES/i.test(packStr)) {
-          if (['extra_dj', 'extra_photo'].includes(ex.id)) isIncluded = true;
+          if (['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'].includes(ex.id)) isIncluded = true;
         } else {
           const packKey = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => packStr.includes(k)) || packStr;
           const proto = STITCH_DATA.protocols[packKey];
@@ -4097,7 +4087,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.20)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.21)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4155,7 +4145,17 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <input required placeholder="📍 Ubicación (Dirección o Local)" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
                     </div>
 
-                    {/* ELIMINADO: Horario general por redundancia */}
+                    {/* FRANJA HORARIA PRINCIPAL (DJ/EVENTO) */}
+                    <div style={{ gridColumn: 'span 2', marginTop: '10px' }}>
+                       <MiniTimeInput 
+                         label="Control Horario DJ / Principal" 
+                         labelColor="var(--primary-purple)"
+                         startVal={newEvent.startTime} 
+                         endVal={newEvent.endTime}
+                         onStartChange={val => updateEvent('startTime', val)}
+                         onEndChange={val => updateEvent('endTime', val)}
+                       />
+                    </div>
                   </div>
                   </>
               )}
@@ -4265,7 +4265,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                         label={null}
                                         labelColor={'var(--primary-cyan)'}
                                         startVal={(() => {
-                                          if (extra.id === 'extra_dj') return newEvent.djStartTime;
                                           if (extra.id === 'extra_photo') return newEvent.photoStartTime;
                                           if (extra.id === 'extra_cam360') return newEvent.cam360StartTime;
                                           if (extra.id === 'extra_av') return newEvent.avStartTime;
@@ -4274,7 +4273,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                           return '';
                                         })()}
                                         endVal={(() => {
-                                          if (extra.id === 'extra_dj') return newEvent.djEndTime;
                                           if (extra.id === 'extra_photo') return newEvent.photoEndTime;
                                           if (extra.id === 'extra_cam360') return newEvent.cam360EndTime;
                                           if (extra.id === 'extra_av') return newEvent.avEndTime;
@@ -4284,8 +4282,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                         })()}
                                         onStartChange={(val) => {
                                           let f = '';
-                                          if (extra.id === 'extra_dj') f = 'djStartTime';
-                                          else if (extra.id === 'extra_photo') f = 'photoStartTime';
+                                          if (extra.id === 'extra_photo') f = 'photoStartTime';
                                           else if (extra.id === 'extra_cam360') f = 'cam360StartTime';
                                           else if (extra.id === 'extra_av') f = 'avStartTime';
                                           else if (extra.id.includes('_decor_')) f = 'decorStartTime';
@@ -4294,8 +4291,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                         }}
                                         onEndChange={(val) => {
                                           let f = '';
-                                          if (extra.id === 'extra_dj') f = 'djEndTime';
-                                          else if (extra.id === 'extra_photo') f = 'photoEndTime';
+                                          if (extra.id === 'extra_photo') f = 'photoEndTime';
                                           else if (extra.id === 'extra_cam360') f = 'cam360EndTime';
                                           else if (extra.id === 'extra_av') f = 'avEndTime';
                                           else if (extra.id.includes('_decor_')) f = 'decorEndTime';
@@ -6854,6 +6850,14 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         if (p.includes('memories') || p.includes('celebration')) return 120000;
                         return 85000;
                       })(),
+                      photoStartTime: quo.eventDetails?.photoStartTime || quo.eventDetails?.startTime || '',
+                      photoEndTime: quo.eventDetails?.photoEndTime || quo.eventDetails?.endTime || '',
+                      avStartTime: quo.eventDetails?.avStartTime || quo.eventDetails?.startTime || '',
+                      avEndTime: quo.eventDetails?.avEndTime || quo.eventDetails?.endTime || '',
+                      cam360StartTime: quo.eventDetails?.cam360StartTime || quo.eventDetails?.startTime || '',
+                      cam360EndTime: quo.eventDetails?.cam360EndTime || quo.eventDetails?.endTime || '',
+                      decorStartTime: quo.eventDetails?.decorStartTime || '',
+                      decorEndTime: quo.eventDetails?.decorEndTime || '',
                       indications: quo.eventDetails?.indications || 'Ninguna',
                       materialsTime: '',
                       warehouseTime: '',
