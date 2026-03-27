@@ -4085,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.34)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.36)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4143,17 +4143,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <input required placeholder="📍 Ubicación (Dirección o Local)" value={newEvent.location} onChange={e => updateEvent('location', e.target.value)} style={{ width: '100%', fontSize: '0.82rem', height: '40px' }} />
                     </div>
 
-                    {/* FRANJA HORARIA PRINCIPAL (DJ/EVENTO) */}
-                    <div style={{ gridColumn: 'span 2', marginTop: '10px' }}>
-                       <MiniTimeInput 
-                         label="Control Horario DJ / Principal" 
-                         labelColor="var(--primary-purple)"
-                         startVal={newEvent.startTime} 
-                         endVal={newEvent.endTime}
-                         onStartChange={val => updateEvent('startTime', val)}
-                         onEndChange={val => updateEvent('endTime', val)}
-                       />
-                    </div>
+                    {/* ELIMINADA FRANJA DUPLICADA */}
                   </div>
                   </>
               )}
@@ -6819,7 +6809,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       })(),
                       ...(() => {
                         const ev = quo.eventDetails || {};
-                        const log = quo.logistics || {};
                         const raw = JSON.stringify(quo).toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ');
                         
                         const to24 = (t) => {
@@ -6838,15 +6827,27 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         const getTimeRange = (keyword) => {
                             const idx = raw.indexOf(keyword.toUpperCase());
                             if (idx === -1) return null;
-                            const sub = raw.substring(idx, idx + 300);
-                            // Regex Nuclear: Busca dos patrones de hora separados por CUALQUIER COSA corta (a, to, -, etc)
-                            const m = /(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))\s*.{1,15}\s*(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))/i.exec(sub);
-                            if (m) return { s: to24(m[1]), e: to24(m[2]) };
+                            const sub = raw.substring(idx, idx + 400); // Dar más margen
+                            // Regex Específica para la Web: Busca el patrón "H:MM AM TO H:MM PM" visto en captura
+                            const m = /(\d{1,2}:\d{2}\s*(?:AM|PM))\s*(?:TO|A|-)\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/i.exec(sub);
+                            if (m) {
+                                const start = to24(m[1]);
+                                let end = to24(m[2]);
+                                // Si el fin es igual al inicio (error de web), forzar 4 horas
+                                if (start === end && start) {
+                                    let h = parseInt(start.split(':')[0], 10);
+                                    let newH = (h + 4) % 24;
+                                    end = `${String(newH).padStart(2, '0')}:${start.split(':')[1]}`;
+                                }
+                                return { s: start, e: end };
+                            }
                             return null;
                         };
 
                         const mainS = to24(ev.startTime || quo.startTime) || '20:00';
-                        const mainE = to24(ev.endTime || quo.endTime) || '02:00';
+                        let mainE = to24(ev.endTime || quo.endTime) || '02:00';
+                        // Seguridad nivel 2: Si el lead viene con horarios bloqueados en la misma hora
+                        if (mainS === mainE || !mainE) mainE = '02:00';
 
                         const f = getTimeRange('FOTOGRAFÍA') || getTimeRange('PHOTO');
                         const a = getTimeRange('AUDIOVISUAL') || getTimeRange('SONIDO') || getTimeRange('AUDIO');
@@ -6854,11 +6855,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
                         return {
                             photoStartTime: f?.s || mainS,
-                            photoEndTime: f?.e || mainE,
+                            photoEndTime: f?.e || (mainE === mainS ? '00:00' : mainE),
                             avStartTime: a?.s || mainS,
-                            avEndTime: a?.e || mainE,
+                            avEndTime: a?.e || (mainE === mainS ? '00:00' : mainE),
                             cam360StartTime: c?.s || mainS,
-                            cam360EndTime: c?.e || (f?.e || mainE)
+                            cam360EndTime: c?.e || (f?.e || (mainE === mainS ? '22:00' : mainE))
                         };
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
