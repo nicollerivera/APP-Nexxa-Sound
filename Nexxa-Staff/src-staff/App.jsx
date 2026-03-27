@@ -4085,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.32)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.34)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6818,46 +6818,39 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         return ''; 
                       })(),
                       ...(() => {
-                        // Búsqueda en Texto y en Campos Estructurados
                         const ev = quo.eventDetails || {};
                         const log = quo.logistics || {};
-                        const text = (ev.indications || quo.indications || JSON.stringify(quo) || '').toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ');
+                        const raw = JSON.stringify(quo).toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ');
                         
                         const to24 = (t) => {
                             if (!t) return null;
-                            let s = t.toString().trim().toUpperCase().replace(/\./g, '');
-                            let m = /(\d{1,2}):?(\d{2})?\s*(AM|PM|A\.?M\.?|P\.?M\.?)/i.exec(s);
+                            const s = t.toString().trim().toUpperCase().replace(/\./g, '');
+                            const m = /(\d{1,2}):?(\d{2})?\s*(AM|PM)/i.exec(s);
                             if (!m) return null;
                             let h = parseInt(m[1], 10);
-                            let min = m[2] || '00';
-                            let mod = (m[3] || '').replace(/\./g, '').toUpperCase();
+                            const min = m[2] || '00';
+                            const mod = m[3];
                             if (mod === 'PM' && h < 12) h += 12;
                             if (mod === 'AM' && h === 12) h = 0;
                             return `${String(h).padStart(2, '0')}:${min}`;
                         };
 
-                        const getTime = (key) => {
-                            // 1. Prioridad: Campos Directos (si la web ya los envía limpios)
-                            const directS = ev[`${key}StartTime`] || log[`${key}StartTime`] || ev[`${key}Start`] || log[`${key}Start`];
-                            const directE = ev[`${key}EndTime`] || log[`${key}EndTime`] || ev[`${key}End`] || log[`${key}End`];
-                            if (directS && directE) return { s: to24(directS), e: to24(directE) };
-
-                            // 2. Parser de Texto (como respaldo)
-                            const idx = text.indexOf(key.toUpperCase());
-                            if (idx !== -1) {
-                                const sub = text.substring(idx, idx + 250);
-                                const m = /(\d{1,2}:?\d{0,2}?\s*(?:A.?M.?|P.?M.?))\s*(?:A|TO|-)\s*(\d{1,2}:?\d{0,2}?\s*(?:A.?M.?|P.?M.?))/i.exec(sub);
-                                if (m) return { s: to24(m[1]), e: to24(m[2]) };
-                            }
+                        const getTimeRange = (keyword) => {
+                            const idx = raw.indexOf(keyword.toUpperCase());
+                            if (idx === -1) return null;
+                            const sub = raw.substring(idx, idx + 300);
+                            // Regex Nuclear: Busca dos patrones de hora separados por CUALQUIER COSA corta (a, to, -, etc)
+                            const m = /(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))\s*.{1,15}\s*(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))/i.exec(sub);
+                            if (m) return { s: to24(m[1]), e: to24(m[2]) };
                             return null;
                         };
 
                         const mainS = to24(ev.startTime || quo.startTime) || '20:00';
                         const mainE = to24(ev.endTime || quo.endTime) || '02:00';
 
-                        const f = getTime('photo') || getTime('fotografía');
-                        const a = getTime('av') || getTime('audiovisual') || getTime('sonido');
-                        const c = getTime('cam360') || getTime('360') || getTime('aérea');
+                        const f = getTimeRange('FOTOGRAFÍA') || getTimeRange('PHOTO');
+                        const a = getTimeRange('AUDIOVISUAL') || getTimeRange('SONIDO') || getTimeRange('AUDIO');
+                        const c = getTimeRange('360') || getTimeRange('AÉREA') || getTimeRange('CAM');
 
                         return {
                             photoStartTime: f?.s || mainS,
