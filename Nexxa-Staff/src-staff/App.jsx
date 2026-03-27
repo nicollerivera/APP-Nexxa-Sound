@@ -4085,7 +4085,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.29)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.30)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -6818,12 +6818,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         return ''; 
                       })(),
                       ...(() => {
-                        const text = (quo.eventDetails?.indications || quo.indications || JSON.stringify(quo)).toUpperCase();
+                        const rawStr = JSON.stringify(quo).toUpperCase();
                         
                         const convertTo24h = (str) => {
                             if (!str) return '';
                             let s = str.toUpperCase().replace(/\./g, '').trim();
-                            // Handle cases like "8:00PM" or "8:00 PM"
                             let mMatch = /(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(s);
                             if (!mMatch) return '';
                             let h = parseInt(mMatch[1], 10);
@@ -6834,12 +6833,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                             return `${String(h).padStart(2, '0')}:${m}`;
                         };
 
-                        const extractMatch = (serviceKey) => {
-                            const idx = text.indexOf(serviceKey.toUpperCase());
+                        const extractTimeRange = (keyword) => {
+                            const idx = rawStr.indexOf(keyword.toUpperCase());
                             if (idx === -1) return null;
-                            const sub = text.substring(idx, idx + 150);
-                            // Robust regex for AM/PM with or without dots and spaces
-                            const m = /HORARIO:\s*(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))\s*A\s*(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))/i.exec(sub);
+                            const sub = rawStr.substring(idx, idx + 250); // Más largo
+                            // Regex hiper-flexible: busca un inicio y fin de horario después de la palabra clave
+                            const m = /(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))\s*A\s*(\d{1,2}:\d{2}\s*(?:A\.?M\.?|P\.?M\.?))/i.exec(sub);
                             if (m) {
                                 return {
                                     start: convertTo24h(m[1]),
@@ -6849,17 +6848,20 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                             return null;
                         };
 
-                        const photo = extractMatch('FOTOGRAFÍA') || extractMatch('PHOTO');
-                        const av = extractMatch('AUDIOVISUAL') || extractMatch('AV');
-                        const cam = extractMatch('360') || extractMatch('AÉREA');
+                        const photo = extractTimeRange('FOTOGRAFÍA') || extractTimeRange('PHOTO');
+                        const av = extractTimeRange('AUDIOVISUAL') || extractTimeRange('SONIDO');
+                        const cam = extractTimeRange('360') || extractTimeRange('AÉREA');
                         
+                        const mainStart = quo.eventDetails?.startTime || '20:00';
+                        const mainEnd = quo.eventDetails?.endTime || '02:00';
+
                         return {
-                            photoStartTime: photo?.start || quo.eventDetails?.startTime || '20:00',
-                            photoEndTime: photo?.end || quo.eventDetails?.endTime || '00:00',
-                            avStartTime: av?.start || quo.eventDetails?.startTime || '20:00',
-                            avEndTime: av?.end || quo.eventDetails?.endTime || '00:00',
-                            cam360StartTime: cam?.start || quo.eventDetails?.startTime || '20:00',
-                            cam360EndTime: cam?.end || quo.eventDetails?.endTime || '22:00'
+                            photoStartTime: photo?.start || mainStart,
+                            photoEndTime: photo?.end || mainEnd,
+                            avStartTime: av?.start || mainStart,
+                            avEndTime: av?.end || mainEnd,
+                            cam360StartTime: cam?.start || mainStart,
+                            cam360EndTime: cam?.end || (photo?.end || mainEnd)
                         };
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
