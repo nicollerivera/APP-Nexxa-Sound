@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.93-finalized-sync'; 
+const APP_VERSION = 'v1.4.99'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -1627,18 +1627,15 @@ function App() {
     // ONIX price is 850k base + adjustment
     const packPrice = isKAIZEN ? 1950000 : (isMULTII ? 1540000 : 850000);
 
-    const baseSum = (isONIX || isMULTII || isKAIZEN)
-      ? (packPrice + baseAdjustment)
-      : (
-          (evt.selectedExtras?.['extra_av'] ? STITCH_DATA.extras.av : 0) +
-          (evt.selectedExtras?.['extra_photo'] ? STITCH_DATA.extras.photo : 0) +
-          (evt.selectedExtras?.['extra_cam360'] ? STITCH_DATA.extras.cam360 : 0) +
-          (evt.selectedExtras?.['extra_makeup'] ? STITCH_DATA.extras.makeup : 0) +
-          (evt.selectedExtras?.['extra_decor_onix'] ? STITCH_DATA.extras.decor_onix : 0) +
-          (evt.selectedExtras?.['extra_decor_multii'] ? STITCH_DATA.extras.decor_multii : 0) +
-          (evt.selectedExtras?.['extra_decor_kaizen'] ? STITCH_DATA.extras.decor_kaizen : 0) +
-          baseAdjustment
-        );
+    const baseSum = (
+      (isActive('extra_av') ? 450000 : 0) +
+      (isActive('extra_photo') ? 200000 : 0) +
+      (isActive('extra_cam360') ? 550000 : 0) +
+      (isActive('extra_makeup') ? 120000 : 0) +
+      (isActive('extra_decor_onix') ? 200000 : 
+       isActive('extra_decor_multii') ? 340000 : 
+       isActive('extra_decor_kaizen') ? 550000 : 0)
+    ) + baseAdjustment;
 
     // 5. Selected Extras (Those NOT part of the basic package bundles)
     const extrasPrice = getDynamicExtras(evt)

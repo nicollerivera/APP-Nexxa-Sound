@@ -130,7 +130,14 @@ export const generateQuotationPDF = async (quo) => {
             decor: "DECORACIÓN: Mobiliario, arco de globos, cilindros y set personalizado según el evento."
         };
 
-        const extraHourPrice = quo.financials?.extraHourPrice || 85000;
+        const rates = {
+            av: 85000,
+            photo: 50000,
+            cam: 200000,
+            dj: 85000,
+            makeup: 0,
+            decor: 0
+        };
 
         const services = [
             { id: 'av', label: 'AUDIOVISUALES (+DJ)', start: st.avStartTime || st.startTime, end: st.avEndTime || st.endTime, desc: serviceDescriptions.av, incl: isONIX || isMULTII || isKAIZEN || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_av'], base: 450000, prot: (isONIX || isMULTII || isKAIZEN) ? 4 : 0 },
@@ -141,7 +148,6 @@ export const generateQuotationPDF = async (quo) => {
         ];
 
         // Add services to table
-        let coverageTotal = 0;
         services.filter(s => s.incl).forEach(s => {
             const h1 = s.start || '20:00';
             const h2 = s.end || '00:00';
@@ -152,10 +158,8 @@ export const generateQuotationPDF = async (quo) => {
             const hours = diff / 60;
 
             const extraH = Math.max(0, Math.ceil(hours - (s.prot || 0)));
-            const xpValue = extraH * extraHourPrice;
+            const xpValue = extraH * (rates[s.id] || 0);
             const subtotal = s.base + xpValue;
-
-            if (s.incl) coverageTotal += s.base;
 
             tableRows.push([
                 `${formatT(h1)} - ${formatT(h2)}`,
@@ -170,7 +174,7 @@ export const generateQuotationPDF = async (quo) => {
         // Add additional items
         const extras = quo.logistics?.selectedExtras || {};
         const extraData = {
-            'acc_essential': { name: 'KIT ESSENTIAL (111)', price: 47000 }, // Average base value
+            'acc_essential': { name: 'KIT ESSENTIAL (111)', price: 47000 },
             'acc_memories': { name: 'KIT MEMORIES (444)', price: 85000 },
             'acc_celebration': { name: 'KIT CELEBRATION (777)', price: 127000 }
         };
@@ -178,31 +182,16 @@ export const generateQuotationPDF = async (quo) => {
         Object.keys(extras).forEach(k => {
             if (extras[k] && extraData[k]) {
                 const item = extraData[k];
-                const isIncl = (isONIX && k === 'acc_essential') || (isMULTII && k === 'acc_memories') || (isKAIZEN && k === 'acc_celebration');
-                if (isIncl) coverageTotal += item.price;
-
                 tableRows.push([
                     '---', 
                     item.name, 
                     'Accesorios y complementos detallados según cronograma.', 
                     '---', 
-                    isIncl ? 'INCLUIDO' : formatPeso(item.price), 
-                    isIncl ? 'INCLUIDO' : formatPeso(item.price)
+                    formatPeso(item.price), 
+                    formatPeso(item.price)
                 ]);
             }
         });
-
-        // Plan Coverage Subtraction Row
-        if (coverageTotal > 0) {
-            tableRows.push([
-                '',
-                '',
-                `DESCUENTO COBERTURA PLAN ${packName}`,
-                '',
-                '',
-                `-${formatPeso(coverageTotal)}`
-            ]);
-        }
 
         autoTable(doc, {
             startY: y,
@@ -225,9 +214,6 @@ export const generateQuotationPDF = async (quo) => {
         doc.setFont('helvetica', 'normal');
         doc.text('Costo de transporte:', pageWidth - margin - 50, y);
         doc.text('INCLUIDO', pageWidth - margin, y, { align: 'right' });
-        y += 6;
-        doc.text('Hora extra base (adicional):', pageWidth - margin - 50, y);
-        doc.text(formatPeso(extraHourPrice), pageWidth - margin, y, { align: 'right' });
         y += 10;
 
         doc.setFontSize(14);
@@ -243,46 +229,80 @@ export const generateQuotationPDF = async (quo) => {
         doc.text(`Saldo Pendiente (Día del Evento): ${formatPeso(balance)}`, pageWidth - margin, y, { align: 'right' });
         y += 15;
 
-        // 5. LEGAL TERMS
-        if (y > pageHeight - 120) { doc.addPage(); y = 30; }
+        // 5. LEGAL TERMS REFACTOR
+        if (y > pageHeight - 140) { doc.addPage(); y = 30; }
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...COLORS.PURPLE);
         doc.text('Información del Servicio y Recomendaciones', margin, y);
         y += 8;
 
-        const conditions = [
-            "PAGO DEL SERVICIO: El saldo pendiente se pagará en su totalidad el día del evento ANTES de dar inicio al servicio (Nequi/Daviplata 3002596935).",
-            "CUMPLIMIENTO: El servicio no se prestará sin haber cancelado el saldo total. La puntualidad es responsabilidad mutua.",
-            "CANCELACIONES: Notificar con mínimo 2 días de antelación. En caso contrario, se cobrará una penalidad del 35% del valor total.",
-            "LOGÍSTICA: Los datos del personal se entregan un día antes por seguridad. El montaje inicia 1 hora antes de la franja contratada.",
-            "RESPONSABILIDAD: El cliente es responsable por daños a equipos (cabinas, cámaras, luces) causados por invitados.",
-            "ENTREGA: Videos de 360 son de entrega inmediata. Fotos se entregan al finalizar el evento mediante Micro SD o link digital.",
-            "CRONOGRAMA: El personal acatará el cronograma establecido. Horas adicionales no pactadas deben ser autorizadas y pagadas en sitio."
-        ];
+        const renderLegalSection = (title, items) => {
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...COLORS.TEXT);
+            doc.text(title, margin, y);
+            y += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(...COLORS.TEXT_SOFT);
+            items.forEach(c => {
+                const splitC = doc.splitTextToSize(`• ${c}`, pageWidth - (margin * 2));
+                doc.text(splitC, margin, y);
+                y += (splitC.length * 4) + 1;
+            });
+            y += 3;
+        };
 
-        doc.setFontSize(7.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...COLORS.TEXT_SOFT);
-        conditions.forEach(c => {
-            const splitC = doc.splitTextToSize(`• ${c}`, pageWidth - (margin * 2));
-            doc.text(splitC, margin, y);
-            y += (splitC.length * 4);
-        });
+        renderLegalSection('PAGO DEL SERVICIO', [
+            "El saldo pendiente se pagará en su totalidad el día del evento. Se podrá cancelar en efectivo o mediante transferencia a las cuentas autorizadas (Nequi/Daviplata: 3002596935).",
+            "El pago correspondiente debe ser realizado al Gestor asignado ANTES de dar inicio al servicio.",
+            "Sin excepción alguna, el servicio no podrá dar inicio si el saldo pendiente no ha sido cancelado en su totalidad."
+        ]);
+
+        renderLegalSection('CANCELACIÓN', [
+            "En caso de necesitar cancelar el servicio, es necesario hacerlo con un mínimo de 2 días de anticipación. De lo contrario, se deberá asumir el 35% del valor total del servicio.",
+            "Si el servicio es cancelado después de haber realizado el abono, NO se realizarán devoluciones debido a costos administrativos y de reserva."
+        ]);
+
+        renderLegalSection('APLAZAMIENTO', [
+            "En caso de que el servicio sea aplazado, la reserva se mantendrá únicamente por un plazo máximo de un (1) mes. De lo contrario, se considerará como una cancelación.",
+            "La reprogramación del servicio solo será posible si disponemos de disponibilidad para la nueva fecha solicitada."
+        ]);
+
+        renderLegalSection('TENER EN CUENTA (LOGÍSTICA)', [
+            "Los datos del Gestor (nombre y cédula) podrán ser solicitados SOLAMENTE un día antes del servicio sin excepciones, ya que la programación se realiza basada en la disponibilidad del personal en esa fecha.",
+            "En caso de que el Gestor llegue tarde, se repondrá el tiempo perdido. Si no es posible debido al horario, se descontarán $5.000 por cada media hora de retraso, cubriendo la nómina del Gestor."
+        ]);
+
+        renderLegalSection('INCONVENIENTES Y RECLAMOS', [
+            "La empresa se compromete a garantizar la entrega de todos los elementos descritos en este contrato.",
+            "Cualquier inconformidad relacionada con la prestación del servicio deberá ser abordada y resuelta EN EL MOMENTO por el personal presente en el evento para dar solución inmediata."
+        ]);
 
         // IMPORTANT FOOTNOTE
-        y += 10;
+        y += 8;
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(220, 20, 60);
         doc.text('¡IMPORTANTE!', pageWidth / 2, y, { align: 'center' });
         y += 5;
         doc.setFontSize(7.5);
         doc.setTextColor(...COLORS.TEXT_SOFT);
-        const warning = "Solo se garantiza lo descrito explícitamente en este contrato. Cualquier instrucción extra no pactada no tendrá derecho a reclamo.";
-        doc.text(warning, pageWidth / 2, y, { align: 'center' });
+        const warning = "Cualquier servicio, equipo o indicación que NO esté especificada explícitamente dentro de este contrato no tendrá derecho a reclamos ni devoluciones. Solo se cumplirá estrictamente con los items y servicios pactados en este documento.";
+        const splitWarning = doc.splitTextToSize(warning, 120);
+        doc.text(splitWarning, pageWidth / 2, y, { align: 'center' });
+        
+        y += 15;
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...COLORS.TEXT_SOFT);
+        doc.text('Este contrato se rige por las leyes de la República de Colombia.', margin, y);
+        y += 4;
+        const signDate = quo.eventDetails?.date || new Date().toISOString().split('T')[0];
+        doc.text(`Para constancia se firma en Bogotá D.C. el ${signDate}.`, margin, y);
         y += 15;
 
-        // 6. SIGNATURES (IMAGE 2 STYLE)
+        // 6. SIGNATURES
         if (y > pageHeight - 60) { doc.addPage(); y = 40; }
         
         doc.setLineWidth(0.5);
@@ -305,6 +325,7 @@ export const generateQuotationPDF = async (quo) => {
         doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
         doc.text('Nombre: Sharon Nicolle Rivera T.', pX, y + 10);
         doc.text('Cédula: 1024488302', pX, y + 15);
+        doc.text('Nombre comercial: NEXXA', pX, y + 20);
 
         // Page Numbers
         const totalPages = doc.internal.getNumberOfPages();
