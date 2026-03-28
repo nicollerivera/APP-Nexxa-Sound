@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.77-hotfix-avxp'; 
+const APP_VERSION = 'v1.4.78-hotfix-adjustment'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -1117,11 +1117,11 @@ function App() {
 
       // FINANCIAL INTEGRITY: Respect the 'Total Estimado' from the lead
       const parsedTotal = parseInt((text.match(/TOTAL ESTIMADO:\s*\$?\s*([\d.]+)/i)?.[1] || '').replace(/\./g, '')) || 0;
-      // Sync Engine: Use the unified calculator to see what the engine WOULD charge with base=0
+      // Sync Engine: Use the unified calculator to see what the engine WOULD charge
       const currentCalc = calculateEventTotalBreakdown({ ...newData, manualBasePrice: 0 });
       
-      // The adjustment (manualBasePrice) is the gap between the lead's total and the engine's current calculation
-      newData.manualBasePrice = parsedTotal - currentCalc.total;
+      // Manual adjustment is now 0 by default to avoid "hidden" fees. User can adjust manually.
+      newData.manualBasePrice = 0; 
       newData.totalValue = parsedTotal || currentCalc.total;
       newData.deposit = Math.round(newData.totalValue * 0.3);
       newData.isImported = true;
@@ -4434,11 +4434,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                             const makeupCost = isKAIZEN ? 200000 : 0;
 
                             const services = [
-                              { id: 'av', label: 'Audiovisuales (Incl. DJ)', dur: currentBreakdown.durs.aDur, base: 450000, xp: currentBreakdown.items.avXP + (!!newEvent.selectedExtras?.['extra_av'] ? 0 : currentBreakdown.items.djXP), incl: isONIX || isMULTII || isKAIZEN },
-                              { id: 'photo', label: 'Fotografía', dur: currentBreakdown.durs.pDur, base: 200000, xp: currentBreakdown.items.photoXP, incl: isONIX || isMULTII || isKAIZEN },
-                              { id: 'cam', label: 'Cámara 360', dur: currentBreakdown.durs.cDur, base: 550000, xp: currentBreakdown.items.camXP, incl: isMULTII || isKAIZEN },
-                              { id: 'makeup', label: 'Maquillaje Neón', dur: 0, base: makeupCost, xp: 0, incl: isKAIZEN },
-                              { id: 'decor', label: 'Decoración', base: decorCost, xp: 0, incl: isONIX || isMULTII || isKAIZEN }
+                              { id: 'av', label: 'Audiovisuales (Incl. DJ)', dur: currentBreakdown.durs.aDur, base: (isONIX || isMULTII || isKAIZEN) ? 0 : 450000, xp: currentBreakdown.items.avXP + (!!newEvent.selectedExtras?.['extra_av'] ? 0 : currentBreakdown.items.djXP), incl: isONIX || isMULTII || isKAIZEN },
+                              { id: 'photo', label: 'Fotografía', dur: currentBreakdown.durs.pDur, base: (isONIX || isMULTII || isKAIZEN) ? 0 : 200000, xp: currentBreakdown.items.photoXP, incl: isONIX || isMULTII || isKAIZEN },
+                              { id: 'cam', label: 'Cámara 360', dur: currentBreakdown.durs.cDur, base: (isMULTII || isKAIZEN) ? 0 : 550000, xp: currentBreakdown.items.camXP, incl: isMULTII || isKAIZEN },
+                              { id: 'makeup', label: 'Maquillaje Neón', dur: 0, base: isKAIZEN ? 0 : makeupCost, xp: 0, incl: isKAIZEN },
+                              { id: 'decor', label: 'Decoración', base: (isONIX || isMULTII || isKAIZEN) ? 0 : decorCost, xp: 0, incl: isONIX || isMULTII || isKAIZEN }
                             ];
 
                            return (
