@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.88-extra-hour-fix'; 
+const APP_VERSION = 'v1.4.89-it-works-now'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -1602,8 +1602,8 @@ function App() {
 
     // 2. Extra Hours (Check if active: Included in pack OR Selected as extra)
     const isActive = (id) => {
-      const protocols = STITCH_DATA.protocols[pName] || [];
-      const included = protocols.includes(id) || (id === 'dj'); // DJ is always the pivot
+      const proto = STITCH_DATA.protocols[pName] || { includedExtras: [] };
+      const included = (proto.includedExtras || []).includes(id) || (id === 'dj'); 
       return included || !!evt.selectedExtras?.[id];
     };
 
