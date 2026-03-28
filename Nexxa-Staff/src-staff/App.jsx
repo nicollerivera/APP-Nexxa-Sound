@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.79-hotfix-final'; 
+const APP_VERSION = 'v1.4.80-fixed-baseline'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -1940,11 +1940,7 @@ function App() {
       totalValue: evt.financials?.totalValue || 0,
       selectedExtras: evt.logistics?.selectedExtras || {},
       extraExpenses: evt.financials?.extraExpenses || [],
-      manualBasePrice: (() => {
-        const total = Number(evt.financials?.totalValue) || 0;
-        const calc = calculateEventTotalBreakdown({ ...evt.logistics, ...evt.eventDetails, manualBasePrice: 0 });
-        return total - calc.total;
-      })(),
+      manualBasePrice: Number(evt.financials?.manualBasePrice) || 0,
       manualBaseDescription: evt.financials?.manualBaseDescription || '',
       deposit: evt.financials?.deposit || Math.round((Number(evt.financials?.totalValue) || 0) * 0.3),
       isImported: true,
@@ -7521,18 +7517,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       decorTheme: quo.eventDetails?.decorTheme || '',
                       paymentMethod: quo.financials?.paymentMethod || 'Nequi',
                       deposit: Number(quo.financials?.deposit) || Math.round((Number(quo.financials?.totalValue) || 0) * 0.3),
-                      manualBasePrice: (() => {
-                        const savedBase = Number(quo.financials?.manualBasePrice) || 0;
-                        if (savedBase > 0) return savedBase;
-                        
-                        const pack = (quo.logistics?.packName || '').toUpperCase();
-                        if (['ONIX', 'MULTII', 'KAIZEN'].some(k => pack.includes(k))) return 0;
-                        
-                        const total = Number(quo.financials?.totalValue) || 0;
-                        const extras = getDynamicExtras({ selectedExtras: quo.logistics?.selectedExtras || {}, extraQtys: quo.logistics?.extraQtys || {} });
-                        const extrasSum = extras.filter(ex => quo.logistics?.selectedExtras?.[ex.id]).reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
-                        return Math.max(0, total - extrasSum);
-                      })()
+                      manualBasePrice: Number(quo.financials?.manualBasePrice) || 0,
                     });
                     setView('create');
                   }}
