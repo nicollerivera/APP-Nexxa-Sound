@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.85-lead-protection'; 
+const APP_VERSION = 'v1.4.86-pack-inference'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -470,10 +470,17 @@ function App() {
 
         // ESCANEO PROFUNDO: Identificar el plan contratado con mayor precisión
         const packNameInferred = (() => {
-            const rawP = String(d.logistics?.packName || d.package || d.plan || d.paquete || d.packName || '').toUpperCase();
-            if (rawP.includes('KAIZEN') || rawP.includes('DIAMANTE') || rawP.includes('PLATINUM')) return 'KAIZEN';
-            if (rawP.includes('MULTII') || rawP.includes('ELITE')) return 'MULTII';
-            if (rawP.includes('ONIX') || rawP.includes('ÓNIX') || rawP.includes('SILVER') || rawP.includes('ESSENTIAL')) return 'ONIX';
+            const rawP = String(d.logistics?.packName || d.package || d.plan || d.paquete || d.packName || d.service_type || d.config_id || d.tipo_servicio || '').toUpperCase();
+            if (rawP.includes('KAIZEN') || rawP.includes('DIAMANTE') || rawP.includes('PLATINUM') || rawP.includes('GALA')) return 'KAIZEN';
+            if (rawP.includes('MULTII') || rawP.includes('ELITE') || rawP.includes('ORO') || rawP.includes('BRONCE')) return 'MULTII';
+            if (rawP.includes('ONIX') || rawP.includes('ÓNIX') || rawP.includes('SILVER') || rawP.includes('BASE') || rawP.includes('BASIC')) return 'ONIX';
+            
+            // Financial Fallback (Seguridad por Precio si el nombre falla)
+            const v = Number(d.financials?.totalValue || d.totalValue || d.price || d.valor || 0);
+            if (v >= 1950000) return 'KAIZEN';
+            if (v >= 1500000) return 'MULTII';
+            if (v >= 850000) return 'ONIX';
+            
             return 'A LA CARTA'; 
         })();
 
@@ -7486,12 +7493,19 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       neighborhood: quo.eventDetails?.neighborhood || '',
                       packName: (() => {
                         const p = (quo.logistics?.packName || '').toUpperCase();
-                        // Exact match only for packages
-                        if (p === 'ONIX' || p === 'ESSENTIAL') return 'ONIX';
-                        if (p === 'MULTII' || p === 'ELITE') return 'MULTII';
-                        if (p === 'KAIZEN' || p === 'PLATINUM') return 'KAIZEN';
+                        // Mapping robusto para paquetes conocidos
+                        if (p === 'KAIZEN' || p === 'PLATINUM' || p === 'DIAMANTE') return 'KAIZEN';
+                        if (p === 'MULTII' || p === 'ELITE' || p === 'ORO') return 'MULTII';
+                        if (p === 'ONIX' || p === 'Ó' + 'NIX' || p === 'SILVER' || p === 'ESSENTIAL') return 'ONIX';
                         if (p === 'MEMORIES') return 'MEMORIES';
                         if (p === 'CELEBRATION') return 'CELEBRATION';
+                        
+                        // Si es "A LA CARTA" pero el precio es sospechosamente de un plan, lo forzamos
+                        const v = Number(quo.financials?.totalValue) || 0;
+                        if (v >= 1950000) return 'KAIZEN';
+                        if (v >= 1540000) return 'MULTII';
+                        if (v >= 850000) return 'ONIX';
+                        
                         return 'A LA CARTA';
                       })(),
                       totalValue: Number(quo.financials?.totalValue) || 0,
