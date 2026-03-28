@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.76-ultimate-sync'; 
+const APP_VERSION = 'v1.4.77-hotfix-avxp'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -4249,9 +4249,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                       {(() => {
                                         let pValue = extra.isIncluded ? (extra.basePrice || extra.price) : extra.price;
                                         if (isActive) {
-                                          if (extra.id === 'extra_photo') pValue = 200000 + photoXP;
-                                          else if (extra.id === 'extra_cam360') pValue = 550000 + camXP;
-                                          else if (extra.id === 'extra_av') pValue = 450000 + avXP;
+                                          if (extra.id === 'extra_photo') pValue = 200000 + currentBreakdown.items.photoXP;
+                                          else if (extra.id === 'extra_cam360') pValue = 550000 + currentBreakdown.items.camXP;
+                                          else if (extra.id === 'extra_av') pValue = 450000 + currentBreakdown.items.avXP;
                                         }
                                         return extra.isIncluded ? (
                                           <span style={{ fontSize: '0.7rem', color: '#ff4d4d', opacity: 0.8 }}>
