@@ -84,6 +84,27 @@ function App() {
   const [isLocating, setIsLocating] = useState(false);
   const [centeredPkgId, setCenteredPkgId] = useState(null);
 
+  // ONIX Specialized Schedules
+  const [photoStartTime, setPhotoStartTime] = useLocalStorage('nexxa_photo_start_v6', '');
+  const [photoEndTime, setPhotoEndTime] = useLocalStorage('nexxa_photo_end_v6', '');
+  const [photoStartAmPm, setPhotoStartAmPm] = useLocalStorage('nexxa_photo_start_ampm_v6', 'PM');
+  const [photoEndAmPm, setPhotoEndAmPm] = useLocalStorage('nexxa_photo_end_ampm_v6', 'AM');
+
+  const [cam360StartTime, setCam360StartTime] = useLocalStorage('nexxa_cam360_start_v6', '');
+  const [cam360EndTime, setCam360EndTime] = useLocalStorage('nexxa_cam360_end_v6', '');
+  const [cam360StartAmPm, setCam360StartAmPm] = useLocalStorage('nexxa_cam360_start_ampm_v6', 'PM');
+  const [cam360EndAmPm, setCam360EndAmPm] = useLocalStorage('nexxa_cam360_end_ampm_v6', 'AM');
+
+  const [avStartTime, setAvStartTime] = useLocalStorage('nexxa_av_start_v6', '');
+  const [avEndTime, setAvEndTime] = useLocalStorage('nexxa_av_end_v6', '');
+  const [avStartAmPm, setAvStartAmPm] = useLocalStorage('nexxa_av_start_ampm_v6', 'PM');
+  const [avEndAmPm, setAvEndAmPm] = useLocalStorage('nexxa_av_end_ampm_v6', 'AM');
+
+  const [decorStartTime, setDecorStartTime] = useLocalStorage('nexxa_decor_start_v6', '');
+  const [decorEndTime, setDecorEndTime] = useLocalStorage('nexxa_decor_end_v6', '');
+  const [decorStartAmPm, setDecorStartAmPm] = useLocalStorage('nexxa_decor_start_ampm_v6', 'PM');
+  const [decorEndAmPm, setDecorEndAmPm] = useLocalStorage('nexxa_decor_end_ampm_v6', 'AM');
+
   // Carousel State
   const [currentSlide, setCurrentSlide] = useState(0);
   const slides = [
@@ -285,6 +306,28 @@ function App() {
     });
   }, [eventDuration, packagesList, appRules]);
 
+  // Auto-select extras based on package (e.g. MULTII needs all its included services for scheduling)
+  useEffect(() => {
+    if (selectedPackageId === 'multii') {
+      setActiveExtras(prev => ({ 
+        ...prev, 
+        acc_memories: true,
+        extra_photo: true,
+        extra_cam360: true,
+        extra_av: true,
+        extra_decor_multii: true
+      }));
+    } else if (selectedPackageId === 'onix') {
+      setActiveExtras(prev => ({ 
+        ...prev, 
+        extra_photo: true,
+        extra_cam360: true,
+        extra_av: true,
+        extra_decor_onix: true
+      }));
+    }
+  }, [selectedPackageId, setActiveExtras]);
+
   // Enable horizontal scrolling with mouse wheel (Moved here to avoid ReferenceError)
   useEffect(() => {
     const el = packagesContainerRef.current;
@@ -354,7 +397,7 @@ function App() {
         const COST_CANNON = 5000;
         const COST_BLOWOUT = 200;
         const COST_BRACELET = 400;
-        const COST_MASK = 400;
+        const COST_MASK = 300;
         const COST_NECKLACE = 400;
 
         if (extra.id === 'acc_essential') {
@@ -366,6 +409,10 @@ function App() {
         } else if (extra.id === 'acc_celebration') {
           rawPrice = (3 * COST_FOAM) + (3 * COST_CANNON) + (count * (COST_BLOWOUT + COST_BRACELET + COST_MASK + COST_NECKLACE));
           newDesc = `Pack para ${count} personas: 3 Espuma(s), 3 Cañon(es), ${count} Manillas, ${count} Pitos, ${count} Collares, ${count} Antifaces.`;
+        } else if (extra.id === 'acc_onix' || selectedPackageId === 'onix') {
+          // ONIX accessories cost calculation
+          rawPrice = (5 * COST_FOAM) + (5 * COST_CANNON) + (count * (COST_BLOWOUT + COST_BRACELET + COST_MASK + COST_NECKLACE + 400));
+          newDesc = `Pack ONIX Premium para ${count} personas: 5 Espumas, 5 Cañones, Accesorios LED y Neón completos.`;
         }
 
         newPrice = rawPrice;
@@ -402,6 +449,17 @@ function App() {
   const generateWhatsappLink = () => {
     const activeIds = Object.keys(activeExtras).filter(k => activeExtras[k]);
 
+    // BUILD PROTOCOL DETAILS IF APPLICABLE (ONIX or Custom with times)
+    let protocolText = '';
+    const pkgName = selectedComputedPackage ? String(selectedComputedPackage.name).toUpperCase() : '';
+    if (pkgName.includes('ONIX') || pkgName.includes('KAIZEN') || pkgName.includes('MULTII')) {
+        protocolText = `\nDETALLE DEL PROTOCOLO:\n`;
+        if (cam360StartTime) protocolText += `* 360°\n  - Horario: ${cam360StartTime} ${cam360StartAmPm} a ${cam360EndTime} ${cam360EndAmPm}\n`;
+        if (photoStartTime) protocolText += `* FOTOGRAFÍA PRO\n  - Horario: ${photoStartTime} ${photoStartAmPm} a ${photoEndTime} ${photoEndAmPm}\n`;
+        if (avStartTime) protocolText += `* AUDIOVISUALES\n  - Horario: ${avStartTime} ${avStartAmPm} a ${avEndTime} ${avEndAmPm}\n`;
+        if (decorStartTime) protocolText += `* DECORACIÓN\n  - Horario: ${decorStartTime} ${decorStartAmPm} a ${decorEndTime} ${decorEndAmPm}\n`;
+    }
+
     // BUILD EXACT MESSAGE FORMAT REQUESTED
     const text = `✨ NUEVA SOLICITUD DE COTIZACIÓN - NEXXA SOUND ✨\n\n` +
       `¡Hola! He generado esta cotización desde la App y me gustaría recibir más información:\n\n` +
@@ -412,7 +470,7 @@ function App() {
       `🎉 Ocasión: ${eventOccasion}\n` +
       `👥 Invitados: ${guestCount}\n` +
       `📦 Paquete: ${selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado'}\n` +
-      `➕ Extras: ${activeIds.length ? activeIds.join(', ') : 'Ninguno'}\n\n` +
+      `➕ Extras: ${activeIds.length ? activeIds.join(', ') : 'Ninguno'}\n` + (protocolText || '\n') +
       `💰 Total Estimado: $${totalPrice.toLocaleString()}\n` +
       `(El valor puede ajustarse según las necesidades reales del evento)\n\n` +
       `👉 Quedo atento(a) para recibir recomendaciones y posibles ajustes.`;
@@ -442,8 +500,10 @@ function App() {
       // Determine roles based on package
       const roles = {
         dj: true, // Always included
-        photographer: selectedPackageId === 'memories' || selectedPackageId === 'celebration',
-        decorator: selectedPackageId === 'celebration'
+        photographer: selectedPackageId === 'memories' || selectedPackageId === 'celebration' || selectedPackageId === 'onix' || selectedPackageId === 'multii' || selectedPackageId === 'kaizen',
+        decorator: selectedPackageId === 'celebration' || selectedPackageId === 'onix' || selectedPackageId === 'multii' || selectedPackageId === 'kaizen',
+        cam360: selectedPackageId === 'onix' || selectedPackageId === 'multii' || selectedPackageId === 'kaizen',
+        audiovisual: selectedPackageId === 'onix' || selectedPackageId === 'multii' || selectedPackageId === 'kaizen'
       };
 
       const quotationData = {
@@ -462,7 +522,14 @@ function App() {
           endTime: to24h(eventEndTime, endAmPm) || '',
           location: eventAddress || '',
           neighborhood: eventNeighborhood || '',
-          guestCount: Number(guestCount) || 10
+          guestCount: Number(guestCount) || 10,
+          // Specialized times
+          photoStartTime: to24h(photoStartTime, photoStartAmPm) || '',
+          photoEndTime: to24h(photoEndTime, photoEndAmPm) || '',
+          cam360StartTime: to24h(cam360StartTime, cam360StartAmPm) || '',
+          cam360EndTime: to24h(cam360EndTime, cam360EndAmPm) || '',
+          avStartTime: to24h(avStartTime, avStartAmPm) || '',
+          avEndTime: to24h(avEndTime, avEndAmPm) || ''
         },
         financials: {
           totalValue: Number(totalPrice) || 0,
@@ -473,7 +540,18 @@ function App() {
           packName: selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado',
           selectedExtras: selectedExtrasObj,
           makeupCount: Number(makeupCount) || 1,
-          rolesSchedule: roles,
+          rolesSchedule: {
+            dj: true, // Always included
+            photographer: selectedPackageId === 'memories' || selectedPackageId === 'celebration' || selectedPackageId === 'onix' || selectedPackageId === 'multii',
+            decorator: selectedPackageId === 'celebration' || selectedPackageId === 'onix' || selectedPackageId === 'multii',
+            cam360: selectedPackageId === 'onix' || selectedPackageId === 'multii',
+            audiovisual: selectedPackageId === 'onix' || selectedPackageId === 'multii',
+            // Detailed schedules for specific roles
+            photo: { start: to24h(photoStartTime, photoStartAmPm), end: to24h(photoEndTime, photoEndAmPm) },
+            cam360: { start: to24h(cam360StartTime, cam360StartAmPm), end: to24h(cam360EndTime, cam360EndAmPm) },
+            av: { start: to24h(avStartTime, avStartAmPm), end: to24h(avEndTime, avEndAmPm) },
+            decor: { start: to24h(decorStartTime, decorStartAmPm), end: to24h(decorEndTime, decorEndAmPm) }
+          },
           materials: `Paquete ${selectedComputedPackage ? selectedComputedPackage.name : 'Personalizado'} + ${activeIds.length} extras`
         }
       };
@@ -976,6 +1054,107 @@ function App() {
                 <p className="input-hint">Duración mínima 4 horas. Las horas adicionales se calculan automáticamente.</p>
               </div>
 
+              {/* SPECIALIZED TIME SLOTS FOR ONIX/MEMORIES/MULTII */}
+              {(selectedPackageId === 'onix' || selectedPackageId === 'memories' || selectedPackageId === 'celebration' || selectedPackageId === 'multii' || selectedPackageId === 'kaizen') && (
+                <div className="form-group slide-up">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary-cyan)' }}>
+                    📸 Horario de Fotografía
+                  </label>
+                  <div className="time-inputs">
+                    <div className="time-input-group">
+                      <input type="text" className="input-field time-text" placeholder="Ini" value={photoStartTime} onChange={(e) => formatTimeInput(e.target.value, setPhotoStartTime)} maxLength={5} />
+                      <select className="input-field ampm-select" value={photoStartAmPm} onChange={(e) => setPhotoStartAmPm(e.target.value)}>
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                    <span className="time-separator">a</span>
+                    <div className="time-input-group">
+                      <input type="text" className="input-field time-text" placeholder="Fin" value={photoEndTime} onChange={(e) => formatTimeInput(e.target.value, setPhotoEndTime)} maxLength={5} />
+                      <select className="input-field ampm-select" value={photoEndAmPm} onChange={(e) => setPhotoEndAmPm(e.target.value)}>
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(selectedPackageId === 'onix' || selectedPackageId === 'multii' || selectedPackageId === 'kaizen') && (
+                <>
+                  <div className="form-group slide-up">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary-cyan)' }}>
+                      🎥 Horario Cámara {selectedPackageId === 'multii' ? '360 Aérea' : '360'}
+                    </label>
+                    <div className="time-inputs">
+                      <div className="time-input-group">
+                        <input type="text" className="input-field time-text" placeholder="Ini" value={cam360StartTime} onChange={(e) => formatTimeInput(e.target.value, setCam360StartTime)} maxLength={5} />
+                        <select className="input-field ampm-select" value={cam360StartAmPm} onChange={(e) => setCam360StartAmPm(e.target.value)}>
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+                      <span className="time-separator">a</span>
+                      <div className="time-input-group">
+                        <input type="text" className="input-field time-text" placeholder="Fin" value={cam360EndTime} onChange={(e) => formatTimeInput(e.target.value, setCam360EndTime)} maxLength={5} />
+                        <select className="input-field ampm-select" value={cam360EndAmPm} onChange={(e) => setCam360EndAmPm(e.target.value)}>
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-group slide-up">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary-cyan)' }}>
+                      📺 Horario Audiovisuales
+                    </label>
+                    <div className="time-inputs">
+                      <div className="time-input-group">
+                        <input type="text" className="input-field time-text" placeholder="Ini" value={avStartTime} onChange={(e) => formatTimeInput(e.target.value, setAvStartTime)} maxLength={5} />
+                        <select className="input-field ampm-select" value={avStartAmPm} onChange={(e) => setAvStartAmPm(e.target.value)}>
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+                      <span className="time-separator">a</span>
+                      <div className="time-input-group">
+                        <input type="text" className="input-field time-text" placeholder="Fin" value={avEndTime} onChange={(e) => formatTimeInput(e.target.value, setAvEndTime)} maxLength={5} />
+                        <select className="input-field ampm-select" value={avEndAmPm} onChange={(e) => setAvEndAmPm(e.target.value)}>
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(selectedPackageId === 'multii' || selectedPackageId === 'kaizen' || selectedPackageId === 'celebration') && (
+                <div className="form-group slide-up">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary-cyan)' }}>
+                    ✨ Horario Decoración {selectedPackageId === 'multii' ? 'Multii' : ''}
+                  </label>
+                  <div className="time-inputs">
+                    <div className="time-input-group">
+                      <input type="text" className="input-field time-text" placeholder="Ini" value={decorStartTime} onChange={(e) => formatTimeInput(e.target.value, setDecorStartTime)} maxLength={5} />
+                      <select className="input-field ampm-select" value={decorStartAmPm} onChange={(e) => setDecorStartAmPm(e.target.value)}>
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                    <span className="time-separator">a</span>
+                    <div className="time-input-group">
+                      <input type="text" className="input-field time-text" placeholder="Fin" value={decorEndTime} onChange={(e) => formatTimeInput(e.target.value, setDecorEndTime)} maxLength={5} />
+                      <select className="input-field ampm-select" value={decorEndAmPm} onChange={(e) => setDecorEndAmPm(e.target.value)}>
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="form-group">
                 <label>Barrio</label>
                 <div className="location-input-wrapper">
@@ -1042,6 +1221,24 @@ function App() {
                     {Math.ceil(eventDuration - 4) > 0 && <span style={{ color: 'var(--primary-cyan)', fontSize: '0.8rem', marginLeft: '5px' }}> (+{Math.ceil(eventDuration - 4)}h Extra)</span>}
                   </span>
                 </div>
+                {photoStartTime && (
+                  <div className="summary-item">
+                    <span className="summary-label">📸 Fotografía</span>
+                    <span className="summary-value">{photoStartTime} {photoStartAmPm} - {photoEndTime} {photoEndAmPm}</span>
+                  </div>
+                )}
+                {cam360StartTime && (
+                  <div className="summary-item">
+                    <span className="summary-label">🎥 Cámara 360</span>
+                    <span className="summary-value">{cam360StartTime} {cam360StartAmPm} - {cam360EndTime} {cam360EndAmPm}</span>
+                  </div>
+                )}
+                {avStartTime && (
+                  <div className="summary-item">
+                    <span className="summary-label">📺 Audiovisuales</span>
+                    <span className="summary-value">{avStartTime} {avStartAmPm} - {avEndTime} {avEndAmPm}</span>
+                  </div>
+                )}
                 <div className="summary-item">
                   <span className="summary-label">Invitados</span>
                   <span className="summary-value">{guestCount} Personas</span>

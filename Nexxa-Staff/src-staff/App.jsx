@@ -484,8 +484,8 @@ function App() {
           eventDetails: {
             date: d.eventDetails?.date || d.arrivalDate || d.date || '',
             occasion: d.eventDetails?.occasion || '',
-            startTime: d.eventDetails?.startTime || d.startTime || '',
-            endTime: d.eventDetails?.endTime || d.endTime || '',
+            startTime: d.eventDetails?.startTime || d.start_time || d.startTime || '20:00',
+            endTime: d.eventDetails?.endTime || d.end_time || d.endTime || '00:00',
             location: normLoc,
             neighborhood: normHood,
             guestCount: (() => {
@@ -493,14 +493,14 @@ function App() {
                 const match = rawG.match(/\d+/);
                 return match ? Number(match[0]) : 10;
             })(),
-            photoStartTime: d.eventDetails?.photoStartTime || d.eventDetails?.photoStart || '',
-            photoEndTime: d.eventDetails?.photoEndTime || d.eventDetails?.photoEnd || '',
-            cam360StartTime: d.eventDetails?.cam360StartTime || d.eventDetails?.camStart || d.eventDetails?.videoStartTime || '',
-            cam360EndTime: d.eventDetails?.cam360EndTime || d.eventDetails?.camEnd || d.eventDetails?.videoEndTime || '',
-            avStartTime: d.eventDetails?.avStartTime || d.eventDetails?.avStart || '',
-            avEndTime: d.eventDetails?.avEndTime || d.eventDetails?.avEnd || '',
-            decorStartTime: d.eventDetails?.decorStartTime || d.eventDetails?.decorStart || '',
-            decorEndTime: d.eventDetails?.decorEndTime || d.eventDetails?.decorEnd || ''
+            photoStartTime: d.eventDetails?.photoStartTime || d.eventDetails?.photoStart || d.eventDetails?.photo_start || d.eventDetails?.startTime || d.startTime || '20:00',
+            photoEndTime: d.eventDetails?.photoEndTime || d.eventDetails?.photoEnd || d.eventDetails?.photo_end || d.eventDetails?.endTime || d.endTime || '00:00',
+            cam360StartTime: d.eventDetails?.cam360StartTime || d.eventDetails?.camStart || d.eventDetails?.cam_start || d.eventDetails?.videoStartTime || d.eventDetails?.startTime || d.startTime || '20:00',
+            cam360EndTime: d.eventDetails?.cam360EndTime || d.eventDetails?.camEnd || d.eventDetails?.cam_end || d.eventDetails?.videoEndTime || d.eventDetails?.endTime || d.endTime || '22:00',
+            avStartTime: d.eventDetails?.avStartTime || d.eventDetails?.avStart || d.eventDetails?.av_start || d.eventDetails?.startTime || d.startTime || '20:00',
+            avEndTime: d.eventDetails?.avEndTime || d.eventDetails?.avEnd || d.eventDetails?.av_end || d.eventDetails?.endTime || d.endTime || '00:00',
+            decorStartTime: d.eventDetails?.decorStartTime || d.eventDetails?.decorStart || d.eventDetails?.decor_start || d.eventDetails?.startTime || d.startTime || '20:00',
+            decorEndTime: d.eventDetails?.decorEndTime || d.eventDetails?.decorEnd || d.eventDetails?.decor_end || d.eventDetails?.endTime || d.endTime || '22:00'
           },
           financials: {
             totalValue: Number(d.financials?.totalValue || d.totalValue || d.valor_total || d.total || d.precio || d.price || d.valor || 0),
@@ -981,12 +981,24 @@ function App() {
     if (draft) {
       try {
         const d = JSON.parse(draft);
-        // Ensure no automatic selection for new drafts
         if (!d.id) {
           if ((d.packName || '').toUpperCase().includes('ESSENTIAL')) d.packName = '';
           if (d.packName === 'ONIX' && !d.clientName && !d.date) d.packName = '';
         }
         if (d.packName === 'null' || !d.packName || d.packName.toUpperCase().includes('ESSENTIAL')) d.packName = '';
+        
+        // AUTO-CALIBRATION: Normalize empty times in older drafts
+        if (!d.startTime) d.startTime = '20:00';
+        if (!d.endTime) d.endTime = '00:00';
+        if (!d.djStartTime) d.djStartTime = d.startTime;
+        if (!d.djEndTime) d.djEndTime = d.endTime;
+        if (!d.photoStartTime) d.photoStartTime = d.startTime;
+        if (!d.photoEndTime) d.photoEndTime = d.endTime;
+        if (!d.avStartTime) d.avStartTime = d.startTime;
+        if (!d.avEndTime) d.avEndTime = d.endTime;
+        if (!d.cam360StartTime) d.cam360StartTime = d.startTime;
+        if (!d.cam360EndTime) d.cam360EndTime = d.endTime === '00:00' ? '22:00' : d.endTime;
+
         return d;
       } catch (e) {
         console.error("Error parsing draft", e);
@@ -994,8 +1006,8 @@ function App() {
     }
     return {
       clientName: '', clientPhone: '', clientPhone2: '',
-      date: '', startTime: '', endTime: '',
-      djStartTime: '', djEndTime: '',
+      date: '', startTime: '20:00', endTime: '00:00',
+      djStartTime: '20:00', djEndTime: '00:00',
       location: '', neighborhood: '',
       packName: '',
       totalValue: '', deposit: '',
@@ -1005,15 +1017,17 @@ function App() {
       indications: 'Ninguna',
       warehouseTime: '',
       materialExplanation: '',
-      photoStartTime: '',
-      photoEndTime: '',
-      avStartTime: '',
-      avEndTime: '',
-      cam360StartTime: '',
-      cam360EndTime: '',
-      decorStartTime: '',
-      decorEndTime: '',
-      paymentMethod: 'Nequi'
+      photoStartTime: '20:00',
+      photoEndTime: '00:00',
+      avStartTime: '20:00',
+      avEndTime: '00:00',
+      cam360StartTime: '20:00',
+      cam360EndTime: '22:00',
+      decorStartTime: '20:00',
+      decorEndTime: '22:00',
+      paymentMethod: 'Nequi',
+      priceLocked: false,
+      isImported: false
     };
   });
 
@@ -1256,7 +1270,7 @@ function App() {
 
       alert('✅ Cotización Guardada y Enviada.');
       setView('quotations');
-      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Onix', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', avStartTime: '', avEndTime: '', camStartTime: '', camEndTime: '', decorStartTime: '', decorEndTime: '', color: '#C9A84C' });
+      setNewEvent({ id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Onix', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', avStartTime: '', avEndTime: '', cam360StartTime: '', cam360EndTime: '', makeupStartTime: '', makeupEndTime: '', decorStartTime: '', decorEndTime: '', color: '#C9A84C', priceLocked: false, isImported: false });
       localStorage.removeItem('nexxa_draft_event');
     } catch (err) {
       console.error(err);
@@ -1413,9 +1427,12 @@ function App() {
   // ==========================================
   const STITCH_DATA = {
     protocols: {
-      'ONIX':      { price: 1250000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] },
-      'MULTII':    { price: 1440000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] },
-      'KAIZEN':    { price: 1940000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'] }
+      'ESSENTIAL':   { price: 450000, roles: ['DJ Crossover'], items: ['Cabinas Pro', 'Luces LED'], includedExtras: [] },
+      'MEMORIES':    { price: 650000, roles: ['DJ Crossover', 'Fotografía'], items: ['Cabinas Pro', 'Luces LED'], includedExtras: ['extra_photo'] },
+      'CELEBRATION': { price: 850000, roles: ['DJ Crossover', 'Fotografía', 'Decoración'], items: ['Cabinas Pro', 'Luces LED'], includedExtras: ['extra_photo', 'extra_decor_onix'] },
+      'ONIX':        { price: 1250000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] },
+      'MULTII':      { price: 1650000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] },
+      'KAIZEN':      { price: 2250000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'] }
     },
     extras: {
       photo: 200000,   // Base for 4h
@@ -1443,10 +1460,9 @@ function App() {
 
   const PRICING_DYNAMIC = new Proxy({}, {
     get: (target, name) => {
-      let activeName = name || '';
-      if (activeName.toUpperCase() === 'ESSENTIAL' || activeName.toUpperCase() === 'SONIDO ESSENTIAL') activeName = 'Onix';
+      let activeName = (name || '').toUpperCase();
       if (!activeName) return { base: 0, roles: [] };
-      const config = STITCH_DATA.protocols[activeName.toUpperCase()];
+      const config = STITCH_DATA.protocols[activeName];
       if (!config) return { base: 0, roles: [] };
       return { base: config.price, roles: config.roles };
     }
@@ -1550,58 +1566,70 @@ function App() {
     });
   };
 
-  // --- DYNAMIC PRICING CALCULATOR (Staff Sync) ---
+  const isEventMode = !!(newEvent.id?.startsWith('EVT') || newEvent.id?.startsWith('DRAFT'));
+  
+  // --- DYNAMIC PRICING CALCULATOR (Digital Instrument Logic) ---
   const currentConf = PRICING_DYNAMIC[newEvent.packName] || {};
-  // Use specific times IF provided; otherwise, assume BASE duration (no extra charges)
-  const djDur = (newEvent.djStartTime && newEvent.djEndTime) ? getHours(newEvent.djStartTime, newEvent.djEndTime) : 4;
-  const photoDur = (newEvent.photoStartTime && newEvent.photoEndTime) ? getHours(newEvent.photoStartTime, newEvent.photoEndTime) : 4;
-  const camDur = (newEvent.cam360StartTime && newEvent.cam360EndTime) ? getHours(newEvent.cam360StartTime, newEvent.cam360EndTime) : 2;
-  const decorDur = (newEvent.decorStartTime && newEvent.decorEndTime) ? getHours(newEvent.decorStartTime, newEvent.decorEndTime) : 2;
-  const avDur = (newEvent.avStartTime && newEvent.avEndTime) ? getHours(newEvent.avStartTime, newEvent.avEndTime) : 4;
+  const activeExtrasArr = getDynamicExtras(newEvent);
 
-  const extraDJ = Math.max(0, Math.ceil(djDur - 4));
-  const extraPhoto = Math.max(0, Math.ceil(photoDur - 4));
-  const extraCam = Math.max(0, Math.ceil(camDur - 2));
+  const getSrvStatus = (id) => {
+    const ex = activeExtrasArr.find(e => e.id === id);
+    return !!(ex?.isIncluded || newEvent.selectedExtras?.[id]);
+  };
 
-  const hasDJ = newEvent.selectedExtras?.extra_dj || currentConf.roles?.includes('DJs Profesionales') || currentConf.roles?.includes('DJs') || (newEvent.djStartTime && newEvent.djEndTime);
-  const hasPhoto = newEvent.selectedExtras?.extra_photo || currentConf.roles?.includes('Fotografía Profesional') || (newEvent.photoStartTime && newEvent.photoEndTime);
-  const hasCam = newEvent.selectedExtras?.extra_cam360 || currentConf.roles?.includes('Cámara 360°') || (newEvent.cam360StartTime && newEvent.cam360EndTime);
-  const hasAV = newEvent.selectedExtras?.extra_av || currentConf.items?.includes('Sonido Pro') || currentConf.items?.includes('Sonido Line Array') || (newEvent.avStartTime && newEvent.avEndTime);
+  // 1. DURATIONS (Re-calculate every render)
+  // Use '20:00' and '00:00' as base defaults (matches getDisplayTimeUI defaults)
+  const djDur = getHours(newEvent.djStartTime || '20:00', newEvent.djEndTime || '00:00');
+  const photoDur = getHours(newEvent.photoStartTime || '20:00', newEvent.photoEndTime || '00:00');
+  const camDur = getHours(newEvent.cam360StartTime || '20:00', newEvent.cam360EndTime || '22:00');
+  const avDur = getHours(newEvent.avStartTime || '20:00', newEvent.avEndTime || '00:00');
 
-  const basePriceValue = parseInt(currentConf.base) || 0;
-  const extrasDJPrice = hasDJ ? (extraDJ * (parseInt(STITCH_DATA.hourlyRates.dj) || 0)) : 0;
-  const extrasPhotoPrice = hasPhoto ? (extraPhoto * (parseInt(STITCH_DATA.hourlyRates.photo) || 0)) : 0;
-  const extrasCamPrice = hasCam ? (extraCam * (parseInt(STITCH_DATA.hourlyRates.cam360) || 0)) : 0;
-  const extrasAVPrice = hasAV ? (Math.max(0, Math.ceil(avDur - 4)) * (parseInt(STITCH_DATA.hourlyRates.av) || 0)) : 0;
+  const hasPhoto = getSrvStatus('extra_photo');
+  const hasCam = getSrvStatus('extra_cam360');
+  const hasAV = getSrvStatus('extra_av');
+  const hasDJ = true; // Heart of the party
 
-  const activeExtrasArr = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id]);
-  const otherExtrasPrice = activeExtrasArr.reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
+  // 2. EXTENSIONS (Round up for billing)
+  const xDJ = Math.max(0, Math.ceil(djDur - 4));
+  const xPhoto = hasPhoto ? Math.max(0, Math.ceil(photoDur - 4)) : 0;
+  const xCam = hasCam ? Math.max(0, Math.ceil(camDur - 2)) : 0;
+  const xAV = hasAV ? Math.max(0, Math.ceil(avDur - 4)) : 0;
 
-  // CRITICAL FIX: Ensure Base Price is ALWAYS part of the sum
-  // If it's a known package, use its base. If it's Personalized but has a manualBasePrice (from Lead), use it.
-  const effectiveBasePrice = (newEvent.packName === 'PERSONALIZADO') 
-    ? (parseInt(newEvent.manualBasePrice) || 0) 
-    : basePriceValue;
+  // 3. PRICES
+  const baseP = (newEvent.packName === 'PERSONALIZADO' ? (parseInt(newEvent.manualBasePrice) || 0) : (parseInt(currentConf.base) || 0));
+  const djXP = xDJ * (STITCH_DATA.hourlyRates.dj || 85000);
+  const photoXP = xPhoto * (STITCH_DATA.hourlyRates.photo || 50000);
+  const camXP = xCam * (STITCH_DATA.hourlyRates.cam360 || 200000);
+  const avXP = xAV * (STITCH_DATA.hourlyRates.av || 85000);
 
-  const computedTotal = effectiveBasePrice + 
-                        extrasDJPrice + 
-                        extrasPhotoPrice + 
-                        extrasCamPrice + 
-                        extrasAVPrice + 
-                        otherExtrasPrice;
+  const selectedExtrasPrice = activeExtrasArr
+    .filter(ex => newEvent.selectedExtras?.[ex.id])
+    .reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
 
-  // AUTO-SYNC LOGIC: Perfect Sync
+  // 4. FINAL SUM
+  const computedTotal = baseP + djXP + photoXP + camXP + avXP + selectedExtrasPrice;
+
+  // 5. AUTO-SYNC EFFECT: Reliable & Non-intrusive
   React.useEffect(() => {
-    const currentVal = Number(newEvent.totalValue);
-    // If it was already synced or it's a new calc, keep syncing.
-    // If the difference is huge but it matches our LAST sync, it means the user is just changing hours.
-    if (!currentVal || currentVal === lastSyncTotal.current || Math.abs(currentVal - computedTotal) < 10) {
-      if (currentVal !== computedTotal) {
-        setNewEvent(prev => ({ ...prev, totalValue: computedTotal, deposit: Math.round(computedTotal * 0.3) }));
-        lastSyncTotal.current = computedTotal;
+    if (computedTotal > 0) {
+      const currentVal = Number(newEvent.totalValue) || 0;
+      // INSTRUMENT LOGIC: If it's a fresh quote, or matches last sync, or we are in EDIT mode with a manual change detected
+      const isActuallyEmpty = !currentVal || currentVal === 0;
+      const isSynced = currentVal === lastSyncTotal.current;
+      
+      if (isActuallyEmpty || isSynced || (currentVal === computedTotal)) {
+        if (currentVal !== computedTotal) {
+          setNewEvent(prev => ({ 
+            ...prev, 
+            totalValue: computedTotal,
+            deposit: Math.round(computedTotal * 0.3)
+          }));
+          lastSyncTotal.current = computedTotal;
+        }
       }
     }
   }, [computedTotal, newEvent.packName]);
+
 
   // --- HELPER: GENERAR ITEMS DE LOGÍSTICA ---
   const buildLogisticsItems = (evt) => {
@@ -1647,18 +1675,12 @@ function App() {
     return items;
   };
 
-  // Auto-update totalValue for accuracy
-  useEffect(() => {
-    if (computedTotal > 0) {
-        if (!newEvent.totalValue || Number(newEvent.totalValue) === 0 || (!newEvent.isImported && Number(newEvent.totalValue) !== computedTotal)) {
-             setNewEvent(prev => ({ 
-                ...prev, 
-                totalValue: computedTotal,
-                deposit: Math.round(computedTotal * 0.3)
-             }));
-        }
-    }
-  }, [computedTotal, newEvent.id, newEvent.isImported]);
+  // Logic for Auto-Refresh (UI Sync)
+  React.useEffect(() => {
+     if (isEventMode) {
+       // logic for event specific syncs if needed
+     }
+  }, [isEventMode, newEvent.id]);
 
 
   // --- EDIT & STATUS HANDLERS ---
@@ -1672,41 +1694,29 @@ function App() {
       }
 
       // Mandatory Roles based on Package and Extras
+      // Mandatory Roles based on Package and Extras (Soft validation with Defaults)
       if (needsPhoto(newEvent.packName, newEvent.selectedExtras)) {
-        if (!newEvent.photoStartTime || !newEvent.photoEndTime) {
-          return alert(`⚠️ SE REQUIERE HORARIO DE FOTOGRAFÍA.`);
-        }
-        const photoDur = getHours(newEvent.photoStartTime, newEvent.photoEndTime);
-        if (photoDur <= 0) {
-          return alert('⚠️ EL HORARIO DE FOTOGRAFÍA NO PUEDE SER DE 0 HORAS.');
-        }
+        const pS = newEvent.photoStartTime || '20:00';
+        const pE = newEvent.photoEndTime || '00:00';
+        const photoDur = getHours(pS, pE);
+        if (photoDur <= 0) return alert('⚠️ EL HORARIO DE FOTOGRAFÍA ES INVÁLIDO (0h).');
       }
       if (needsDecor(newEvent.packName, newEvent.selectedExtras)) {
-        if (!newEvent.decorStartTime || !newEvent.decorEndTime) {
-          return alert(`⚠️ SE REQUIERE HORARIO DE DECORACIÓN.`);
-        }
-        const decorDur = getHours(newEvent.decorStartTime, newEvent.decorEndTime);
-        if (decorDur <= 0) {
-          return alert('⚠️ EL HORARIO DE DECORACIÓN NO PUEDE SER DE 0 HORAS.');
-        }
+        const dS = newEvent.decorStartTime || '20:00';
+        const dE = newEvent.decorEndTime || '22:00';
+        const decorDur = getHours(dS, dE);
+        if (decorDur <= 0) return alert('⚠️ EL HORARIO DE DECORACIÓN ES INVÁLIDO (0h).');
       }
       if (needsCam360(newEvent.packName, newEvent.selectedExtras)) {
-        if (!newEvent.cam360StartTime || !newEvent.cam360EndTime) {
-          return alert(`⚠️ SE REQUIERE HORARIO DE CÁMARA 360.`);
-        }
-        const camDur = getHours(newEvent.cam360StartTime, newEvent.cam360EndTime);
-        if (camDur <= 0) {
-          return alert('⚠️ EL HORARIO DE CÁMARA 360 NO PUEDE SER DE 0 HORAS.');
-        }
+        const cS = newEvent.cam360StartTime || '20:00';
+        const cE = newEvent.cam360EndTime || '22:00';
+        if (getHours(cS, cE) <= 0) return alert('⚠️ EL HORARIO DE CÁMARA 360 ES INVÁLIDO (0h).');
       }
       if (needsAV(newEvent.packName, newEvent.selectedExtras)) {
-        if (!newEvent.avStartTime || !newEvent.avEndTime) {
-          return alert(`⚠️ SE REQUIERE HORARIO AUDIOVISUAL.`);
-        }
-        const avDur = getHours(newEvent.avStartTime, newEvent.avEndTime);
-        if (avDur <= 0) {
-          return alert('⚠️ EL HORARIO AUDIOVISUAL NO PUEDE SER DE 0 HORAS.');
-        }
+        const aS = newEvent.avStartTime || '20:00';
+        const aE = newEvent.avEndTime || '00:00';
+        const avDur = getHours(aS, aE);
+        if (avDur <= 0) return alert('⚠️ EL HORARIO AUDIOVISUAL ES INVÁLIDO (0h).');
       }
 
       // Validate Minimum Duration
@@ -1859,7 +1869,7 @@ function App() {
       alert(status === 'DRAFT' ? '📝 Borrador Guardado' : (newEvent.id ? '✅ Evento Actualizado' : '✅ Evento Creado'));
 
       setView('events');
-      const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', camStartTime: '', camEndTime: '', avStartTime: '', avEndTime: '', color: '#C9A84C' };
+      const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', cam360StartTime: '', cam360EndTime: '', makeupStartTime: '', makeupEndTime: '', avStartTime: '', avEndTime: '', color: '#C9A84C', priceLocked: false, isImported: false };
       setNewEvent(emptyState);
       localStorage.removeItem('nexxa_draft_event'); // Clear transient draft
     } catch (err) {
@@ -3577,8 +3587,6 @@ function App() {
                             </li>
                           </ul>
                         </div>
-// CÓDIGO PARA AGREGAR EN LA LÍNEA 2105 (después del cierre de Insights, antes del cierre de la sección METRICAS)
-
                         {/* INVERSIÓN PUBLICITARIA */}
                         <div style={{ marginTop: '20px' }}>
                           <h3 style={{ fontSize: '0.9rem', fontWeight: '950', color: '#fff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3882,10 +3890,45 @@ function App() {
       const updateEvent = (field, value) => {
         let updated = { ...newEvent };
 
-        if (field === 'toggleExtra') {
+        // DIGITAL INSTRUMENT LOGIC: Reset import block when user manually adjusts logistics or pack
+        if (field === 'toggleExtra' || field === 'packName' || field.includes('StartTime') || field.includes('EndTime') || field.includes('Qty') || field === 'guestCount') {
+          updated.isImported = false;
+          // When changing core logistics, we usually want to re-calculate price unless manually locked
+          // but if it's a critical change like packName, we unlock to show correct price
+          if (field === 'packName') updated.priceLocked = false;
+        }
+
+        if (field === 'totalValue') {
+          updated.totalValue = value;
+          updated.priceLocked = true; // Lock price if user manually edits the total
+        } else if (field === 'toggleExtra') {
           const currentExtras = { ...updated.selectedExtras };
-          currentExtras[value] = !currentExtras[value];
+          const isTurningOn = !currentExtras[value];
+          currentExtras[value] = isTurningOn;
           updated.selectedExtras = currentExtras;
+
+          // AUTO-FILL TIMES WHEN TURNING ON EXTRA (Only if we have a base time to work with)
+          const baseS = updated.djStartTime || updated.startTime;
+          const baseE = updated.djEndTime || updated.endTime;
+
+          if (isTurningOn && baseS) {
+            if (value === 'extra_photo' && !updated.photoStartTime) {
+              updated.photoStartTime = baseS;
+              updated.photoEndTime = subtractMinutes(baseS, -240); // Min 4h
+            } else if (value === 'extra_av' && !updated.avStartTime) {
+              updated.avStartTime = baseS;
+              updated.avEndTime = subtractMinutes(baseS, -240); // Min 4h
+            } else if (value === 'extra_cam360' && !updated.cam360StartTime) {
+              updated.cam360StartTime = baseS;
+              updated.cam360EndTime = subtractMinutes(baseS, -120); // Min 2h
+            } else if ((value.includes('_decor_') || value.includes('decor')) && !updated.decorStartTime) {
+              updated.decorStartTime = subtractMinutes(baseS, 60);
+              updated.decorEndTime = subtractMinutes(baseS, -60);
+            } else if (value === 'extra_makeup' && !updated.makeupStartTime) {
+              updated.makeupStartTime = baseS;
+              updated.makeupEndTime = subtractMinutes(baseS, -120);
+            }
+          }
         } else if (field === 'changeExtraQty') {
           const { id, q } = value;
           const currentQtys = { ...(updated.extraQtys || {}) };
@@ -3901,7 +3944,6 @@ function App() {
           const p = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => val.includes(k)) || val;
           updated.packName = p;
           
-          // AUTO-SELECT INCLUDED EXTRAS: When a package is picked, ensure its included services are checked
           const proto = STITCH_DATA.protocols[p];
           if (proto?.includedExtras || /MULTII/i.test(p) || /ONIX/i.test(p) || /KAIZEN/i.test(p)) {
             const newExtras = { ...(updated.selectedExtras || {}) };
@@ -3911,29 +3953,36 @@ function App() {
               newExtras[extId] = true;
             });
             updated.selectedExtras = newExtras;
+
+            // SYNC TIMES: Use DJ Time or 08:00 PM as master for included services
+            const masterS = updated.djStartTime || updated.startTime || '20:00';
+            
+            // Set default DJ hours if empty (Min 4h)
+            if (!updated.djStartTime) updated.djStartTime = masterS;
+            if (!updated.djEndTime) updated.djEndTime = subtractMinutes(masterS, -240);
+
+            const masterE = updated.djEndTime;
+
+            if (masterS && masterE) {
+              if (newExtras['extra_photo'] && !updated.photoStartTime) { updated.photoStartTime = masterS; updated.photoEndTime = masterE; }
+              if (newExtras['extra_av'] && !updated.avStartTime) { updated.avStartTime = masterS; updated.avEndTime = masterE; }
+              if (newExtras['extra_cam360'] && !updated.cam360StartTime) { updated.cam360StartTime = masterS; updated.cam360EndTime = subtractMinutes(masterS, -120); }
+              if (newExtras['extra_makeup'] && !updated.makeupStartTime) { updated.makeupStartTime = masterS; updated.makeupEndTime = subtractMinutes(masterS, -120); }
+              if (newExtras['extra_decor_onix'] || newExtras['extra_decor_multii'] || newExtras['extra_decor_kaizen']) {
+                if (!updated.decorStartTime) updated.decorStartTime = subtractMinutes(masterS, 60);
+                if (!updated.decorEndTime) updated.decorEndTime = subtractMinutes(masterS, -60);
+              }
+            }
           }
         } else if (field === 'startTime') {
           updated.startTime = value;
-          // Auto-sync if not manually changed or if they match old default
-          if (!updated.djStartTime || updated.djStartTime === '08:00') updated.djStartTime = value;
-          if (!updated.avStartTime || updated.avStartTime === '08:00') updated.avStartTime = value;
-          // Note: Photo/Cam defaults are NOT tied to main event start automatically 
-          // if we want to avoid double-charging for their full duration extras.
-          // They should be explicitly set by the user or landing page.
-
-          // RULE: Decorator starts 1 hr before DJ, lasts 2 hours
-          if (!updated.decorStartTime || updated.decorStartTime === '08:00') {
-            updated.decorStartTime = subtractMinutes(value, 60);
-          }
-          if (!updated.decorEndTime || updated.decorEndTime === '08:00') {
-            updated.decorEndTime = subtractMinutes(value, -60); // +1 hour from DJ Start
-          }
+          const map = ['djStartTime', 'photoStartTime', 'avStartTime', 'cam360StartTime', 'makeupStartTime'];
+          map.forEach(k => { if (!updated[k] || updated[k] === '08:00' || updated[k] === '20:00') updated[k] = value; });
         } else if (field === 'endTime') {
           updated.endTime = value;
-          // Auto-sync
-          if (!updated.djEndTime || updated.djEndTime === '08:00') updated.djEndTime = value;
-          if (!updated.photoEndTime || updated.photoEndTime === '08:00') updated.photoEndTime = value;
-          if (!updated.avEndTime || updated.avEndTime === '08:00') updated.avEndTime = value;
+          const map = ['djEndTime', 'photoEndTime', 'avEndTime', 'cam360EndTime', 'makeupEndTime'];
+          map.forEach(k => { if (!updated[k] || updated[k] === '08:00' || updated[k] === '20:00' || updated[k] === '00:00') updated[k] = value; });
+          // If end time is before start time, it's next day, already handled by getHours but helps UI
         } else if (field === 'djStartTime') {
           updated.djStartTime = value;
           if (!updated.startTime) updated.startTime = value;
@@ -3950,14 +3999,11 @@ function App() {
           updated[field] = value;
         }
 
-        // 1. STRICT SYNC: PHOTO DURATION
-        // Always recalculate if start/end times exist.
         if (updated.photoStartTime && updated.photoEndTime) {
           const autoDur = getHours(updated.photoStartTime, updated.photoEndTime);
           updated.photoDuration = parseFloat(autoDur.toFixed(1));
         }
 
-        // Clean state update: auto-calc is inherently handled by the global computedTotal watcher.
         setNewEvent(updated);
       };
 
@@ -3965,7 +4011,7 @@ function App() {
       // const [alertShown, setAlertShown] = useState(false);
 
       // --- LOGIC: Constant Sync for Extra Hour Price ---
-      const isEventMode = newEvent.id?.startsWith('EVT');
+      // isEventMode is now handled at component scope for global sync
 
       return (
         <div className="fade-in container">
@@ -4093,7 +4139,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.51)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.53)</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4119,9 +4165,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     <div style={{ gridColumn: 'span 2', marginTop: '2px' }}>
                       <select style={{ width: '100%', padding: '10px', fontSize: '0.85rem', border: '1px solid rgba(188, 111, 241, 0.3)', height: '42px', background: 'rgba(188, 111, 241, 0.05)', color: '#fff' }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
                         <option value="">Selecciona el Plan...</option>
-                        <option value="ONIX">ONIX ($1.22M)</option>
-                        <option value="MULTII">MULTII ($1.44M)</option>
-                        <option value="KAIZEN">KAIZEN ($1.94M)</option>
+                        <option value="ESSENTIAL">ESSENTIAL ($450k)</option>
+                        <option value="MEMORIES">MEMORIES ($650k)</option>
+                        <option value="CELEBRATION">CELEBRATION ($850k)</option>
+                        <option value="ONIX">ONIX ($1.25M)</option>
+                        <option value="MULTII">MULTII ($1.65M)</option>
+                        <option value="KAIZEN">KAIZEN ($2.25M)</option>
                         <option value="PERSONALIZADO">Personalizado</option>
                       </select>
                     </div>
@@ -4329,6 +4378,38 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
 
 
+             {/* SECCIÓN 3: LOGÍSTICA DE TIEMPOS (PRINCIPAL/DJ) */}
+            <div className="form-section">
+              <div
+                onClick={() => toggleSection('s3')}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '15px' : '0' }}
+              >
+                <h3 style={{ color: '#facc15', textShadow: '0 0 10px rgba(250,204,21,0.3)' }}>3. Horario Musical (DJ/Principal)</h3>
+                <span style={{ fontSize: '1rem', color: '#facc15' }}>{sectionState.s3 ? '▼' : '▶'}</span>
+              </div>
+              {sectionState.s3 && (
+                <div style={{ background: 'rgba(250, 204, 21, 0.05)', padding: '15px', borderRadius: '20px', border: '1px solid rgba(250, 204, 21, 0.2)' }}>
+                   <MiniTimeInput 
+                     label="Franja de Servicio DJ / Protocolo"
+                     labelColor="#facc15"
+                     startVal={newEvent.djStartTime}
+                     endVal={newEvent.djEndTime}
+                     onStartChange={(val) => updateEvent('djStartTime', val)}
+                     onEndChange={(val) => updateEvent('djEndTime', val)}
+                   />
+                   <div style={{ marginTop: '10px', fontSize: '0.7rem', color: '#aaa', display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                     <span style={{ fontWeight: 'bold' }}>Duración: {getHours(newEvent.djStartTime, newEvent.djEndTime).toFixed(1)}h</span>
+                     <span>Base Incluida: 4h</span>
+                     {Math.ceil(getHours(newEvent.djStartTime, newEvent.djEndTime) - 4) > 0 && (
+                       <span style={{ color: '#facc15', fontWeight: 'bold' }}>Extensión: +{Math.ceil(getHours(newEvent.djStartTime, newEvent.djEndTime) - 4)}h</span>
+                     )}
+                   </div>
+                </div>
+              )}
+            </div>
+
+
+
             {/* SECCIÓN 4: DETALLES DE MISION (SOLO MODO EVENTO) */}
             {
               isEventMode && (
@@ -4410,37 +4491,21 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                           </div>
                         ) : null}
 
-                        {/* DJ EXTRA (ONLY IF PACKAGE CHOSEN) */}
-                        {hasPlan && extraDJ > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#facc15', fontSize: '0.65rem' }}>
-                            <span>+ {extraDJ}h Extensión DJ ($85k/h):</span>
-                            <strong>${extrasDJPrice.toLocaleString()}</strong>
-                          </div>
-                        )}
-
-                        {/* PHOTO/VIDEO/AV EXTRAS (IF ANY DURATION ADDED) */}
-                        {extraPhoto > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff9f43', fontSize: '0.65rem' }}>
-                            <span>+ {extraPhoto}h Extensión Fotografía ($50k/h):</span>
-                            <strong>${extrasPhotoPrice.toLocaleString()}</strong>
-                          </div>
-                        )}
-                        {extraCam > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#00d4ff', fontSize: '0.65rem' }}>
-                            <span>+ {extraCam}h Extensión 360 ($200k/h):</span>
-                            <strong>${extrasCamPrice.toLocaleString()}</strong>
-                          </div>
-                        )}
-                        {Math.max(0, Math.ceil(avDur - 4)) > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ff3860', fontSize: '0.65rem' }}>
-                            <span>+ {Math.max(0, Math.ceil(avDur - 4))}h Extensión Audiovisual ($85k/h):</span>
-                            <strong>${extrasAVPrice.toLocaleString()}</strong>
-                          </div>
-                        )}
+                        {/* MOSTRAR EXTENSIONES DE TIEMPO (v1.5) */}
+                         {[ {id:'dj', label:'DJ', dur:djDur, xp:djXP, rate:85},
+                            {id:'photo', label:'Fotografía', dur:photoDur, xp:photoXP, rate:50},
+                            {id:'av', label:'Audiovisual', dur:avDur, xp:avXP, rate:85},
+                            {id:'cam', label:'Cámara 360', dur:camDur, xp:camXP, rate:200}
+                          ].map(srv => (srv.xp > 0) && (
+                            <div key={srv.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#ff3860', fontSize: '0.65rem', marginBottom: '1px' }}>
+                              <span>+ {Math.ceil(srv.dur - (srv.id==='cam'?2:4))}h Extensión {srv.label} (${srv.rate}k/h):</span>
+                              <strong>${srv.xp.toLocaleString()}</strong>
+                            </div>
+                          ))}
 
                         {/* ADICIONALES SELECCIONADOS (KITS, NEON, ETC) */}
                         {(() => {
-                          const activeExtrasList = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id]);
+                          const activeExtrasList = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id] || ex.isIncluded);
                           if (activeExtrasList.length === 0) return null;
                           return (
                             <div style={{ marginTop: '5px', paddingTop: '5px', borderTop: hasPlan ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
@@ -6826,10 +6891,21 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                         
                         const to24 = (t) => {
                             if (!t) return null;
-                            // Limpieza profunda de caracteres invisibles y puntos
-                            const s = t.toString().toUpperCase().replace(/[\. ]+/g, '').trim();
+                            const s = t.toString().trim().toUpperCase().replace(/[\. ]+/g, '');
+                            if (/^\d{2}:\d{2}$/.test(s)) return s;
+                            if (/^\d{1,2}:\d{2}$/.test(s)) return s.padStart(5, '0');
                             const m = /(\d{1,2})(?::(\d{2}))?(AM|PM)/.exec(s);
-                            if (!m) return null;
+                            if (!m) {
+                                // Fallback for plain digits like "8PM"
+                                const m2 = /(\d{1,2})(AM|PM)/.exec(s);
+                                if (m2) {
+                                    let h = parseInt(m2[1], 10);
+                                    if (m2[2] === 'PM' && h < 12) h += 12;
+                                    if (m2[2] === 'AM' && h === 12) h = 0;
+                                    return `${String(h).padStart(2, '0')}:00`;
+                                }
+                                return null;
+                            }
                             let h = parseInt(m[1], 10);
                             const min = m[2] || '00';
                             const mod = m[3];
@@ -6854,11 +6930,12 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                             if (matches && matches.length >= 2) {
                                 const start = to24(matches[0]);
                                 let end = to24(matches[1]);
+                                if (!start) return null;
                                 
                                 // Si son iguales o falló, forzar 4h
                                 if (!end || end === start) {
-                                    let h = parseInt(start.split(':')[0], 10);
-                                    end = `${String((h + 4) % 24).padStart(2, '0')}:${start.split(':')[1] || '00'}`;
+                                    let [h, m] = start.split(':').map(Number);
+                                    end = `${String((h + 4) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                                 }
                                 return { s: start, e: end };
                             }
@@ -6876,11 +6953,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
                         return {
                             photoStartTime: f?.s || mainS,
-                            photoEndTime: f?.e || (mainE === mainS ? '00:00' : mainE),
+                            photoEndTime: f?.e || (mainE === mainS ? `${String((parseInt(mainS.split(':')[0]) + 4) % 24).padStart(2, '0')}:${mainS.split(':')[1] || '00'}` : mainE),
                             avStartTime: a?.s || mainS,
-                            avEndTime: a?.e || (mainE === mainS ? '00:00' : mainE),
+                            avEndTime: a?.e || (mainE === mainS ? `${String((parseInt(mainS.split(':')[0]) + 4) % 24).padStart(2, '0')}:${mainS.split(':')[1] || '00'}` : mainE),
                             cam360StartTime: c?.s || mainS,
-                            cam360EndTime: c?.e || (f?.e || (mainE === mainS ? '22:00' : mainE))
+                            cam360EndTime: c?.e || (mainE === mainS ? `${String((parseInt(mainS.split(':')[0]) + 2) % 24).padStart(2, '0')}:${mainS.split(':')[1] || '00'}` : mainE)
                         };
                       })(),
                       totalValue: quo.financials?.totalValue || 0,
