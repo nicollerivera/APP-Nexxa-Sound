@@ -12,9 +12,9 @@ export const formatPeso = (amount) => {
 
 export const formatInputNumber = (val) => {
   if (!val && val !== 0) return '';
-  const num = String(val).replace(/\D/g, '');
-  if (!num) return '';
-  return Number(num).toLocaleString('es-CO');
+  const num = Math.round(Number(String(val).replace(/\D/g, '')));
+  if (isNaN(num)) return '';
+  return num.toLocaleString('es-CO');
 };
 
 export const parseInputNumber = (val) => {

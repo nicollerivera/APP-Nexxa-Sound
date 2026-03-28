@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = '1.4.6-logistics-force-refresh'; // UI Simplification Step 1
+const APP_VERSION = 'v1.4.76-ultimate-sync'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -468,9 +468,14 @@ function App() {
           });
         }
 
-        // ESCANEO PROFUNDO: Buscar MULTII o KAIZEN en TODO el documento
-        const deepStr = JSON.stringify(d).toUpperCase();
-        const pName = deepStr;
+        // ESCANEO PROFUNDO: Identificar el plan contratado con mayor precisión
+        const packNameInferred = (() => {
+            const rawP = String(d.logistics?.packName || d.package || d.plan || d.paquete || d.packName || '').toUpperCase();
+            if (rawP.includes('KAIZEN') || rawP.includes('DIAMANTE') || rawP.includes('PLATINUM')) return 'KAIZEN';
+            if (rawP.includes('MULTII') || rawP.includes('ELITE')) return 'MULTII';
+            if (rawP.includes('ONIX') || rawP.includes('ÓNIX') || rawP.includes('SILVER') || rawP.includes('ESSENTIAL')) return 'ONIX';
+            return 'A LA CARTA'; 
+        })();
 
         return {
           id: doc.id,
@@ -484,23 +489,24 @@ function App() {
           eventDetails: {
             date: d.eventDetails?.date || d.arrivalDate || d.date || '',
             occasion: d.eventDetails?.occasion || '',
-            startTime: d.eventDetails?.startTime || d.start_time || d.startTime || '20:00',
-            endTime: d.eventDetails?.endTime || d.end_time || d.endTime || '00:00',
+            startTime: d.eventDetails?.startTime || d.start_time || d.startTime || '',
+            endTime: d.eventDetails?.endTime || d.end_time || d.endTime || '',
             location: normLoc,
             neighborhood: normHood,
             guestCount: (() => {
-                const rawG = String(dEvent.guests || dEvent.guestCount || dEvent.invitados || d.invitados || '10');
+                const rawG = String(dEvent.guests || dEvent.guestCount || dEvent.invitados || d.invitados || '50');
                 const match = rawG.match(/\d+/);
-                return match ? Number(match[0]) : 10;
+                return match ? Number(match[0]) : 50;
             })(),
-            photoStartTime: d.eventDetails?.photoStartTime || d.eventDetails?.photoStart || d.eventDetails?.photo_start || d.eventDetails?.startTime || d.startTime || '20:00',
-            photoEndTime: d.eventDetails?.photoEndTime || d.eventDetails?.photoEnd || d.eventDetails?.photo_end || d.eventDetails?.endTime || d.endTime || '00:00',
-            cam360StartTime: d.eventDetails?.cam360StartTime || d.eventDetails?.camStart || d.eventDetails?.cam_start || d.eventDetails?.videoStartTime || d.eventDetails?.startTime || d.startTime || '20:00',
-            cam360EndTime: d.eventDetails?.cam360EndTime || d.eventDetails?.camEnd || d.eventDetails?.cam_end || d.eventDetails?.videoEndTime || d.eventDetails?.endTime || d.endTime || '22:00',
-            avStartTime: d.eventDetails?.avStartTime || d.eventDetails?.avStart || d.eventDetails?.av_start || d.eventDetails?.startTime || d.startTime || '20:00',
-            avEndTime: d.eventDetails?.avEndTime || d.eventDetails?.avEnd || d.eventDetails?.av_end || d.eventDetails?.endTime || d.endTime || '00:00',
-            decorStartTime: d.eventDetails?.decorStartTime || d.eventDetails?.decorStart || d.eventDetails?.decor_start || d.eventDetails?.startTime || d.startTime || '20:00',
-            decorEndTime: d.eventDetails?.decorEndTime || d.eventDetails?.decorEnd || d.eventDetails?.decor_end || d.eventDetails?.endTime || d.endTime || '22:00'
+            // Propagación de horarios específicos para evitar que se pierdan en el mapeo
+            photoStartTime: d.eventDetails?.photoStartTime || d.eventDetails?.photoStart || d.eventDetails?.photo_start || d.eventDetails?.startTime || d.start_time || d.startTime || '',
+            photoEndTime: d.eventDetails?.photoEndTime || d.eventDetails?.photoEnd || d.eventDetails?.photo_end || d.eventDetails?.endTime || d.end_time || d.endTime || '',
+            cam360StartTime: d.eventDetails?.cam360StartTime || d.eventDetails?.camStart || d.eventDetails?.cam_start || d.eventDetails?.videoStartTime || d.eventDetails?.startTime || d.start_time || d.startTime || '',
+            cam360EndTime: d.eventDetails?.cam360EndTime || d.eventDetails?.camEnd || d.eventDetails?.cam_end || d.eventDetails?.videoEndTime || d.eventDetails?.endTime || d.end_time || d.endTime || '',
+            avStartTime: d.eventDetails?.avStartTime || d.eventDetails?.avStart || d.eventDetails?.av_start || d.eventDetails?.startTime || d.start_time || d.startTime || '',
+            avEndTime: d.eventDetails?.avEndTime || d.eventDetails?.avEnd || d.eventDetails?.av_end || d.eventDetails?.endTime || d.end_time || d.endTime || '',
+            decorStartTime: d.eventDetails?.decorStartTime || d.eventDetails?.decorStart || d.eventDetails?.decor_start || d.eventDetails?.startTime || d.start_time || d.startTime || '',
+            decorEndTime: d.eventDetails?.decorEndTime || d.eventDetails?.decorEnd || d.eventDetails?.decor_end || d.eventDetails?.endTime || d.end_time || d.endTime || ''
           },
           financials: {
             totalValue: Number(d.financials?.totalValue || d.totalValue || d.valor_total || d.total || d.precio || d.price || d.valor || 0),
@@ -508,13 +514,7 @@ function App() {
             extraHourPrice: Number(d.financials?.extraHourPrice) || 85000
           },
           logistics: {
-            packName: (() => {
-                const s = JSON.stringify(d).toUpperCase();
-                if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA')) return 'KAIZEN';
-                if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
-                if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV')) return 'ONIX';
-                return ''; // No asumir nada por defecto
-            })(),
+            packName: packNameInferred,
             selectedExtras: cleanExtras,
             makeupCount: Number(d.logistics?.makeupCount || d.makeupCount) || 1
           }
@@ -523,17 +523,11 @@ function App() {
 
       setQuotations(liveQuo.sort((a, b) => {
         if (!a || !b) return 0;
-
-        // CRITICAL SYNC: Strict Newest First (regardless of status)
         const dateA = a.createdAt ? parseFirestoreDate(a.createdAt) : new Date(0);
         const dateB = b.createdAt ? parseFirestoreDate(b.createdAt) : new Date(0);
-        
         const timeA = dateA.getTime ? dateA.getTime() : 0;
         const timeB = dateB.getTime ? dateB.getTime() : 0;
-
         if (timeA !== timeB) return timeB - timeA;
-
-        // FALLBACK: ID
         return (b.id || '').localeCompare(a.id || '');
       }));
     });
@@ -988,8 +982,8 @@ function App() {
         if (d.packName === 'null' || !d.packName || d.packName.toUpperCase().includes('ESSENTIAL')) d.packName = '';
         
         // AUTO-CALIBRATION: Normalize empty times in older drafts
-        if (!d.startTime) d.startTime = '20:00';
-        if (!d.endTime) d.endTime = '00:00';
+        if (!d.startTime) d.startTime = '';
+        if (!d.endTime) d.endTime = '';
         if (!d.djStartTime) d.djStartTime = d.startTime;
         if (!d.djEndTime) d.djEndTime = d.endTime;
         if (!d.photoStartTime) d.photoStartTime = d.startTime;
@@ -997,7 +991,7 @@ function App() {
         if (!d.avStartTime) d.avStartTime = d.startTime;
         if (!d.avEndTime) d.avEndTime = d.endTime;
         if (!d.cam360StartTime) d.cam360StartTime = d.startTime;
-        if (!d.cam360EndTime) d.cam360EndTime = d.endTime === '00:00' ? '22:00' : d.endTime;
+        if (!d.cam360EndTime) d.cam360EndTime = d.endTime;
 
         return d;
       } catch (e) {
@@ -1006,8 +1000,8 @@ function App() {
     }
     return {
       clientName: '', clientPhone: '', clientPhone2: '',
-      date: '', startTime: '20:00', endTime: '00:00',
-      djStartTime: '20:00', djEndTime: '00:00',
+      date: '', startTime: '', endTime: '',
+      djStartTime: '', djEndTime: '',
       location: '', neighborhood: '',
       packName: '',
       totalValue: '', deposit: '',
@@ -1017,29 +1011,67 @@ function App() {
       indications: 'Ninguna',
       warehouseTime: '',
       materialExplanation: '',
-      photoStartTime: '20:00',
-      photoEndTime: '00:00',
-      avStartTime: '20:00',
-      avEndTime: '00:00',
-      cam360StartTime: '20:00',
-      cam360EndTime: '22:00',
-      decorStartTime: '20:00',
-      decorEndTime: '22:00',
+      photoStartTime: '',
+      photoEndTime: '',
+      avStartTime: '',
+      avEndTime: '',
+      cam360StartTime: '',
+      cam360EndTime: '',
+      decorStartTime: '',
+      decorEndTime: '',
       paymentMethod: 'Nequi',
       priceLocked: false,
       isImported: false
     };
   });
 
-  // --- LEAD PARSER (WhatsApp Clipboard) ---
+  // --- LEAD PARSER (WhatsApp Clipboard) (v1.4.70) ---
   const handlePasteWhatsApp = async () => {
     try {
       const text = await navigator.clipboard.readText();
       if (!text) return alert('Portapapeles vacío');
 
+      // Shared Time Logic
+      const to24 = (t) => {
+        if (!t) return null;
+        const s = t.toString().toUpperCase().replace(/[\. ]+/g, '').trim();
+        if (/^\d{1,2}:\d{2}$/.test(s)) {
+          const [h, m] = s.split(':');
+          return `${h.padStart(2, '0')}:${m}`;
+        }
+        const m = /(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i.exec(s.trim());
+        if (!m) return null;
+        let h = parseInt(m[1], 10);
+        const min = m[2] || '00';
+        const mod = m[3].toUpperCase();
+        if (mod === 'PM' && h < 12) h += 12;
+        if (mod === 'AM' && h === 12) h = 0;
+        return `${String(h).padStart(2, '0')}:${min}`;
+      };
+
+      const getRange = (keyword) => {
+        const protocolText = (text || '').toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ');
+        const idx = protocolText.lastIndexOf(keyword.toUpperCase());
+        if (idx === -1) return null;
+        const sub = protocolText.substring(idx, idx + 400); 
+        const hPatGlobal = /(\d{1,2}(?::\d{2})?\s*[AP][\.\s]*M[\.\s]*)/gi;
+        const matches = sub.match(hPatGlobal);
+        if (matches && matches.length >= 2) {
+          const s = to24(matches[0]);
+          let e = to24(matches[1]);
+          if (s && e) {
+            if (s === e) {
+              let h = parseInt(s.split(':')[0], 10);
+              e = `${String((h + 4) % 24).padStart(2, '0')}:${s.split(':')[1] || '00'}`;
+            }
+            return { s, e };
+          }
+        }
+        return null;
+      };
+
       const newData = { ...newEvent, id: null, selectedExtras: {} };
 
-      // Extended Regex for Lead Parsing
       const cMatch = text.match(/(?:Cliente|CLIENTE):\s*(.+)/i);
       const pMatch = text.match(/(?:Celular|CELULAR|WhatsApp|TELEFONO|WhatsApp 1):\s*([\d\+\s\w]+)/i);
       const dMatch = text.match(/(?:Fecha|FECHA):\s*(\d{4}-\d{2}-\d{2})/i);
@@ -1052,99 +1084,51 @@ function App() {
       if (dMatch) newData.date = dMatch[1];
       if (gMatch) newData.guestCount = gMatch[1];
       
-      if (packMatch) {
-         const p = packMatch[1].toUpperCase();
-         if (p.includes('ONIX')) newData.packName = 'ONIX';
-         else if (p.includes('MULTII')) newData.packName = 'MULTII';
-         else if (p.includes('KAIZEN')) newData.packName = 'KAIZEN';
-         else newData.packName = 'Personalizado';
-      }
-      
-      if (totalMatch) {
-         const cleanString = totalMatch[1].replace(/[\.,]/g, '');
-         const parsedVal = Number(cleanString);
-         if (!isNaN(parsedVal)) {
-            newData.totalValue = parsedVal;
-            newData.deposit = Math.round(parsedVal * 0.3);
-         }
-      }
+      const f = getRange('FOTOGRAFÍA') || getRange('PHOTO');
+      const a = getRange('AUDIOVISUAL') || getRange('SONIDO') || getRange('AUDIO');
+      const cTime = getRange('360') || getRange('AÉREA') || getRange('CAM');
+      const mTime = getRange('MAQUILLAJE') || getRange('NEÓN') || getRange('NEON');
 
-      // --- ADVANCED HORARY PARSER ---
-      const parseRange = (line) => {
-        const m = line.match(/(\d{1,2}(?::\d{2})?)\s*(AM|PM)?\s*(?:a|to|-)\s*(\d{1,2}(?::\d{2})?)\s*(AM|PM)?/i);
-        if (!m) return null;
-        const convert = (time, p) => {
-          let h, min;
-          if (time.includes(':')) {
-            [h, min] = time.split(':').map(Number);
-          } else {
-            h = Number(time);
-            min = 0;
-          }
-          if (p?.toUpperCase() === 'PM' && h < 12) h += 12;
-          if (p?.toUpperCase() === 'AM' && h === 12) h = 0;
-          return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
-        };
-        return { start: convert(m[1], m[2]), end: convert(m[3], m[4]) };
-      };
+      if (f) { newData.photoStartTime = f.s; newData.photoEndTime = f.e; newData.selectedExtras['extra_photo'] = true; }
+      if (a) { newData.avStartTime = a.s; newData.avEndTime = a.e; newData.djStartTime = a.s; newData.djEndTime = a.e; newData.selectedExtras['extra_av'] = true; }
+      if (cTime) { newData.cam360StartTime = cTime.s; newData.cam360EndTime = cTime.e; newData.selectedExtras['extra_cam360'] = true; }
+      if (mTime) { newData.makeupStartTime = mTime.s; newData.makeupEndTime = mTime.e; newData.selectedExtras['extra_makeup'] = true; }
 
-      const lines = text.split('\n');
-      lines.forEach(line => {
-        const upLine = line.toUpperCase();
-        // Implicit Pack Detection (as titles)
-        if (upLine.includes('* ONIX')) newData.packName = 'ONIX';
-        if (upLine.includes('* MULTII')) newData.packName = 'MULTII';
-        if (upLine.includes('* KAIZEN')) newData.packName = 'KAIZEN';
-
-        if (upLine.includes('360')) {
-          newData.selectedExtras['extra_cam360'] = true;
-          const range = parseRange(line);
-          if (range) { newData.cam360StartTime = range.start; newData.cam360EndTime = range.end; }
-        }
-        if (upLine.includes('FOTOGRAFIA') || upLine.includes('PHOTO')) {
-          newData.selectedExtras['extra_photo'] = true;
-          const range = parseRange(line);
-          if (range) { newData.photoStartTime = range.start; newData.photoEndTime = range.end; }
-        }
-        if (upLine.includes('AUDIOVISUAL') || upLine.includes('DJ')) {
-          newData.selectedExtras['extra_av'] = true;
-          const range = parseRange(line);
-          if (range) { 
-            newData.djStartTime = range.start; newData.djEndTime = range.end; 
-            newData.avStartTime = range.start; newData.avEndTime = range.end;
-            if (!newData.startTime) newData.startTime = range.start;
-            if (!newData.endTime) newData.endTime = range.end;
-          }
-        }
-        if (upLine.includes('DECORACION')) {
-          if (upLine.includes('ONIX')) newData.selectedExtras['extra_decor_onix'] = true;
-          if (upLine.includes('MULTII')) newData.selectedExtras['extra_decor_multii'] = true;
-          if (upLine.includes('KAIZEN')) newData.selectedExtras['extra_decor_kaizen'] = true;
-          const range = parseRange(line);
-          if (range) { newData.decorStartTime = range.start; newData.decorEndTime = range.end; }
-        }
-        if (upLine.includes('KITS 111') || upLine.includes('KIT 111')) newData.selectedExtras['acc_essential'] = true;
-        if (upLine.includes('MAQUILLAJE')) newData.selectedExtras['extra_makeup'] = true;
-      });
-
-      // --- FINANCIAL CALCULATION SYNC ---
-      // 1. Calculate the sum of detected extras to find the "Missing Base"
-      const detectedExtras = getDynamicExtras(newData).filter(ex => newData.selectedExtras[ex.id]);
-      const extrasSum = detectedExtras.reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
-      
-      const parsedTotal = parseInt(text.match(/TOTAL ESTIMADO:\s*\$?\s*([\d.]+)/i)?.[1].replace(/\./g, '')) || 0;
-      
-      // 2. If the total is higher than the extras, the difference is the Base Price (Service Cost)
-      if (parsedTotal > extrasSum) {
-        newData.manualBasePrice = parsedTotal - extrasSum;
-      } else {
-        newData.manualBasePrice = 0;
+      // Infer Main Schedule
+      const allRanges = [f, a, cTime, mTime].filter(r => !!r);
+      if (allRanges.length > 0) {
+        newData.startTime = allRanges.reduce((min, r) => (!min || r.s < min) ? r.s : min, null);
+        newData.endTime = allRanges.reduce((max, r) => {
+          if (!max) return r.e;
+          const isLate = (t) => { const h = parseInt(t.split(':')[0], 10); return h >= 0 && h < 7; };
+          if (isLate(r.e) && !isLate(max)) return r.e;
+          if (!isLate(r.e) && isLate(max)) return max;
+          return (r.e > max) ? r.e : max;
+        }, null);
       }
 
-      newData.totalValue = parsedTotal || extrasSum || 0;
+      const protocolStr = (text || '').toUpperCase();
+      const packCode = (text.match(/PAQUETE:\s*(.+)/i)?.[1] || '').toUpperCase();
+      
+      if (packCode.includes('ONIX') || protocolStr.includes('DECORACIÓN ONIX')) newData.packName = 'ONIX';
+      else if (packCode.includes('MULTII') || protocolStr.includes('DECORACIÓN MULTII')) newData.packName = 'MULTII';
+      else if (packCode.includes('KAIZEN') || protocolStr.includes('DECORACIÓN KAIZEN')) newData.packName = 'KAIZEN';
+      else newData.packName = 'A LA CARTA';
+
+      // FINANCIAL INTEGRITY: Respect the 'Total Estimado' from the lead
+      const parsedTotal = parseInt((text.match(/TOTAL ESTIMADO:\s*\$?\s*([\d.]+)/i)?.[1] || '').replace(/\./g, '')) || 0;
+      // Sync Engine: Use the unified calculator to see what the engine WOULD charge with base=0
+      const currentCalc = calculateEventTotalBreakdown({ ...newData, manualBasePrice: 0 });
+      
+      // The adjustment (manualBasePrice) is the gap between the lead's total and the engine's current calculation
+      newData.manualBasePrice = parsedTotal - currentCalc.total;
+      newData.totalValue = parsedTotal || currentCalc.total;
+      newData.deposit = Math.round(newData.totalValue * 0.3);
       newData.isImported = true;
+      newData.priceLocked = true;
+
       setNewEvent(newData);
-      alert(`✅ Lead "${newData.clientName}" importado exitosamente.\nTotal: ${formatPeso(newData.totalValue)}\n(Base: ${formatPeso(newData.manualBasePrice)} + Extras: ${formatPeso(extrasSum)})`);
+      alert(`✅ Lead "${newData.clientName}" importado exitosamente de Portapapeles.`);
     } catch (err) {
       console.error("DEBUG NEXXA - Parser Error:", err);
       alert('Error procesando el portapapeles.');
@@ -1427,9 +1411,10 @@ function App() {
   // ==========================================
   const STITCH_DATA = {
     protocols: {
-      'ONIX':        { price: 1250000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] },
-      'MULTII':      { price: 1650000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] },
-      'KAIZEN':      { price: 2250000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'] }
+      'ONIX':        { price: 850000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] },
+      'MULTII':      { price: 1540000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] },
+      'KAIZEN':      { price: 1950000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'] },
+      'A LA CARTA':  { price: 0, roles: [], items: [], includedExtras: [] }
     },
     extras: {
       photo: 200000,   // Base for 4h
@@ -1461,36 +1446,41 @@ function App() {
       if (!activeName) return { base: 0, roles: [] };
       const config = STITCH_DATA.protocols[activeName];
       if (!config) return { base: 0, roles: [] };
-      return { base: config.price, roles: config.roles };
+      
+      // Calculate dynamic base incorporating guest-count (for included kits)
+      // Reference: Plans are base-priced for 100 guests.
+      const g = Math.max(1, Number(newEvent.guestCount) || 0);
+      let dynamicBase = config.price;
+      
+      const guestDelta = g - 100;
+      let costPerGuest = 0;
+      if (activeName === 'ONIX') costPerGuest = 0;
+      else if (activeName === 'MULTII') costPerGuest = 0;
+      else if (activeName === 'KAIZEN') costPerGuest = 0;
+      
+      dynamicBase += (guestDelta * costPerGuest);
+      
+      return { base: dynamicBase, roles: config.roles };
     }
   });
 
   // --- DATA DINÁMICA DE EXTRAS ---
   const getDynamicExtras = (evt) => {
     const guests = evt?.guestCount;
-    const userMakeupCount = evt?.makeupCount;
     const g = Math.max(10, Number(guests) || 10);
-    const recommendedMakeup = Math.ceil(g / 50);
-    const qty = (typeof userMakeupCount === 'number') ? userMakeupCount : recommendedMakeup;
 
-    const photoDur = getHours(evt?.photoStartTime || '20:00', evt?.photoEndTime || evt?.photoStartTime || '20:00');
-    const camDur = getHours(evt?.cam360StartTime || '20:00', evt?.cam360EndTime || evt?.cam360StartTime || '20:00');
-    const avDur = getHours(evt?.avStartTime || '20:00', evt?.avEndTime || evt?.avStartTime || '20:00');
+    const sFallback = evt?.startTime || '20:00';
+    const eFallback = evt?.endTime || '00:00';
+
+    const photoDur = getHours(evt?.photoStartTime || sFallback, evt?.photoEndTime || eFallback);
+    const camDur = getHours(evt?.cam360StartTime || sFallback, evt?.cam360EndTime || eFallback);
+    const avDur = getHours(evt?.avStartTime || sFallback, evt?.avEndTime || eFallback);
 
     const extraPhotoCost = STITCH_DATA.extras.photo;
     const extraCamCost = STITCH_DATA.extras.cam360;
     const extraAVCost = STITCH_DATA.extras.av;
 
     const extras = [
-      {
-        id: 'extra_makeup',
-        name: `Maquillaje Neón`,
-        price: STITCH_DATA.extras.makeup,
-        isMakeup: true,
-        category: 'Style',
-        details: `Aplicación de maquillaje reactivo UV.`,
-        needsTime: true
-      },
       {
         id: 'acc_essential',
         name: 'Kit 111',
@@ -1519,6 +1509,15 @@ function App() {
         isAcc: true,
         category: 'Accesorios',
         details: `3 Espuma + 2 Cañones + ${g} Antifaces/Collares/Manillas/Pitos.`,
+        needsTime: false
+      },
+      {
+        id: 'extra_makeup',
+        name: `Maquillaje Neón`,
+        price: STITCH_DATA.extras.makeup,
+        isMakeup: true,
+        category: 'Style',
+        details: `Aplicación de maquillaje reactivo UV.`,
         needsTime: false
       },
       // DECORATION
@@ -1553,15 +1552,15 @@ function App() {
         } else if (/ONIX/i.test(packStr)) {
           if (['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'].includes(ex.id)) isIncluded = true;
         } else if (/KAIZEN/i.test(packStr)) {
-          if (['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'].includes(ex.id)) isIncluded = true;
+          if (['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_av', 'acc_celebration'].includes(ex.id)) isIncluded = true;
         } else {
           const packKey = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => packStr.includes(k)) || packStr;
           const proto = STITCH_DATA.protocols[packKey];
           isIncluded = proto?.includedExtras?.includes(ex.id) || false;
         }
 
-        const basePrice = newEvent.extraPriceOverrides?.[ex.id] !== undefined ? Number(newEvent.extraPriceOverrides[ex.id]) : ex.price;
-        const finalPrice = (isIncluded) ? 0 : ((ex.isItem || ex.isMakeup) ? basePrice * sQty : basePrice);
+        const basePrice = ex.price;
+        const finalPrice = (isIncluded) ? 0 : ((ex.isItem) ? basePrice * sQty : basePrice);
         return { ...ex, name: `${ex.name}`, basePrice: basePrice, qty: sQty, price: finalPrice, displayPrice: finalPrice, isIncluded };
     });
   };
@@ -1578,59 +1577,94 @@ function App() {
   };
 
   // 1. DURATIONS (Re-calculate every render)
-  // Use '20:00' and '00:00' as base defaults (matches getDisplayTimeUI defaults)
-  const djDur = getHours(newEvent.djStartTime || '20:00', newEvent.djEndTime || '00:00');
-  const photoDur = getHours(newEvent.photoStartTime || '20:00', newEvent.photoEndTime || '00:00');
-  const camDur = getHours(newEvent.cam360StartTime || '20:00', newEvent.cam360EndTime || '22:00');
-  const avDur = getHours(newEvent.avStartTime || '20:00', newEvent.avEndTime || '00:00');
+  // --- UNIFIED PRICING ENGINE (Single Source of Truth) ---
+  const calculateEventTotalBreakdown = (evt) => {
+    const sFallback = evt.startTime || '20:00';
+    const eFallback = evt.endTime || '00:00';
+    
+    // 1. Durations
+    const dDur = getHours(evt.djStartTime || sFallback, evt.djEndTime || eFallback);
+    const pDur = getHours(evt.photoStartTime || sFallback, evt.photoEndTime || eFallback);
+    const cDur = getHours(evt.cam360StartTime || sFallback, evt.cam360EndTime || eFallback);
+    const aDur = getHours(evt.avStartTime || sFallback, evt.avEndTime || eFallback);
 
-  const hasPhoto = getSrvStatus('extra_photo');
-  const hasCam = getSrvStatus('extra_cam360');
-  const hasAV = getSrvStatus('extra_av');
-  const hasDJ = true; // Heart of the party
+    // 2. Extra Hours
+    const xDJ = Math.max(0, Math.ceil(dDur - 4));
+    const xPhoto = evt.selectedExtras?.['extra_photo'] ? Math.max(0, Math.ceil(pDur - 4)) : 0;
+    const xCam = evt.selectedExtras?.['extra_cam360'] ? Math.max(0, Math.ceil(cDur - 2)) : 0;
+    const xAV = evt.selectedExtras?.['extra_av'] ? Math.max(0, Math.ceil(aDur - 4)) : 0;
 
-  // 2. EXTENSIONS (Round up for billing)
-  const xDJ = Math.max(0, Math.ceil(djDur - 4));
-  const xPhoto = hasPhoto ? Math.max(0, Math.ceil(photoDur - 4)) : 0;
-  const xCam = hasCam ? Math.max(0, Math.ceil(camDur - 2)) : 0;
-  const xAV = hasAV ? Math.max(0, Math.ceil(avDur - 4)) : 0;
+    const pName = (evt.packName || '').toUpperCase();
+    const isONIX = pName.includes('ONIX');
+    const isMULTII = pName.includes('MULTII');
+    const isKAIZEN = pName.includes('KAIZEN');
 
-  // 3. PRICES
-  const baseP = (newEvent.packName === 'PERSONALIZADO' ? (parseInt(newEvent.manualBasePrice) || 0) : (parseInt(currentConf.base) || 0));
-  const djXP = xDJ * (STITCH_DATA.hourlyRates.dj || 85000);
-  const photoXP = xPhoto * (STITCH_DATA.hourlyRates.photo || 50000);
-  const camXP = xCam * (STITCH_DATA.hourlyRates.cam360 || 200000);
-  const avXP = xAV * (STITCH_DATA.hourlyRates.av || 85000);
+    // 3. Extensions Cost
+    const djXP = xDJ * (STITCH_DATA.hourlyRates.dj || 85000);
+    const photoXP = xPhoto * (STITCH_DATA.hourlyRates.photo || 50000);
+    const camXP = xCam * (STITCH_DATA.hourlyRates.cam360 || 200000);
+    const avXP = xAV * (STITCH_DATA.hourlyRates.av || 85000);
 
-  const selectedExtrasPrice = activeExtrasArr
-    .filter(ex => newEvent.selectedExtras?.[ex.id])
-    .reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
+    const hasAV = !!evt.selectedExtras?.['extra_av'];
+    const xpSum = avXP + photoXP + camXP + (hasAV ? 0 : djXP);
 
-  // 4. FINAL SUM
-  // UNIFICATION: If AV is present, DJ extension is covered by AV extension
-  const finalDjXP = hasAV ? 0 : djXP;
-  const computedTotal = baseP + finalDjXP + photoXP + camXP + avXP + selectedExtrasPrice;
+    // 4. Base Price
+    const baseAdjustment = (parseInt(evt.manualBasePrice) || 0);
+    
+    // ONIX price is 850k base + adjustment
+    const packPrice = isKAIZEN ? 1950000 : (isMULTII ? 1540000 : 850000);
 
-  // 5. AUTO-SYNC EFFECT: Reliable & Non-intrusive
+    const baseSum = (isONIX || isMULTII || isKAIZEN)
+      ? (packPrice + baseAdjustment)
+      : (
+          (evt.selectedExtras?.['extra_av'] ? STITCH_DATA.extras.av : 0) +
+          (evt.selectedExtras?.['extra_photo'] ? STITCH_DATA.extras.photo : 0) +
+          (evt.selectedExtras?.['extra_cam360'] ? STITCH_DATA.extras.cam360 : 0) +
+          (evt.selectedExtras?.['extra_makeup'] ? STITCH_DATA.extras.makeup : 0) +
+          (evt.selectedExtras?.['extra_decor_onix'] ? STITCH_DATA.extras.decor_onix : 0) +
+          (evt.selectedExtras?.['extra_decor_multii'] ? STITCH_DATA.extras.decor_multii : 0) +
+          (evt.selectedExtras?.['extra_decor_kaizen'] ? STITCH_DATA.extras.decor_kaizen : 0) +
+          baseAdjustment
+        );
+
+    // 5. Selected Extras (Those NOT part of the basic package bundles)
+    const extrasPrice = getDynamicExtras(evt)
+      .filter(ex => evt.selectedExtras?.[ex.id])
+      .filter(ex => !['extra_av', 'extra_photo', 'extra_cam360', 'extra_makeup', 'extra_decor_onix', 'extra_decor_multii', 'extra_decor_kaizen'].includes(ex.id))
+      .reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
+
+    return {
+      total: baseSum + xpSum + extrasPrice,
+      base: baseSum,
+      xp: xpSum,
+      extras: extrasPrice,
+      items: { djXP, photoXP, camXP, avXP },
+      durs: { dDur, pDur, cDur, aDur }
+    };
+  };
+
+  const currentBreakdown = calculateEventTotalBreakdown(newEvent);
+  const computedTotal = currentBreakdown.total;
+
+  // 5. AUTO-SYNC EFFECT: Digital Instrument Logic (Unified Price)
   React.useEffect(() => {
     if (computedTotal > 0) {
-      const currentVal = Number(newEvent.totalValue) || 0;
-      // INSTRUMENT LOGIC: If it's a fresh quote, or matches last sync, or we are in EDIT mode with a manual change detected
-      const isActuallyEmpty = !currentVal || currentVal === 0;
-      const isSynced = currentVal === lastSyncTotal.current;
+      // If the price is LOCKED (imported lead or manual edit), only sync if the CONFIGURATION actually changed
+      // We use lastSyncTotal to track if the engine's result changed, independent of the current display value
+      const hasConfigChanged = lastSyncTotal.current !== 0 && Math.round(computedTotal) !== lastSyncTotal.current;
       
-      if (isActuallyEmpty || isSynced || (currentVal === computedTotal)) {
-        if (currentVal !== computedTotal) {
-          setNewEvent(prev => ({ 
-            ...prev, 
-            totalValue: computedTotal,
-            deposit: Math.round(computedTotal * 0.3)
-          }));
-          lastSyncTotal.current = computedTotal;
-        }
+      if (!newEvent.priceLocked || hasConfigChanged) {
+        const roundedTotal = Math.round(computedTotal);
+        setNewEvent(prev => ({ 
+          ...prev, 
+          totalValue: roundedTotal,
+          deposit: Math.round(roundedTotal * 0.3),
+          priceLocked: false // Clear lock only when the engine forces a change due to config change
+        }));
+        lastSyncTotal.current = roundedTotal;
       }
     }
-  }, [computedTotal, newEvent.packName]);
+  }, [computedTotal, newEvent.priceLocked]);
 
 
   // --- HELPER: GENERAR ITEMS DE LOGÍSTICA ---
@@ -1697,26 +1731,29 @@ function App() {
 
       // Mandatory Roles based on Package and Extras
       // Mandatory Roles based on Package and Extras (Soft validation with Defaults)
+      const mS = newEvent.startTime || '20:00';
+      const mE = newEvent.endTime || '00:00';
+
       if (needsPhoto(newEvent.packName, newEvent.selectedExtras)) {
-        const pS = newEvent.photoStartTime || '20:00';
-        const pE = newEvent.photoEndTime || '00:00';
+        const pS = newEvent.photoStartTime || mS;
+        const pE = newEvent.photoEndTime || mE;
         const photoDur = getHours(pS, pE);
         if (photoDur <= 0) return alert('⚠️ EL HORARIO DE FOTOGRAFÍA ES INVÁLIDO (0h).');
       }
       if (needsDecor(newEvent.packName, newEvent.selectedExtras)) {
-        const dS = newEvent.decorStartTime || '20:00';
-        const dE = newEvent.decorEndTime || '22:00';
+        const dS = newEvent.decorStartTime || mS;
+        const dE = newEvent.decorEndTime || mE;
         const decorDur = getHours(dS, dE);
         if (decorDur <= 0) return alert('⚠️ EL HORARIO DE DECORACIÓN ES INVÁLIDO (0h).');
       }
       if (needsCam360(newEvent.packName, newEvent.selectedExtras)) {
-        const cS = newEvent.cam360StartTime || '20:00';
-        const cE = newEvent.cam360EndTime || '22:00';
+        const cS = newEvent.cam360StartTime || mS;
+        const cE = newEvent.cam360EndTime || mE;
         if (getHours(cS, cE) <= 0) return alert('⚠️ EL HORARIO DE CÁMARA 360 ES INVÁLIDO (0h).');
       }
       if (needsAV(newEvent.packName, newEvent.selectedExtras)) {
-        const aS = newEvent.avStartTime || '20:00';
-        const aE = newEvent.avEndTime || '00:00';
+        const aS = newEvent.avStartTime || mS;
+        const aE = newEvent.avEndTime || mE;
         const avDur = getHours(aS, aE);
         if (avDur <= 0) return alert('⚠️ EL HORARIO AUDIOVISUAL ES INVÁLIDO (0h).');
       }
@@ -1857,7 +1894,6 @@ function App() {
           staffPaid: false
         },
         selectedExtras: newEvent.selectedExtras || {}, // Save checkboxes
-        makeupCount: newEvent.makeupCount, // Save manual makeup override
         camStartTime: newEvent.camStartTime || '',
         camEndTime: newEvent.camEndTime || '',
         avStartTime: newEvent.avStartTime || '',
@@ -1871,7 +1907,7 @@ function App() {
       alert(status === 'DRAFT' ? '📝 Borrador Guardado' : (newEvent.id ? '✅ Evento Actualizado' : '✅ Evento Creado'));
 
       setView('events');
-      const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'Essential', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', cam360StartTime: '', cam360EndTime: '', makeupStartTime: '', makeupEndTime: '', avStartTime: '', avEndTime: '', color: '#C9A84C', priceLocked: false, isImported: false };
+      const emptyState = { id: null, clientName: '', clientPhone: '', clientPhone2: '', date: '', startTime: '', endTime: '', location: '', neighborhood: '', packName: 'A LA CARTA', totalValue: '', deposit: '', managerName: '', guestCount: '', occasion: '', extraHourPrice: 85000, indications: 'Ninguna', materialsTime: '', warehouseTime: '', materialExplanation: '', photoStartTime: '', photoEndTime: '', decorStartTime: '', decorEndTime: '', cam360StartTime: '', cam360EndTime: '', avStartTime: '', avEndTime: '', color: '#C9A84C', priceLocked: false, isImported: false };
       setNewEvent(emptyState);
       localStorage.removeItem('nexxa_draft_event'); // Clear transient draft
     } catch (err) {
@@ -1905,13 +1941,9 @@ function App() {
       selectedExtras: evt.logistics?.selectedExtras || {},
       extraExpenses: evt.financials?.extraExpenses || [],
       manualBasePrice: (() => {
-        const savedBase = Number(evt.financials?.manualBasePrice) || 0;
-        if (savedBase > 0) return savedBase;
-        // Auto-Recovery: Total - Extras
         const total = Number(evt.financials?.totalValue) || 0;
-        const extras = getDynamicExtras({ selectedExtras: evt.logistics?.selectedExtras || {}, extraQtys: evt.logistics?.extraQtys || {} });
-        const extrasSum = extras.filter(ex => evt.logistics?.selectedExtras?.[ex.id]).reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
-        return Math.max(0, total - extrasSum);
+        const calc = calculateEventTotalBreakdown({ ...evt.logistics, ...evt.eventDetails, manualBasePrice: 0 });
+        return total - calc.total;
       })(),
       manualBaseDescription: evt.financials?.manualBaseDescription || '',
       deposit: evt.financials?.deposit || Math.round((Number(evt.financials?.totalValue) || 0) * 0.3),
@@ -3306,7 +3338,7 @@ function App() {
                               eventDetails: { date: '2026-03-22', occasion: 'Graduación' },
                               logistics: {
                                 packName: 'Memories',
-                                startTime: '20:00',
+                                startTime: '',
                                 endTime: '01:00',
                                 location: 'Calle 85 #12-34',
                                 neighborhood: 'Chicó',
@@ -3874,139 +3906,90 @@ function App() {
 
   const renderCreate = () => {
     try {
-      // --- TARIFAS EXACTAS APP NEXXA (Used locally for logic) ---
-      // (Note: PRICING moved to App scope for shared use)
-
-
-
-      // --- PARSER DE WHATSAPP ---
-
-      // --- DATA DINÁMICA DE EXTRAS (Moved to App Scope as getDynamicExtras) ---
-      // Kept here as reference or we just use the scoped one. 
-      // Since we moved it to App scope, we don't need to redefine it, but we need to ensure renderCreate uses it.
-      // We already moved it up, so we can delete this block.
-
-
-      // Smart Updater
-      // Smart Updater
       const updateEvent = (field, value) => {
-        let updated = { ...newEvent };
+        setNewEvent(prev => {
+          let updated = { ...prev };
 
-        // DIGITAL INSTRUMENT LOGIC: Reset import block when user manually adjusts logistics or pack
-        if (field === 'toggleExtra' || field === 'packName' || field.includes('StartTime') || field.includes('EndTime') || field.includes('Qty') || field === 'guestCount') {
-          updated.isImported = false;
-          // When changing core logistics, we usually want to re-calculate price unless manually locked
-          // but if it's a critical change like packName, we unlock to show correct price
-          if (field === 'packName') updated.priceLocked = false;
-        }
-
-        if (field === 'totalValue') {
-          updated.totalValue = value;
-          updated.priceLocked = true; // Lock price if user manually edits the total
-        } else if (field === 'toggleExtra') {
-          const currentExtras = { ...updated.selectedExtras };
-          const isTurningOn = !currentExtras[value];
-          currentExtras[value] = isTurningOn;
-          updated.selectedExtras = currentExtras;
-
-          // AUTO-FILL TIMES WHEN TURNING ON EXTRA (Only if we have a base time to work with)
-          const baseS = updated.djStartTime || updated.startTime;
-          const baseE = updated.djEndTime || updated.endTime;
-
-          if (isTurningOn && baseS) {
-            if (value === 'extra_photo' && !updated.photoStartTime) {
-              updated.photoStartTime = baseS;
-              updated.photoEndTime = subtractMinutes(baseS, -240); // Min 4h
-            } else if (value === 'extra_av' && !updated.avStartTime) {
-              updated.avStartTime = baseS;
-              updated.avEndTime = subtractMinutes(baseS, -240); // Min 4h
-            } else if (value === 'extra_cam360' && !updated.cam360StartTime) {
-              updated.cam360StartTime = baseS;
-              updated.cam360EndTime = subtractMinutes(baseS, -120); // Min 2h
-            } else if ((value.includes('_decor_') || value.includes('decor')) && !updated.decorStartTime) {
-              updated.decorStartTime = subtractMinutes(baseS, 60);
-              updated.decorEndTime = subtractMinutes(baseS, -60);
-            } else if (value === 'extra_makeup' && !updated.makeupStartTime) {
-              updated.makeupStartTime = baseS;
-              updated.makeupEndTime = subtractMinutes(baseS, -120);
-            }
+          if (field === 'toggleExtra' || field === 'packName' || field.includes('StartTime') || field.includes('EndTime') || field.includes('Qty') || field === 'guestCount') {
+            updated.isImported = false;
+            if (field === 'packName') updated.priceLocked = false;
           }
-        } else if (field === 'changeExtraQty') {
-          const { id, q } = value;
-          const currentQtys = { ...(updated.extraQtys || {}) };
-          currentQtys[id] = Math.max(1, q);
-          updated.extraQtys = currentQtys;
-        } else if (field === 'changeMakeupCount') {
-          updated.makeupCount = value;
-        } else if (field === 'guestCount') {
-          updated.guestCount = value;
-          updated.makeupCount = null;
-        } else if (field === 'packName') {
-          const val = (value || '').toUpperCase();
-          const p = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => val.includes(k)) || val;
-          updated.packName = p;
-          
-          const proto = STITCH_DATA.protocols[p];
-          if (proto?.includedExtras || /MULTII/i.test(p) || /ONIX/i.test(p) || /KAIZEN/i.test(p)) {
-            // INSTRUMENT LOGIC: Reset to pack-only extras for consistency
-            const newExtras = {};
-            const forced = proto?.includedExtras || (/MULTII/i.test(p) ? ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] : (/ONIX/i.test(p) ? ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] : ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration']));
-            
-            forced.forEach(extId => {
-              newExtras[extId] = true;
-            });
-            updated.selectedExtras = newExtras;
 
-            // SYNC TIMES: Use Event Time or 08:00 PM as master
-            const masterS = updated.startTime || '20:00';
-            const masterE = updated.endTime || '00:00';
+          if (field === 'totalValue') {
+            updated.totalValue = value;
+            updated.priceLocked = true;
+          } else if (field === 'toggleExtra') {
+            const currentExtras = { ...(updated.selectedExtras || {}) };
+            const isTurningOn = !currentExtras[value];
+            currentExtras[value] = isTurningOn;
+            updated.selectedExtras = currentExtras;
+
+            const baseS = updated.djStartTime || updated.startTime;
+            if (isTurningOn && baseS) {
+              if (value === 'extra_photo' && !updated.photoStartTime) {
+                updated.photoStartTime = baseS;
+                updated.photoEndTime = subtractMinutes(baseS, -240);
+              } else if (value === 'extra_av' && !updated.avStartTime) {
+                updated.avStartTime = baseS;
+                updated.avEndTime = subtractMinutes(baseS, -240);
+              } else if (value === 'extra_cam360' && !updated.cam360StartTime) {
+                updated.cam360StartTime = baseS;
+                updated.cam360EndTime = subtractMinutes(baseS, -120);
+              }
+            }
+          } else if (field === 'packName') {
+            const val = (value || '').toUpperCase();
+            const p = ['ONIX', 'MULTII', 'KAIZEN', 'A LA CARTA'].find(k => val.includes(k)) || val;
+            updated.packName = p;
             
-            // Set service times to match event duration
-            if (newExtras['extra_photo']) { updated.photoStartTime = masterS; updated.photoEndTime = masterE; }
-            if (newExtras['extra_av']) { 
-              updated.avStartTime = masterS; updated.avEndTime = masterE;
-              // DJ is part of AV
-              updated.djStartTime = masterS; updated.djEndTime = masterE;
+            const proto = STITCH_DATA.protocols[p];
+            if (p === 'A LA CARTA') {
+               updated.selectedExtras = {};
+            } else if (proto?.includedExtras || /MULTII/i.test(p) || /ONIX/i.test(p) || /KAIZEN/i.test(p)) {
+              const newExtras = {};
+              const forced = proto?.includedExtras || (/MULTII/i.test(p) ? ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] : (/ONIX/i.test(p) ? ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] : ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration']));
+              
+              forced.forEach(extId => { newExtras[extId] = true; });
+              updated.selectedExtras = newExtras;
+
+              const masterS = updated.startTime || '20:00';
+              const masterE = updated.endTime || '00:00';
+              
+              if (newExtras['extra_photo']) { updated.photoStartTime = masterS; updated.photoEndTime = masterE; }
+              if (newExtras['extra_av']) { 
+                updated.avStartTime = masterS; updated.avEndTime = masterE;
+                updated.djStartTime = masterS; updated.djEndTime = masterE;
+              }
+              if (newExtras['extra_cam360']) { updated.cam360StartTime = masterS; updated.cam360EndTime = subtractMinutes(masterS, -120); }
             }
-            if (newExtras['extra_cam360']) { updated.cam360StartTime = masterS; updated.cam360EndTime = subtractMinutes(masterS, -120); }
-            if (newExtras['extra_makeup']) { updated.makeupStartTime = masterS; updated.makeupEndTime = subtractMinutes(masterS, -120); }
-            if (newExtras['extra_decor_onix'] || newExtras['extra_decor_multii'] || newExtras['extra_decor_kaizen']) {
-              updated.decorStartTime = subtractMinutes(masterS, 60);
-              updated.decorEndTime = subtractMinutes(masterS, -60);
-            }
+          } else if (field === 'startTime') {
+            updated.startTime = value;
+            const map = ['djStartTime', 'photoStartTime', 'avStartTime', 'cam360StartTime', 'decorStartTime'];
+            map.forEach(k => { if (!updated[k]) updated[k] = value; });
+          } else if (field === 'endTime') {
+            updated.endTime = value;
+            const map = ['djEndTime', 'photoEndTime', 'avEndTime', 'cam360EndTime', 'decorEndTime'];
+            map.forEach(k => { if (!updated[k]) updated[k] = value; });
+          } else if (field === 'djStartTime' || field === 'avStartTime') {
+            updated.djStartTime = value;
+            updated.avStartTime = value;
+            if (!updated.startTime) updated.startTime = value;
+          } else if (field === 'djEndTime' || field === 'avEndTime') {
+            updated.djEndTime = value;
+            updated.avEndTime = value;
+            if (!updated.endTime) updated.endTime = value;
+          } else {
+            updated[field] = value;
           }
-        } else if (field === 'startTime') {
-          updated.startTime = value;
-          const map = ['djStartTime', 'photoStartTime', 'avStartTime', 'cam360StartTime', 'makeupStartTime'];
-          map.forEach(k => { if (!updated[k] || updated[k] === '08:00' || updated[k] === '20:00') updated[k] = value; });
-        } else if (field === 'endTime') {
-          updated.endTime = value;
-          const map = ['djEndTime', 'photoEndTime', 'avEndTime', 'cam360EndTime', 'makeupEndTime'];
-          map.forEach(k => { if (!updated[k] || updated[k] === '08:00' || updated[k] === '20:00' || updated[k] === '00:00') updated[k] = value; });
-          // If end time is before start time, it's next day, already handled by getHours but helps UI
-        } else if (field === 'djStartTime') {
-          updated.djStartTime = value;
-          if (!updated.startTime) updated.startTime = value;
-        } else if (field === 'djEndTime') {
-          updated.djEndTime = value;
-          if (!updated.endTime) updated.endTime = value;
-        } else if (field === 'changeExtraPrice') {
-          const { id, price } = value;
-          const newOverrides = { ...(updated.extraPriceOverrides || {}) };
-          if (price === '' || price === null) delete newOverrides[id];
-          else newOverrides[id] = Number(price);
-          updated.extraPriceOverrides = newOverrides;
-        } else {
-          updated[field] = value;
-        }
 
-        if (updated.photoStartTime && updated.photoEndTime) {
-          const autoDur = getHours(updated.photoStartTime, updated.photoEndTime);
-          updated.photoDuration = parseFloat(autoDur.toFixed(1));
-        }
+          if (updated.photoStartTime && updated.photoEndTime) {
+            updated.photoDuration = parseFloat(getHours(updated.photoStartTime, updated.photoEndTime).toFixed(1));
+          }
 
-        setNewEvent(updated);
+          return updated;
+        });
       };
+
 
       // Helper state for debugging limit (MOVED TO APP SCOPE)
       // const [alertShown, setAlertShown] = useState(false);
@@ -4140,7 +4123,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                 onClick={() => toggleSection('s1')}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s1 ? '15px' : '0' }}
               >
-                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento (v1.4.53)</h3>
+                <h3 style={{ color: '#ff4444', textShadow: '0 0 10px rgba(255,0,0,0.5)' }}>1. Datos del Evento ({APP_VERSION})</h3>
                 <span style={{ fontSize: '1rem', color: 'var(--primary-cyan)' }}>{sectionState.s1 ? '▼' : '▶'}</span>
               </div>
               {sectionState.s1 && (
@@ -4166,10 +4149,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     <div style={{ gridColumn: 'span 2', marginTop: '2px' }}>
                       <select style={{ width: '100%', padding: '10px', fontSize: '0.85rem', border: '1px solid rgba(188, 111, 241, 0.3)', height: '42px', background: 'rgba(188, 111, 241, 0.05)', color: '#fff' }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
                         <option value="">Selecciona el Plan...</option>
-                        <option value="ONIX">ONIX ($1.25M)</option>
-                        <option value="MULTII">MULTII ($1.65M)</option>
-                        <option value="KAIZEN">KAIZEN ($2.25M)</option>
-                        <option value="PERSONALIZADO">Personalizado</option>
+                        <option value="A LA CARTA">A LA CARTA ($0 Base)</option>
+                        <option value="ONIX">ONIX ($850K Base)</option>
+                        <option value="MULTII">MULTII ($1.54M Base)</option>
+                        <option value="KAIZEN">KAIZEN ($1.95M Base)</option>
                       </select>
                     </div>
 
@@ -4263,17 +4246,25 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isActive ? 'var(--primary-cyan)' : '#666' }}>
-                                      {extra.isIncluded ? (
-                                        <span style={{ fontSize: '0.7rem', color: '#ff4d4d', opacity: 0.8 }}>
-                                          ${(extra.basePrice || extra.price).toLocaleString()} (Incluido)
-                                        </span>
-                                      ) : `+ $${(extra.displayPrice || extra.price).toLocaleString()}`}
+                                      {(() => {
+                                        let pValue = extra.isIncluded ? (extra.basePrice || extra.price) : extra.price;
+                                        if (isActive) {
+                                          if (extra.id === 'extra_photo') pValue = 200000 + photoXP;
+                                          else if (extra.id === 'extra_cam360') pValue = 550000 + camXP;
+                                          else if (extra.id === 'extra_av') pValue = 450000 + avXP;
+                                        }
+                                        return extra.isIncluded ? (
+                                          <span style={{ fontSize: '0.7rem', color: '#ff4d4d', opacity: 0.8 }}>
+                                            ${pValue.toLocaleString()} (Incluido)
+                                          </span>
+                                        ) : `+ $${pValue.toLocaleString()}`;
+                                      })()}
                                     </span>
-                                    {isActive && (extra.isMakeup || extra.isItem) && (
+                                    {isActive && (extra.isItem) && (
                                       <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '5px', padding: '2px 5px' }}>
-                                        <small onClick={() => updateEvent(extra.isMakeup ? 'changeMakeupCount' : 'changeExtraQty', extra.isMakeup ? Math.max(1, (extra.qty || 1) - 1) : { id: extra.id, q: (extra.qty || 1) - 1 })} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
+                                        <small onClick={() => updateEvent('changeExtraQty', { id: extra.id, q: (extra.qty || 1) - 1 })} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>-</small>
                                         <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{extra.qty}</span>
-                                        <small onClick={() => updateEvent(extra.isMakeup ? 'changeMakeupCount' : 'changeExtraQty', extra.isMakeup ? (extra.qty || 1) + 1 : { id: extra.id, q: (extra.qty || 1) + 1 })} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
+                                        <small onClick={() => updateEvent('changeExtraQty', { id: extra.id, q: (extra.qty || 1) + 1 })} style={{ padding: '0 5px', cursor: 'pointer', fontSize: '1rem' }}>+</small>
                                       </div>
                                     )}
                                     <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid', borderColor: isActive ? 'var(--primary-cyan)' : '#444', background: isActive ? 'var(--primary-cyan)' : 'transparent' }}></div>
@@ -4299,11 +4290,11 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                   </div>
                                 )}
 
-                                {isActive && (extra.needsTime || ['extra_photo', 'extra_cam360', 'extra_av', 'extra_makeup'].includes(extra.id) || extra.id.includes('_decor_') || (extra.isIncluded !== true && extra.price !== 0)) && (
+                                {isActive && (extra.needsTime || ['extra_photo', 'extra_cam360', 'extra_av'].includes(extra.id) || extra.id.includes('_decor_')) && (
                                   <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '10px', padding: '16px', background: 'rgba(0, 242, 255, 0.05)', borderRadius: '20px', border: '1.5px solid rgba(0, 242, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                     {/* CONTENIDO DE CONFIGURACIÓN DE SERVICIO */}
                                     {/* TIME PICKER IF NEEDED */}
-                                    {(extra.needsTime || ['extra_photo', 'extra_cam360', 'extra_av', 'extra_makeup'].includes(extra.id) || extra.id.includes('_decor_')) && (
+                                    {(extra.needsTime || ['extra_photo', 'extra_cam360', 'extra_av'].includes(extra.id) || extra.id.includes('_decor_')) && (
                                       <MiniTimeInput
                                         label={null}
                                         labelColor={'var(--primary-cyan)'}
@@ -4312,7 +4303,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                           if (extra.id === 'extra_cam360') return newEvent.cam360StartTime;
                                           if (extra.id === 'extra_av') return newEvent.avStartTime;
                                           if (extra.id.includes('_decor_')) return newEvent.decorStartTime;
-                                          if (extra.id === 'extra_makeup') return newEvent.makeupStartTime;
                                           return '';
                                         })()}
                                         endVal={(() => {
@@ -4320,46 +4310,23 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                                           if (extra.id === 'extra_cam360') return newEvent.cam360EndTime;
                                           if (extra.id === 'extra_av') return newEvent.avEndTime;
                                           if (extra.id.includes('_decor_')) return newEvent.decorEndTime;
-                                          if (extra.id === 'extra_makeup') return newEvent.makeupEndTime;
                                           return '';
                                         })()}
                                         onStartChange={(val) => {
-                                          let f = '';
-                                          if (extra.id === 'extra_photo') f = 'photoStartTime';
-                                          else if (extra.id === 'extra_cam360') f = 'cam360StartTime';
-                                          else if (extra.id === 'extra_av') f = 'avStartTime';
-                                          else if (extra.id.includes('_decor_')) f = 'decorStartTime';
-                                          else if (extra.id === 'extra_makeup') f = 'makeupStartTime';
-                                          if (f) updateEvent(f, val);
+                                          if (extra.id === 'extra_photo') updateEvent('photoStartTime', val);
+                                          else if (extra.id === 'extra_cam360') updateEvent('cam360StartTime', val);
+                                          else if (extra.id === 'extra_av') { updateEvent('avStartTime', val); updateEvent('djStartTime', val); }
+                                          else if (extra.id.includes('_decor_')) updateEvent('decorStartTime', val);
                                         }}
                                         onEndChange={(val) => {
-                                          let f = '';
-                                          if (extra.id === 'extra_photo') f = 'photoEndTime';
-                                          else if (extra.id === 'extra_cam360') f = 'cam360EndTime';
-                                          else if (extra.id === 'extra_av') f = 'avEndTime';
-                                          else if (extra.id.includes('_decor_')) f = 'decorEndTime';
-                                          else if (extra.id === 'extra_makeup') f = 'makeupEndTime';
-                                          if (f) updateEvent(f, val);
+                                          if (extra.id === 'extra_photo') updateEvent('photoEndTime', val);
+                                          else if (extra.id === 'extra_cam360') updateEvent('cam360EndTime', val);
+                                          else if (extra.id === 'extra_av') { updateEvent('avEndTime', val); updateEvent('djEndTime', val); }
+                                          else if (extra.id.includes('_decor_')) updateEvent('decorEndTime', val);
                                         }}
                                       />
                                     )}
 
-                                    {/* PRICE OVERRIDE DISPLAY (DISABLED IF INCLUDED) */}
-                                    {(extra.isIncluded === true || extra.price === 0) ? null : (
-                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Precio Personalizado (Opcional)</label>
-                                        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', padding: '10px 15px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                          <span style={{ color: 'var(--primary-cyan)', fontWeight: '900', marginRight: '5px' }}>$</span>
-                                          <input 
-                                            type="number" 
-                                            placeholder={extra.basePrice}
-                                            value={newEvent.extraPriceOverrides?.[extra.id] || ''} 
-                                            onChange={(e) => updateEvent('changeExtraPrice', { id: extra.id, price: e.target.value })}
-                                            style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.9rem', outline: 'none', width: '100%', fontWeight: '900' }}
-                                          />
-                                        </div>
-                                      </div>
-                                    )}
                                   </div>
                                 )}
                               </React.Fragment>
@@ -4376,35 +4343,8 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
 
 
-             {/* SECCIÓN 3: LOGÍSTICA DE TIEMPOS (PRINCIPAL/DJ) */}
-            <div className="form-section">
-              <div
-                onClick={() => toggleSection('s3')}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: sectionState.s3 ? '15px' : '0' }}
-              >
-                <h3 style={{ color: '#facc15', textShadow: '0 0 10px rgba(250,204,21,0.3)' }}>3. Horario Musical (DJ/Principal)</h3>
-                <span style={{ fontSize: '1rem', color: '#facc15' }}>{sectionState.s3 ? '▼' : '▶'}</span>
-              </div>
-              {sectionState.s3 && (
-                <div style={{ background: 'rgba(250, 204, 21, 0.05)', padding: '15px', borderRadius: '20px', border: '1px solid rgba(250, 204, 21, 0.2)' }}>
-                   <MiniTimeInput 
-                     label="Franja de Servicio DJ / Protocolo"
-                     labelColor="#facc15"
-                     startVal={newEvent.djStartTime}
-                     endVal={newEvent.djEndTime}
-                     onStartChange={(val) => updateEvent('djStartTime', val)}
-                     onEndChange={(val) => updateEvent('djEndTime', val)}
-                   />
-                   <div style={{ marginTop: '10px', fontSize: '0.7rem', color: '#aaa', display: 'flex', justifyContent: 'center', gap: '15px' }}>
-                     <span style={{ fontWeight: 'bold' }}>Duración: {getHours(newEvent.djStartTime, newEvent.djEndTime).toFixed(1)}h</span>
-                     <span>Base Incluida: 4h</span>
-                     {Math.ceil(getHours(newEvent.djStartTime, newEvent.djEndTime) - 4) > 0 && (
-                       <span style={{ color: '#facc15', fontWeight: 'bold' }}>Extensión: +{Math.ceil(getHours(newEvent.djStartTime, newEvent.djEndTime) - 4)}h</span>
-                     )}
-                   </div>
-                </div>
-              )}
-            </div>
+             {/* SECCIÓN 3: ELIMINADA POR REDUNDANCIA (DJ INTEGRADO EN AV) */}
+
 
 
 
@@ -4450,7 +4390,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {/* HEADER MESSAGE / PLAN SPECS */}
                         {/* HEADER MESSAGE / PLAN SPECS */}
-                        {p === 'PERSONALIZADO' ? (
+                        {p === 'A LA CARTA' ? (
                           <div style={{ color: 'var(--primary-cyan)', fontWeight: 'bold', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                             <div style={{ marginBottom: '10px' }}>
                               <span>Configuración Personalizada:</span>
@@ -4474,32 +4414,45 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                               </div>
                             </div>
                           </div>
-                        ) : hasPlan ? (
+                        ) : hasPlan && p !== 'A LA CARTA' ? (
                           <div style={{ paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'white', fontWeight: 'bold' }}>
-                              <span>Paquete {p} (4h):</span>
+                              <span>Paquete {p} (4h Base):</span>
                               <span>${(proto.price || 0).toLocaleString()}</span>
-                            </div>
-                            <div style={{ fontSize: '0.62rem', color: '#aaa', marginTop: '6px', lineHeight: '1.4', fontWeight: 'bold' }}>
-                              Personal: { (proto.roles || []).join(' • ') }
-                            </div>
-                            <div style={{ fontSize: '0.6rem', color: '#888', marginTop: '4px', lineHeight: '1.4' }}>
-                              Equipos: { (proto.items || []).join(' • ') }
                             </div>
                           </div>
                         ) : null}
 
-                        {/* MOSTRAR EXTENSIONES DE TIEMPO (v1.5) */}
-                         {[ {id:'dj', label:'DJ', dur:djDur, xp:djXP, rate:85},
-                            {id:'photo', label:'Fotografía', dur:photoDur, xp:photoXP, rate:50},
-                            {id:'av', label:'Audiovisual', dur:avDur, xp:avXP, rate:85},
-                            {id:'cam', label:'Cámara 360', dur:camDur, xp:camXP, rate:200}
-                          ].map(srv => (srv.xp > 0) && (
-                            <div key={srv.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#ff3860', fontSize: '0.65rem', marginBottom: '1px' }}>
-                              <span>+ {Math.ceil(srv.dur - (srv.id==='cam'?2:4))}h Extensión {srv.label} (${srv.rate}k/h):</span>
-                              <strong>${srv.xp.toLocaleString()}</strong>
-                            </div>
-                          ))}
+                        {/* DESGLOSE SIMPLIFICADO DE SERVICIOS (v1.6) */}
+                          {(() => {
+                            const pack = (newEvent.packName || '').toUpperCase();
+                            const isONIX = pack.includes('ONIX');
+                            const isMULTII = pack.includes('MULTII');
+                            const isKAIZEN = pack.includes('KAIZEN');
+
+                            const decorCost = isKAIZEN ? 550000 : (isMULTII ? 340000 : 200000);
+                            const makeupCost = isKAIZEN ? 200000 : 0;
+
+                            const services = [
+                              { id: 'av', label: 'Audiovisuales (Incl. DJ)', dur: currentBreakdown.durs.aDur, base: 450000, xp: currentBreakdown.items.avXP + (!!newEvent.selectedExtras?.['extra_av'] ? 0 : currentBreakdown.items.djXP), incl: isONIX || isMULTII || isKAIZEN },
+                              { id: 'photo', label: 'Fotografía', dur: currentBreakdown.durs.pDur, base: 200000, xp: currentBreakdown.items.photoXP, incl: isONIX || isMULTII || isKAIZEN },
+                              { id: 'cam', label: 'Cámara 360', dur: currentBreakdown.durs.cDur, base: 550000, xp: currentBreakdown.items.camXP, incl: isMULTII || isKAIZEN },
+                              { id: 'makeup', label: 'Maquillaje Neón', dur: 0, base: makeupCost, xp: 0, incl: isKAIZEN },
+                              { id: 'decor', label: 'Decoración', base: decorCost, xp: 0, incl: isONIX || isMULTII || isKAIZEN }
+                            ];
+
+                           return (
+                             <div style={{ marginTop: '8px' }}>
+                               {services.map(s => (s.incl || s.xp > 0) && (
+                                 <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#ff3860', fontSize: '0.65rem', marginBottom: '2px' }}>
+                                   <span style={{ color: '#aaa' }}>• {s.label} {s.dur > 0 ? `(${Math.ceil(s.dur)}h)` : ''}:</span>
+                                   <strong style={{ color: '#fff' }}>${(s.base + s.xp).toLocaleString()}</strong>
+                                 </div>
+                               ))}
+                             </div>
+                           );
+                        })()}
+
 
                         {/* ADICIONALES SELECCIONADOS (KITS, NEON, ETC) */}
                         {(() => {
@@ -4507,12 +4460,17 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                           if (activeExtrasList.length === 0) return null;
                           return (
                             <div style={{ marginTop: '5px', paddingTop: '5px', borderTop: hasPlan ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                              {activeExtrasList.map(ex => (
-                                <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#C9A84C', fontSize: '0.65rem', marginBottom: '2px' }}>
-                                  <span>+ {ex.name} {ex.qty > 1 ? `(x${ex.qty})` : ''}:</span>
-                                  <strong>{ex.isIncluded ? 'INCLUIDO' : `$${ex.price.toLocaleString()}`}</strong>
-                                </div>
-                              ))}
+                                {activeExtrasList.map(ex => {
+                                  // No mostrar en esta lista lo que ya desglosamos arriba (AV, Photo, Cam, Decor)
+                                  if (['extra_av', 'extra_photo', 'extra_cam360', 'extra_decor_onix', 'extra_decor_multii', 'extra_decor_kaizen'].includes(ex.id)) return null;
+                                  
+                                  return (
+                                    <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#C9A84C', fontSize: '0.65rem', marginBottom: '2px' }}>
+                                      <span>+ {ex.name} {ex.qty > 1 ? `(x${ex.qty})` : ''}:</span>
+                                      <strong>${(ex.isIncluded ? ex.basePrice : ex.price).toLocaleString()}</strong>
+                                    </div>
+                                  );
+                                })}
                             </div>
                           );
                         })()}
@@ -4521,51 +4479,45 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   })()}
                   </div>
 
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-                    <small style={{ color: '#888', fontWeight: '900', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Cotización Calculada (Smart):</small>
-                    <div 
-                      className="pulse-required"
-                      style={{ 
-                        background: 'rgba(0, 212, 255, 0.25)', 
-                        border: '2.5px solid #00d4ff', 
-                        color: '#fff', 
-                        fontSize: '0.9rem', 
-                        padding: '6px 14px', 
-                        borderRadius: '12px', 
-                        fontWeight: '1000',
-                        boxShadow: '0 0 25px rgba(0, 212, 255, 0.4)',
-                        letterSpacing: '-0.5px'
-                      }}
-                    >
-                      {formatPeso(computedTotal)}
-                    </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <label style={{ color: 'var(--primary-cyan)', fontWeight: '900', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1.5px', opacity: 0.8 }}>VALOR TOTAL FINAL</label>
                   </div>
-                  <input
-                    required
-                    placeholder="$ 0"
-                    type="text"
-                    value={formatInputNumber(newEvent.totalValue)}
-                    onChange={e => {
-                      updateEvent('totalValue', parseInputNumber(e.target.value));
-                    }}
-                    style={{ 
-                      fontWeight: '900', 
-                      color: Number(newEvent.totalValue) === computedTotal ? '#00d4ff' : '#facc15', 
-                      fontSize: '1.8rem', 
-                      height: '60px',
-                      background: 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${Number(newEvent.totalValue) === computedTotal ? 'rgba(0,212,255,0.3)' : 'rgba(250,204,21,0.3)'}`
-                    }}
-                  />
-                  {Number(newEvent.totalValue) !== computedTotal && (
-                    <button 
-                      onClick={() => setNewEvent(prev => ({ ...prev, totalValue: computedTotal, deposit: Math.round(computedTotal * 0.3) }))}
-                      style={{ fontSize: '0.6rem', color: '#facc15', background: 'none', border: 'none', textDecoration: 'underline', padding: 0, cursor: 'pointer' }}
-                    >
-                      Sincronizar con cálculo automático ⚡
-                    </button>
-                  )}
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      required
+                      placeholder="$ 0"
+                      type="text"
+                      value={formatInputNumber(newEvent.totalValue)}
+                      onChange={e => {
+                        updateEvent('totalValue', parseInputNumber(e.target.value));
+                      }}
+                      style={{ 
+                        fontWeight: '950', 
+                        color: Number(newEvent.totalValue) === computedTotal ? '#00d4ff' : '#facc15', 
+                        fontSize: '2.2rem', 
+                        height: '70px',
+                        background: 'rgba(0, 212, 255, 0.05)',
+                        border: `2px solid ${Number(newEvent.totalValue) === computedTotal ? 'var(--primary-cyan)' : '#facc15'}`,
+                        borderRadius: '16px',
+                        textAlign: 'center',
+                        textShadow: Number(newEvent.totalValue) === computedTotal ? '0 0 20px rgba(0, 212, 255, 0.3)' : '0 0 20px rgba(250, 204, 21, 0.3)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    />
+                    {Number(newEvent.totalValue) !== computedTotal && (
+                      <div 
+                        onClick={() => updateEvent('totalValue', computedTotal)}
+                        style={{ 
+                          position: 'absolute', top: '-10px', right: '-10px', background: '#facc15', color: '#000', 
+                          fontSize: '0.55rem', fontWeight: '950', padding: '4px 8px', borderRadius: '6px', 
+                          cursor: 'pointer', boxShadow: '0 4px 12px rgba(250, 204, 21, 0.4)', zIndex: 10 
+                        }}
+                      >
+                        REESTABLECER ⚡
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'flex-end', overflow: 'visible' }}>
@@ -6847,155 +6799,142 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
           <div className="sales-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {quotations.filter(q => q && (q.client?.name || q.clientName)).map(quo => {
-              // ULTRA-PROTECCIÓN: Validar CADA cotización
               try {
-                if (!quo || typeof quo !== 'object') return null;
-                if (!quo.id) return null;
-
-                // Validar que tenga nombre
+                if (!quo || typeof quo !== 'object' || !quo.id) return null;
                 const clientName = quo?.client?.name || quo?.clientName;
-                if (!clientName) {
-                  console.warn("⚠️ Cotización sin nombre en renderQuotations:", quo.id);
-                  return null;
-                }
+                if (!clientName) return null;
 
                 return (
                   <div key={quo.id} className="sales-list-item" onClick={() => {
-                    // Mapeo Inteligente: Detectar snake_case y camelCase de la web
-                    const ev = quo.eventDetails || {};
-                    const sTime = ev.startTime || ev.start_time || quo.startTime || quo.start_time || '';
-                    const eTime = ev.endTime || ev.end_time || quo.endTime || quo.end_time || '';
-                    
-                    setNewEvent({
-                      id: quo.id,
-                      clientName: clientName,
-                      clientPhone: quo.client?.phone || '',
-                      clientPhone2: quo.client?.phone2 || '',
-                      date: ev.date || quo.date || '',
-                      startTime: sTime,
-                      endTime: eTime,
-                      location: ev.location || quo.location || '',
-                      neighborhood: ev.neighborhood || quo.neighborhood || '',
-                      packName: (() => {
-                        const s = JSON.stringify(quo).toUpperCase();
-                        if (s.includes('KAIZEN') || s.includes('DIA') || s.includes('PLA') || s.includes('DIAMOND') || s.includes('PLATINUM')) return 'KAIZEN';
-                        if (s.includes('MULTI') || s.includes('ELITE')) return 'MULTII';
-                        if (s.includes('ONIX') || s.includes('ÓNIX') || s.includes('ESS') || s.includes('SILV')) return 'ONIX';
-                        return ''; 
-                      })(),
-                      ...(() => {
-                        const ev = quo.eventDetails || {};
-                        const raw = JSON.stringify(quo).toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ');
-                        
-                        const to24 = (t) => {
-                            if (!t) return null;
-                            const s = t.toString().trim().toUpperCase().replace(/[\. ]+/g, '');
-                            if (/^\d{2}:\d{2}$/.test(s)) return s;
-                            if (/^\d{1,2}:\d{2}$/.test(s)) return s.padStart(5, '0');
-                            const m = /(\d{1,2})(?::(\d{2}))?(AM|PM)/.exec(s);
-                            if (!m) {
-                                // Fallback for plain digits like "8PM"
-                                const m2 = /(\d{1,2})(AM|PM)/.exec(s);
-                                if (m2) {
-                                    let h = parseInt(m2[1], 10);
-                                    if (m2[2] === 'PM' && h < 12) h += 12;
-                                    if (m2[2] === 'AM' && h === 12) h = 0;
-                                    return `${String(h).padStart(2, '0')}:00`;
-                                }
-                                return null;
-                            }
-                            let h = parseInt(m[1], 10);
-                            const min = m[2] || '00';
-                            const mod = m[3];
-                            if (mod === 'PM' && h < 12) h += 12;
-                            if (mod === 'AM' && h === 12) h = 0;
-                            return `${String(h).padStart(2, '0')}:${min}`;
-                        };
+                    const evDetails = quo.eventDetails || {};
+                    const qRaw = JSON.stringify(quo).toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ').replace(/\s+/g, ' ');
 
-                        const getTimeRange = (keyword) => {
-                            const protocolText = (quo.indications || quo.eventDetails?.indications || JSON.stringify(quo) || '').toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ');
-                            
-                            const idx = protocolText.lastIndexOf(keyword.toUpperCase());
-                            if (idx === -1) return null;
-                            
-                            // Extraemos una ventana grande después de la palabra clave
-                            const sub = protocolText.substring(idx, idx + 450); 
-                            
-                            // Buscamos TODAS las horas en esa ventana
-                            const hPatGlobal = /(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)/gi;
-                            const matches = sub.match(hPatGlobal);
-                            
-                            if (matches && matches.length >= 2) {
-                                const start = to24(matches[0]);
-                                let end = to24(matches[1]);
-                                if (!start) return null;
-                                
-                                // Si son iguales o falló, forzar 4h
+                    const to24 = (t) => {
+                        if (!t) return null;
+                        const s = t.toString().trim().toUpperCase().replace(/[\. ]+/g, '');
+                        if (/^\d{2}:\d{2}$/.test(s)) return s;
+                        if (/^\d{1,2}:\d{2}$/.test(s)) return s.padStart(5, '0');
+                        const m = /(\d{1,2})(?::(\d{2}))?(AM|PM)/.exec(s);
+                        if (!m) {
+                            const m2 = /(\d{1,2})(AM|PM)/.exec(s);
+                            if (m2) {
+                                let h = parseInt(m2[1], 10);
+                                if (m2[2] === 'PM' && h < 12) h += 12;
+                                if (m2[2] === 'AM' && h === 12) h = 0;
+                                return `${String(h).padStart(2, '0')}:00`;
+                            }
+                            return null;
+                        }
+                        let h = parseInt(m[1], 10);
+                        const min = m[2] || '00';
+                        const mod = m[3];
+                        if (mod === 'PM' && h < 12) h += 12;
+                        if (mod === 'AM' && h === 12) h = 0;
+                        return `${String(h).padStart(2, '0')}:${min}`;
+                    };
+
+                    const getR = (keyword) => {
+                        const protocolText = (quo.indications || evDetails.indications || qRaw).toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ');
+                        const idx = protocolText.lastIndexOf(keyword.toUpperCase());
+                        if (idx === -1) return null;
+                        const sub = protocolText.substring(idx, idx + 450); 
+                        const hPatGlobal = /(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)/gi;
+                        const matches = sub.match(hPatGlobal);
+                        if (matches && matches.length >= 2) {
+                            const start = to24(matches[0]);
+                            let end = to24(matches[1]);
+                            if (start) {
                                 if (!end || end === start) {
                                     let [h, m] = start.split(':').map(Number);
                                     end = `${String((h + 4) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                                 }
                                 return { s: start, e: end };
                             }
-                            return null;
-                        };
+                        }
+                        return null;
+                    };
 
-                        const mainS = to24(ev.startTime || quo.startTime) || '20:00';
-                        let mainE = to24(ev.endTime || quo.endTime) || '02:00';
-                        // Seguridad nivel 2: Si el lead viene con horarios bloqueados en la misma hora
-                        if (mainS === mainE || !mainE) mainE = '02:00';
+                    const f = getR('FOTOGRAFÍA') || getR('PHOTO');
+                    const a = getR('AUDIOVISUAL') || getR('SONIDO') || getR('AUDIO');
+                    const c = getR('360') || getR('AÉREA') || getR('CAM');
+                    const m = getR('MAQUILLAJE') || getR('NEÓN') || getR('NEON');
 
-                        const f = getTimeRange('FOTOGRAFÍA') || getTimeRange('PHOTO');
-                        const a = getTimeRange('AUDIOVISUAL') || getTimeRange('SONIDO') || getTimeRange('AUDIO');
-                        const c = getTimeRange('360') || getTimeRange('AÉREA') || getTimeRange('CAM');
+                    const ranges = [f, a, c, m].filter(r => !!r);
+                    const detS = ranges.reduce((min, r) => (!min || r.s < min) ? r.s : min, null);
+                    const detE = ranges.reduce((max, r) => {
+                        if (!max) return r.e;
+                        const isL = (t) => { const h = parseInt(t.split(':')[0], 10); return h >= 0 && h < 7; };
+                        if (isL(r.e) && !isL(max)) return r.e;
+                        if (!isL(r.e) && isL(max)) return max;
+                        return (r.e > max) ? r.e : max;
+                    }, null);
 
-                        return {
-                            photoStartTime: f?.s || mainS,
-                            photoEndTime: f?.e || (mainE === mainS ? `${String((parseInt(mainS.split(':')[0]) + 4) % 24).padStart(2, '0')}:${mainS.split(':')[1] || '00'}` : mainE),
-                            avStartTime: a?.s || mainS,
-                            avEndTime: a?.e || (mainE === mainS ? `${String((parseInt(mainS.split(':')[0]) + 4) % 24).padStart(2, '0')}:${mainS.split(':')[1] || '00'}` : mainE),
-                            cam360StartTime: c?.s || mainS,
-                            cam360EndTime: c?.e || (mainE === mainS ? `${String((parseInt(mainS.split(':')[0]) + 2) % 24).padStart(2, '0')}:${mainS.split(':')[1] || '00'}` : mainE)
-                        };
+                    const mS = detS || to24(evDetails.startTime || quo.startTime) || '';
+                    let mE = detE || to24(evDetails.endTime || quo.endTime) || '';
+                    if (mS === mE && mS !== '') {
+                        let h = parseInt(mS.split(':')[0], 10);
+                        mE = `${String((h + 4) % 24).padStart(2, '0')}:00`;
+                    }
+
+                    const rawExtras = quo.logistics?.selectedExtras || {};
+                    const cleanEx = {};
+                    Object.keys(rawExtras).forEach(k => {
+                        if (rawExtras[k]) {
+                            const lk = k.toLowerCase();
+                            if (lk === 'makeup' || lk === 'neon' || lk.includes('maquillaje')) cleanEx['extra_makeup'] = true;
+                            else cleanEx[k] = true;
+                        }
+                    });
+
+                    const totalVal = Number(quo.financials?.totalValue) || 0;
+                    const pName = (quo.logistics?.packName || '').toUpperCase();
+                    const dEx = getDynamicExtras({ selectedExtras: cleanEx, guestCount: evDetails.guestCount || 50 });
+                    const exSum = dEx.filter(e => cleanEx[e.id]).reduce((acc, e) => acc + (parseInt(e.price) || 0), 0);
+                    const manBase = (['ONIX', 'MULTII', 'KAIZEN'].some(k => pName.includes(k))) ? 0 : Math.max(0, totalVal - exSum);
+
+                    setNewEvent({
+                      id: quo.id,
+                      clientName: clientName,
+                      clientPhone: quo.client?.phone || '',
+                      clientPhone2: quo.client?.phone2 || '',
+                      date: evDetails.date || quo.date || '',
+                      startTime: mS,
+                      endTime: mE,
+                      location: evDetails.location || quo.location || '',
+                      neighborhood: evDetails.neighborhood || quo.neighborhood || '',
+                      packName: (() => {
+                        if (pName.includes('KAIZEN') || pName.includes('DIA') || pName.includes('PLA')) return 'KAIZEN';
+                        if (pName.includes('MULTI') || pName.includes('ELITE')) return 'MULTII';
+                        if (pName.includes('ONIX') || pName.includes('ÓNIX') || pName.includes('ESS')) return 'ONIX';
+                        return 'A LA CARTA'; 
                       })(),
-                      totalValue: quo.financials?.totalValue || 0,
-                      deposit: (() => {
-                        const total = Number(quo.financials?.totalValue) || 0;
-                        const savedDep = quo.financials?.deposit;
-                        if (savedDep) return savedDep;
-                        // Auto-calc 30% if not saved
-                        return total > 0 ? Math.round((total * 0.3) / 1000) * 1000 : '';
-                      })(),
+                      totalValue: totalVal,
+                      deposit: Number(quo.financials?.deposit) || Math.round(totalVal * 0.3),
                       managerName: '',
-                      guestCount: quo.eventDetails?.guestCount || 0,
-                      selectedExtras: (() => {
-                        const raw = quo.logistics?.selectedExtras || {};
-                        const clean = {};
-                        Object.keys(raw).forEach(k => {
-                          if (raw[k]) {
-                            const lowerK = k.toLowerCase();
-                            if (lowerK === 'makeup' || lowerK === 'neon' || lowerK.includes('maquillaje')) clean['extra_makeup'] = true;
-                            else clean[k] = true;
-                          }
-                        });
-                        return clean;
-                      })(),
+                      guestCount: evDetails.guestCount || 50,
+                      selectedExtras: cleanEx,
+                      manualBasePrice: manBase,
                       makeupCount: quo.logistics?.makeupCount || 1,
-                      occasion: quo.eventDetails?.occasion || '',
-                      extraHourPrice: quo.financials?.extraHourPrice || (() => {
-                        const p = (quo.logistics?.packName || '').toLowerCase();
-                        if (p.includes('memories') || p.includes('celebration')) return 120000;
-                        return 85000;
-                      })(),
-                      decorStartTime: quo.eventDetails?.decorStartTime || '',
-                      decorEndTime: quo.eventDetails?.decorEndTime || '',
-                      indications: quo.eventDetails?.indications || 'Ninguna',
+                      occasion: evDetails.occasion || '',
+                      extraHourPrice: quo.financials?.extraHourPrice || 85000,
+                      photoStartTime: f?.s || mS,
+                      photoEndTime: f?.e || mE,
+                      avStartTime: a?.s || mS,
+                      avEndTime: a?.e || mE,
+                      cam360StartTime: c?.s || mS,
+                      cam360EndTime: c?.e || mE,
+                      decorStartTime: mS,
+                      decorEndTime: mE,
+                      makeupStartTime: m?.s || mS,
+                      makeupEndTime: m?.e || mE,
+                      indications: evDetails.indications || 'Ninguna',
                       materialsTime: '',
                       warehouseTime: '',
                       materialExplanation: ''
                     });
                     setView('create');
-                  }} style={{
+                   }} 
+                  style={{
                     padding: '16px 20px',
                     borderRadius: '16px',
                     background: 'rgba(255,255,255,0.015)',
@@ -7461,10 +7400,15 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                   onEdit={(quo) => {
                     const clientName = quo.client?.name || quo.clientName || 'Cliente';
                     
-                    // LÓGICA DE SINCRONIZACIÓN NUCLEAR (v1.4.50)
+                    // LÓGICA DE SINCRONIZACIÓN NUCLEAR (v1.4.70 - Final fix for schedules)
                     const to24 = (t) => {
                         if (!t) return null;
                         const s = t.toString().toUpperCase().replace(/[\. ]+/g, '').trim();
+                        // Handle already formatted HH:mm
+                        if (/^\d{1,2}:\d{2}$/.test(s)) {
+                           const [h, m] = s.split(':');
+                           return `${h.padStart(2, '0')}:${m}`;
+                        }
                         const m = /(\d{1,2})(?::(\d{2}))?(AM|PM)/.exec(s);
                         if (!m) return null;
                         let h = parseInt(m[1], 10);
@@ -7478,20 +7422,16 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     const getTimeRange = (keyword) => {
                         const protocolText = (quo.indications || quo.eventDetails?.indications || JSON.stringify(quo) || '').toUpperCase().replace(/\\N/g, ' ').replace(/\n/g, ' ');
                         const idx = protocolText.lastIndexOf(keyword.toUpperCase());
-                        if (idx === -1) {
-                            console.warn(`[SYNC] Keyword not found: ${keyword}`);
-                            return null;
-                        }
+                        if (idx === -1) return null;
+                        
                         const sub = protocolText.substring(idx, idx + 600); 
                         const hPatGlobal = /(\d{1,2}(?::\d{2})?\s*[AP][\.\s]*M[\.\s]*)/gi;
                         const matches = sub.match(hPatGlobal);
                         
-                        console.log(`[SYNC] Parsing ${keyword}. Found matches:`, matches);
                         if (matches && matches.length >= 2) {
                             const start = to24(matches[0]);
                             let end = to24(matches[1]);
                             if (start && end) {
-                                console.log(`[SYNC] Matched ${keyword} -> Start: ${start}, End: ${end}`);
                                 if (end === start) {
                                     let h = parseInt(start.split(':')[0], 10);
                                     end = `${String((h + 4) % 24).padStart(2, '0')}:${start.split(':')[1] || '00'}`;
@@ -7503,13 +7443,33 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     };
 
                     const ev = quo.eventDetails || {};
-                    const mainS = to24(ev.startTime || ev.start_time || quo.startTime || quo.start_time) || '20:00';
-                    let mainE = to24(ev.endTime || ev.end_time || quo.endTime || quo.end_time) || '02:00';
-                    if (mainS === mainE || !mainE) mainE = '02:00';
-
                     const f = getTimeRange('FOTOGRAFÍA') || getTimeRange('PHOTO');
                     const a = getTimeRange('AUDIOVISUAL') || getTimeRange('SONIDO') || getTimeRange('AUDIO');
                     const c = getTimeRange('360') || getTimeRange('AÉREA') || getTimeRange('CAM');
+                    const m = getTimeRange('MAQUILLAJE') || getTimeRange('NEÓN') || getTimeRange('NEON');
+
+                    // INFERENCIA DEL HORARIO GENERAL (Min/Max de servicios)
+                    const allRanges = [f, a, c, m].filter(r => !!r);
+                    let detectedS = null;
+                    let detectedE = null;
+
+                    if (allRanges.length > 0) {
+                        // Earliest start
+                        detectedS = allRanges.reduce((min, r) => (!min || r.s < min) ? r.s : min, null);
+                        // Latest end (taking crossing midnight into account)
+                        detectedE = allRanges.reduce((max, r) => {
+                            if (!max) return r.e;
+                            // Simplistic comparison for late nights (if it's before 06:00 it's 'later' than 23:59)
+                            const isLate = (t) => { const h = parseInt(t.split(':')[0], 10); return h >= 0 && h < 7; };
+                            if (isLate(r.e) && !isLate(max)) return r.e;
+                            if (!isLate(r.e) && isLate(max)) return max;
+                            return (r.e > max) ? r.e : max;
+                        }, null);
+                    }
+
+                    const mainS = detectedS || to24(ev.startTime || ev.start_time || quo.startTime || quo.start_time) || '20:00';
+                    let mainE = detectedE || to24(ev.endTime || ev.end_time || quo.endTime || quo.end_time) || '00:00';
+                    if (mainS === mainE || !mainE) mainE = '00:00';
 
                     setNewEvent({
                       id: quo.id,
@@ -7518,19 +7478,19 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       clientPhone: quo.client?.phone || quo.clientPhone || '',
                       clientPhone2: quo.client?.phone2 || quo.clientPhone2 || '',
                       date: quo.eventDetails?.date || '',
-                      startTime: quo.eventDetails?.startTime || '',
-                      endTime: quo.eventDetails?.endTime || '',
+                      startTime: mainS,
+                      endTime: mainE,
                       location: quo.eventDetails?.location || '',
                       neighborhood: quo.eventDetails?.neighborhood || '',
                       packName: (() => {
                         const p = (quo.logistics?.packName || '').toUpperCase();
-                        if (p.includes('ONIX') || p.includes('ESSENTIAL')) return 'ONIX';
-                        if (p.includes('MULTII')) return 'MULTII';
-                        if (p.includes('KAIZEN')) return 'KAIZEN';
-                        if (p.includes('MEMORIES')) return 'MEMORIES';
-                        if (p.includes('CELEBRATION')) return 'CELEBRATION';
-                        if (p.includes('APP') || p.includes('PERSONALIZADO')) return 'PERSONALIZADO';
-                        return '';
+                        // Exact match only for packages
+                        if (p === 'ONIX' || p === 'ESSENTIAL') return 'ONIX';
+                        if (p === 'MULTII' || p === 'ELITE') return 'MULTII';
+                        if (p === 'KAIZEN' || p === 'PLATINUM') return 'KAIZEN';
+                        if (p === 'MEMORIES') return 'MEMORIES';
+                        if (p === 'CELEBRATION') return 'CELEBRATION';
+                        return 'A LA CARTA';
                       })(),
                       totalValue: Number(quo.financials?.totalValue) || 0,
                       managerName: '',
@@ -7545,14 +7505,17 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       materials: quo.logistics?.materials || '',
                       materialExplanation: quo.logistics?.materials || '',
                       warehouseTime: quo.logistics?.warehouseTime || '',
-                      photoStartTime: quo.eventDetails?.photoStartTime || '',
-                      photoEndTime: quo.eventDetails?.photoEndTime || '',
-                      cam360StartTime: quo.eventDetails?.cam360StartTime || '',
-                      cam360EndTime: quo.eventDetails?.cam360EndTime || '',
-                      avStartTime: quo.eventDetails?.avStartTime || '',
-                      avEndTime: quo.eventDetails?.avEndTime || '',
-                      decorStartTime: quo.eventDetails?.decorStartTime || '',
-                      decorEndTime: quo.eventDetails?.decorEndTime || '',
+                      // Mapeo Robusto de Horarios Individuales (Prioridad: Dato Extraído > Dato de Lead > Horario Base)
+                      photoStartTime: f?.s || to24(quo.eventDetails?.photoStartTime) || mainS,
+                      photoEndTime: f?.e || to24(quo.eventDetails?.photoEndTime) || mainE,
+                      cam360StartTime: c?.s || to24(quo.eventDetails?.cam360StartTime) || mainS,
+                      cam360EndTime: c?.e || to24(quo.eventDetails?.cam360EndTime) || subtractMinutes(mainS, -120),
+                      avStartTime: a?.s || to24(quo.eventDetails?.avStartTime) || mainS,
+                      avEndTime: a?.e || to24(quo.eventDetails?.avEndTime) || mainE,
+                      decorStartTime: to24(quo.eventDetails?.decorStartTime) || mainS,
+                      decorEndTime: to24(quo.eventDetails?.decorEndTime) || subtractMinutes(mainS, -120),
+                      makeupStartTime: m?.s || to24(quo.eventDetails?.makeupStartTime) || mainS,
+                      makeupEndTime: m?.e || to24(quo.eventDetails?.makeupEndTime) || subtractMinutes(mainS, -120),
                       decorColor: quo.eventDetails?.decorColor || '',
                       decorTheme: quo.eventDetails?.decorTheme || '',
                       paymentMethod: quo.financials?.paymentMethod || 'Nequi',
@@ -7560,6 +7523,10 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       manualBasePrice: (() => {
                         const savedBase = Number(quo.financials?.manualBasePrice) || 0;
                         if (savedBase > 0) return savedBase;
+                        
+                        const pack = (quo.logistics?.packName || '').toUpperCase();
+                        if (['ONIX', 'MULTII', 'KAIZEN'].some(k => pack.includes(k))) return 0;
+                        
                         const total = Number(quo.financials?.totalValue) || 0;
                         const extras = getDynamicExtras({ selectedExtras: quo.logistics?.selectedExtras || {}, extraQtys: quo.logistics?.extraQtys || {} });
                         const extrasSum = extras.filter(ex => quo.logistics?.selectedExtras?.[ex.id]).reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
@@ -8257,7 +8224,5 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
     );
   }
 }
-
-
 
 export default App;
