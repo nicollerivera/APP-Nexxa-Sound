@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.78-hotfix-adjustment'; 
+const APP_VERSION = 'v1.4.79-hotfix-final'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -3945,6 +3945,7 @@ function App() {
             const proto = STITCH_DATA.protocols[p];
             if (p === 'A LA CARTA') {
                updated.selectedExtras = {};
+               updated.manualBasePrice = 0;
             } else if (proto?.includedExtras || /MULTII/i.test(p) || /ONIX/i.test(p) || /KAIZEN/i.test(p)) {
               const newExtras = {};
               const forced = proto?.includedExtras || (/MULTII/i.test(p) ? ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] : (/ONIX/i.test(p) ? ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] : ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration']));
@@ -4443,7 +4444,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
 
                            return (
                              <div style={{ marginTop: '8px' }}>
-                               {services.map(s => (s.incl || s.xp > 0) && (
+                               {services.map(s => (s.incl || s.xp > 0 || (!!newEvent.selectedExtras?.['extra_' + s.id] || !!newEvent.selectedExtras?.[s.id])) && (
                                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#ff3860', fontSize: '0.65rem', marginBottom: '2px' }}>
                                    <span style={{ color: '#aaa' }}>• {s.label} {s.dur > 0 ? `(${Math.ceil(s.dur)}h)` : ''}:</span>
                                    <strong style={{ color: '#fff' }}>${(s.base + s.xp).toLocaleString()}</strong>
