@@ -1427,9 +1427,6 @@ function App() {
   // ==========================================
   const STITCH_DATA = {
     protocols: {
-      'ESSENTIAL':   { price: 450000, roles: ['DJ Crossover'], items: ['Cabinas Pro', 'Luces LED'], includedExtras: [] },
-      'MEMORIES':    { price: 650000, roles: ['DJ Crossover', 'Fotografía'], items: ['Cabinas Pro', 'Luces LED'], includedExtras: ['extra_photo'] },
-      'CELEBRATION': { price: 850000, roles: ['DJ Crossover', 'Fotografía', 'Decoración'], items: ['Cabinas Pro', 'Luces LED'], includedExtras: ['extra_photo', 'extra_decor_onix'] },
       'ONIX':        { price: 1250000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] },
       'MULTII':      { price: 1650000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] },
       'KAIZEN':      { price: 2250000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'] }
@@ -1497,15 +1494,17 @@ function App() {
       {
         id: 'acc_essential',
         name: 'Kit 111',
-        price: (STITCH_DATA.extras.acc_espuma * 1) + (g * (STITCH_DATA.extras.acc_collar + STITCH_DATA.extras.acc_manilla + STITCH_DATA.extras.acc_pito)),
+        // Formula: 1 Espuma + (Manillas + Pitos) * g
+        price: (STITCH_DATA.extras.acc_espuma * 1) + (g * (STITCH_DATA.extras.acc_manilla + STITCH_DATA.extras.acc_pito)),
         isAcc: true,
         category: 'Accesorios',
-        details: `1 Espuma + ${g} Collares/Manillas/Pitos.`,
+        details: `1 Espuma + ${g} Manillas/Pitos.`,
         needsTime: false
       },
       {
         id: 'acc_memories',
         name: 'Kit 444',
+        // Formula: 2 Espumas + (Collares + Manillas + Pitos) * g
         price: (STITCH_DATA.extras.acc_espuma * 2) + (g * (STITCH_DATA.extras.acc_collar + STITCH_DATA.extras.acc_manilla + STITCH_DATA.extras.acc_pito)),
         isAcc: true,
         category: 'Accesorios',
@@ -1515,10 +1514,11 @@ function App() {
       {
         id: 'acc_celebration',
         name: 'Kit 777',
-        price: (STITCH_DATA.extras.acc_espuma * 3) + (STITCH_DATA.extras.acc_canon * 3) + (g * (STITCH_DATA.extras.acc_manilla + STITCH_DATA.extras.acc_pito + STITCH_DATA.extras.acc_collar + STITCH_DATA.extras.acc_antifaz)),
+        // Formula: 3 Espuma + 2 Cañones + (Antifaces + Collares + Manillas + Pitos) * g
+        price: (STITCH_DATA.extras.acc_espuma * 3) + (STITCH_DATA.extras.acc_canon * 2) + (g * (STITCH_DATA.extras.acc_antifaz + STITCH_DATA.extras.acc_collar + STITCH_DATA.extras.acc_manilla + STITCH_DATA.extras.acc_pito)),
         isAcc: true,
         category: 'Accesorios',
-        details: `3 Espuma + 3 Cañón + ${g} Collares/Manillas/Pitos/Antifaces.`,
+        details: `3 Espuma + 2 Cañones + ${g} Antifaces/Collares/Manillas/Pitos.`,
         needsTime: false
       },
       // DECORATION
@@ -1607,7 +1607,9 @@ function App() {
     .reduce((acc, ex) => acc + (parseInt(ex.price) || 0), 0);
 
   // 4. FINAL SUM
-  const computedTotal = baseP + djXP + photoXP + camXP + avXP + selectedExtrasPrice;
+  // UNIFICATION: If AV is present, DJ extension is covered by AV extension
+  const finalDjXP = hasAV ? 0 : djXP;
+  const computedTotal = baseP + finalDjXP + photoXP + camXP + avXP + selectedExtrasPrice;
 
   // 5. AUTO-SYNC EFFECT: Reliable & Non-intrusive
   React.useEffect(() => {
@@ -3946,7 +3948,8 @@ function App() {
           
           const proto = STITCH_DATA.protocols[p];
           if (proto?.includedExtras || /MULTII/i.test(p) || /ONIX/i.test(p) || /KAIZEN/i.test(p)) {
-            const newExtras = { ...(updated.selectedExtras || {}) };
+            // INSTRUMENT LOGIC: Reset to pack-only extras for consistency
+            const newExtras = {};
             const forced = proto?.includedExtras || (/MULTII/i.test(p) ? ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] : (/ONIX/i.test(p) ? ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] : ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration']));
             
             forced.forEach(extId => {
@@ -3954,24 +3957,22 @@ function App() {
             });
             updated.selectedExtras = newExtras;
 
-            // SYNC TIMES: Use DJ Time or 08:00 PM as master for included services
-            const masterS = updated.djStartTime || updated.startTime || '20:00';
+            // SYNC TIMES: Use Event Time or 08:00 PM as master
+            const masterS = updated.startTime || '20:00';
+            const masterE = updated.endTime || '00:00';
             
-            // Set default DJ hours if empty (Min 4h)
-            if (!updated.djStartTime) updated.djStartTime = masterS;
-            if (!updated.djEndTime) updated.djEndTime = subtractMinutes(masterS, -240);
-
-            const masterE = updated.djEndTime;
-
-            if (masterS && masterE) {
-              if (newExtras['extra_photo'] && !updated.photoStartTime) { updated.photoStartTime = masterS; updated.photoEndTime = masterE; }
-              if (newExtras['extra_av'] && !updated.avStartTime) { updated.avStartTime = masterS; updated.avEndTime = masterE; }
-              if (newExtras['extra_cam360'] && !updated.cam360StartTime) { updated.cam360StartTime = masterS; updated.cam360EndTime = subtractMinutes(masterS, -120); }
-              if (newExtras['extra_makeup'] && !updated.makeupStartTime) { updated.makeupStartTime = masterS; updated.makeupEndTime = subtractMinutes(masterS, -120); }
-              if (newExtras['extra_decor_onix'] || newExtras['extra_decor_multii'] || newExtras['extra_decor_kaizen']) {
-                if (!updated.decorStartTime) updated.decorStartTime = subtractMinutes(masterS, 60);
-                if (!updated.decorEndTime) updated.decorEndTime = subtractMinutes(masterS, -60);
-              }
+            // Set service times to match event duration
+            if (newExtras['extra_photo']) { updated.photoStartTime = masterS; updated.photoEndTime = masterE; }
+            if (newExtras['extra_av']) { 
+              updated.avStartTime = masterS; updated.avEndTime = masterE;
+              // DJ is part of AV
+              updated.djStartTime = masterS; updated.djEndTime = masterE;
+            }
+            if (newExtras['extra_cam360']) { updated.cam360StartTime = masterS; updated.cam360EndTime = subtractMinutes(masterS, -120); }
+            if (newExtras['extra_makeup']) { updated.makeupStartTime = masterS; updated.makeupEndTime = subtractMinutes(masterS, -120); }
+            if (newExtras['extra_decor_onix'] || newExtras['extra_decor_multii'] || newExtras['extra_decor_kaizen']) {
+              updated.decorStartTime = subtractMinutes(masterS, 60);
+              updated.decorEndTime = subtractMinutes(masterS, -60);
             }
           }
         } else if (field === 'startTime') {
@@ -4165,9 +4166,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     <div style={{ gridColumn: 'span 2', marginTop: '2px' }}>
                       <select style={{ width: '100%', padding: '10px', fontSize: '0.85rem', border: '1px solid rgba(188, 111, 241, 0.3)', height: '42px', background: 'rgba(188, 111, 241, 0.05)', color: '#fff' }} value={newEvent.packName} onChange={e => updateEvent('packName', e.target.value)}>
                         <option value="">Selecciona el Plan...</option>
-                        <option value="ESSENTIAL">ESSENTIAL ($450k)</option>
-                        <option value="MEMORIES">MEMORIES ($650k)</option>
-                        <option value="CELEBRATION">CELEBRATION ($850k)</option>
                         <option value="ONIX">ONIX ($1.25M)</option>
                         <option value="MULTII">MULTII ($1.65M)</option>
                         <option value="KAIZEN">KAIZEN ($2.25M)</option>
