@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.86-pack-inference'; 
+const APP_VERSION = 'v1.4.87-calc-fix'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -7480,6 +7480,21 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                     let mainE = detectedE || to24(ev.endTime || ev.end_time || quo.endTime || quo.end_time) || '00:00';
                     if (mainS === mainE || !mainE) mainE = '00:00';
 
+                    const derivedPack = (() => {
+                      const p = (quo.logistics?.packName || '').toUpperCase();
+                      if (p === 'KAIZEN' || p === 'PLATINUM' || p === 'DIAMANTE') return 'KAIZEN';
+                      if (p === 'MULTII' || p === 'ELITE' || p === 'ORO') return 'MULTII';
+                      if (p === 'ONIX' || p === 'Ó' + 'NIX' || p === 'SILVER' || p === 'ESSENTIAL') return 'ONIX';
+                      if (p === 'MEMORIES') return 'MEMORIES';
+                      if (p === 'CELEBRATION') return 'CELEBRATION';
+                      
+                      const v = Number(quo.financials?.totalValue) || 0;
+                      if (v >= 1950000) return 'KAIZEN';
+                      if (v >= 1540000) return 'MULTII';
+                      if (v >= 850000) return 'ONIX';
+                      return 'A LA CARTA';
+                    })();
+
                     setNewEvent({
                       id: quo.id,
                       createdAt: quo.createdAt || null,
@@ -7491,23 +7506,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       endTime: mainE,
                       location: quo.eventDetails?.location || '',
                       neighborhood: quo.eventDetails?.neighborhood || '',
-                      packName: (() => {
-                        const p = (quo.logistics?.packName || '').toUpperCase();
-                        // Mapping robusto para paquetes conocidos
-                        if (p === 'KAIZEN' || p === 'PLATINUM' || p === 'DIAMANTE') return 'KAIZEN';
-                        if (p === 'MULTII' || p === 'ELITE' || p === 'ORO') return 'MULTII';
-                        if (p === 'ONIX' || p === 'Ó' + 'NIX' || p === 'SILVER' || p === 'ESSENTIAL') return 'ONIX';
-                        if (p === 'MEMORIES') return 'MEMORIES';
-                        if (p === 'CELEBRATION') return 'CELEBRATION';
-                        
-                        // Si es "A LA CARTA" pero el precio es sospechosamente de un plan, lo forzamos
-                        const v = Number(quo.financials?.totalValue) || 0;
-                        if (v >= 1950000) return 'KAIZEN';
-                        if (v >= 1540000) return 'MULTII';
-                        if (v >= 850000) return 'ONIX';
-                        
-                        return 'A LA CARTA';
-                      })(),
+                      packName: derivedPack,
                       totalValue: Number(quo.financials?.totalValue) || 0,
                       managerName: '',
                       guestCount: Number(quo.eventDetails?.guestCount) || 50,
@@ -7521,7 +7520,6 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       materials: quo.logistics?.materials || '',
                       materialExplanation: quo.logistics?.materials || '',
                       warehouseTime: quo.logistics?.warehouseTime || '',
-                      // Mapeo Robusto de Horarios Individuales (Prioridad: Dato Extraído > Dato de Lead > Horario Base)
                       photoStartTime: f?.s || to24(quo.eventDetails?.photoStartTime) || mainS,
                       photoEndTime: f?.e || to24(quo.eventDetails?.photoEndTime) || mainE,
                       cam360StartTime: c?.s || to24(quo.eventDetails?.cam360StartTime) || mainS,
@@ -7538,11 +7536,9 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       deposit: Number(quo.financials?.deposit) || Math.round((Number(quo.financials?.totalValue) || 0) * 0.3),
                       manualBasePrice: Number(quo.financials?.manualBasePrice) || (() => {
                         const totalFromQuo = Number(quo.financials?.totalValue) || 0;
-                        // Engine check - approximate
-                        const tempState = { packName: 'A LA CARTA', selectedExtras: quo.logistics?.selectedExtras || {} };
+                        const tempState = { packName: derivedPack, selectedExtras: quo.logistics?.selectedExtras || {} };
                         const engineRes = calculateEventTotalBreakdown(tempState).total;
-                        // If lead total is significantly higher than auto-calculated extras, protect it in manualBasePrice
-                        return (totalFromQuo > engineRes + 1000) ? (totalFromQuo - engineRes) : 0;
+                        return (totalFromQuo > engineRes + 5000) ? (totalFromQuo - engineRes) : 0;
                       })(),
                       priceLocked: true,
                     });
