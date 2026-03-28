@@ -123,22 +123,25 @@ export const generateQuotationPDF = async (quo) => {
         const isCELEBRATION = packName.includes('CELEBRATION');
 
         const serviceDescriptions = {
-            av: "SISTEMA SONIDO PRO: 2 Cabinas activas, 2 Micrófonos Inalámbricos, 4 Luces Rítmicas, Cámara de Humo y DJ Crossover en vivo con montaje/desmontaje.",
-            photo: "FOTOGRAFÍA PROFESIONAL: Incluye cámara profesional Reflex/Mirrorless, cobertura del cronograma y entrega digital en Micro SD.",
-            cam: "PRODUCTO 360 XL: Plataforma de 3x2 metros con capacidad para 15 personas, videos en resolución 4K, entrega inmediata y personal encargado.",
-            makeup: "STAND MAQUILLAJE NEÓN: Personal maquillador, kit de pintura UV especial alta pigmentación y accesorios neón por 2 horas.",
-            decor: "DECORACIÓN PERSONALIZADA: Mobiliario temático, arco de globos orgánico, cilindros y accesorios exclusivos según el set contratado."
+            av: "SONIDO + DJ: 2 Cabinas activas 15\", 2 Micrófonos, 4 Luces Rítmicas, Máquina Humo y DJ Crossover profesional.",
+            photo: "FOTOGRAFÍA: Cámara Reflex/Mirrorless, cumplimiento de cronograma y entrega digital en Micro SD.",
+            cam: "CÁMARA 360 XL: Plataforma 3x2 (15 personas), videos 4K, entrega inmediata y personal encargado.",
+            makeup: "MAQUILLAJE NEÓN: Personal maquillador, pinturas UV alta pigmentación y accesorios por 2 horas.",
+            decor: "DECORACIÓN: Mobiliario, arco de globos, cilindros y set personalizado según el evento."
         };
 
+        const extraHourPrice = quo.financials?.extraHourPrice || 85000;
+
         const services = [
-            { label: 'AUDIOVISUALES (+DJ)', start: st.avStartTime || st.startTime, end: st.avEndTime || st.endTime, desc: serviceDescriptions.av, incl: isONIX || isMULTII || isKAIZEN || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_av'] },
-            { label: 'FOTOGRAFÍA PRO', start: st.photoStartTime || st.startTime, end: st.photoEndTime || st.endTime, desc: serviceDescriptions.photo, incl: isONIX || isMULTII || isKAIZEN || isMEMORIES || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_photo'] },
-            { label: 'CÁMARA 360 XL', start: st.cam360StartTime || st.startTime, end: st.cam360EndTime || st.endTime, desc: serviceDescriptions.cam, incl: isMULTII || isKAIZEN || isMEMORIES || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_cam360'] },
-            { label: 'MAQUILLAJE NEÓN', start: st.makeupStartTime || st.startTime, end: st.makeupEndTime || st.endTime, desc: serviceDescriptions.makeup, incl: isKAIZEN || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_makeup'] },
-            { label: 'DECORACIÓN', start: st.decorStartTime || st.startTime, end: st.decorEndTime || st.endTime, desc: serviceDescriptions.decor, incl: isONIX || isMULTII || isKAIZEN || isMEMORIES || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_decor_onix'] || quo.logistics?.selectedExtras?.['extra_decor_multii'] || quo.logistics?.selectedExtras?.['extra_decor_kaizen'] }
+            { id: 'av', label: 'AUDIOVISUALES (+DJ)', start: st.avStartTime || st.startTime, end: st.avEndTime || st.endTime, desc: serviceDescriptions.av, incl: isONIX || isMULTII || isKAIZEN || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_av'], base: 450000, prot: (isONIX || isMULTII || isKAIZEN) ? 4 : 0 },
+            { id: 'photo', label: 'FOTOGRAFÍA PRO', start: st.photoStartTime || st.startTime, end: st.photoEndTime || st.endTime, desc: serviceDescriptions.photo, incl: isONIX || isMULTII || isKAIZEN || isMEMORIES || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_photo'], base: 200000, prot: (isONIX || isMULTII || isKAIZEN) ? 4 : 0 },
+            { id: 'cam', label: 'CÁMARA 360 XL', start: st.cam360StartTime || st.startTime, end: st.cam360EndTime || st.endTime, desc: serviceDescriptions.cam, incl: isMULTII || isKAIZEN || isMEMORIES || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_cam360'], base: 550000, prot: (isMULTII || isKAIZEN) ? 2 : 0 },
+            { id: 'makeup', label: 'MAQUILLAJE NEÓN', start: st.makeupStartTime || st.startTime, end: st.makeupEndTime || st.endTime, desc: serviceDescriptions.makeup, incl: isKAIZEN || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_makeup'], base: 120000, prot: isKAIZEN ? 2 : 0 },
+            { id: 'decor', label: 'DECORACIÓN', start: st.decorStartTime || st.startTime, end: st.decorEndTime || st.endTime, desc: serviceDescriptions.decor, incl: isONIX || isMULTII || isKAIZEN || isMEMORIES || isCELEBRATION || quo.logistics?.selectedExtras?.['extra_decor_onix'] || quo.logistics?.selectedExtras?.['extra_decor_multii'] || quo.logistics?.selectedExtras?.['extra_decor_kaizen'], base: isKAIZEN ? 550000 : (isMULTII ? 340000 : 200000), prot: 0 }
         ];
 
         // Add services to table
+        let coverageTotal = 0;
         services.filter(s => s.incl).forEach(s => {
             const h1 = s.start || '20:00';
             const h2 = s.end || '00:00';
@@ -146,39 +149,69 @@ export const generateQuotationPDF = async (quo) => {
             const [ho2, mo2] = h2.split(':').map(Number);
             let diff = (ho2 * 60 + mo2) - (ho1 * 60 + mo1);
             if (diff < 0) diff += 24 * 60;
-            const hours = (diff / 60).toFixed(1);
+            const hours = diff / 60;
+
+            const extraH = Math.max(0, Math.ceil(hours - (s.prot || 0)));
+            const xpValue = extraH * extraHourPrice;
+            const subtotal = s.base + xpValue;
+
+            if (s.incl) coverageTotal += s.base;
 
             tableRows.push([
                 `${formatT(h1)} - ${formatT(h2)}`,
                 s.label,
                 s.desc,
-                `${hours}h`,
-                'INCLUIDO',
-                'INCLUIDO'
+                `${hours.toFixed(1)}h`,
+                formatPeso(s.base),
+                formatPeso(subtotal)
             ]);
         });
 
         // Add additional items
         const extras = quo.logistics?.selectedExtras || {};
-        const extraNames = {
-            'acc_essential': 'KIT ESSENTIAL (111)',
-            'acc_memories': 'KIT MEMORIES (444)',
-            'acc_celebration': 'KIT CELEBRATION (777)'
+        const extraData = {
+            'acc_essential': { name: 'KIT ESSENTIAL (111)', price: 47000 }, // Average base value
+            'acc_memories': { name: 'KIT MEMORIES (444)', price: 85000 },
+            'acc_celebration': { name: 'KIT CELEBRATION (777)', price: 127000 }
         };
+
         Object.keys(extras).forEach(k => {
-            if (extras[k] && extraNames[k]) {
-                tableRows.push(['---', extraNames[k], 'Kit de accesorios y complementos detallados según cronograma.', '---', 'INCLUIDO', 'INCLUIDO']);
+            if (extras[k] && extraData[k]) {
+                const item = extraData[k];
+                const isIncl = (isONIX && k === 'acc_essential') || (isMULTII && k === 'acc_memories') || (isKAIZEN && k === 'acc_celebration');
+                if (isIncl) coverageTotal += item.price;
+
+                tableRows.push([
+                    '---', 
+                    item.name, 
+                    'Accesorios y complementos detallados según cronograma.', 
+                    '---', 
+                    isIncl ? 'INCLUIDO' : formatPeso(item.price), 
+                    isIncl ? 'INCLUIDO' : formatPeso(item.price)
+                ]);
             }
         });
+
+        // Plan Coverage Subtraction Row
+        if (coverageTotal > 0) {
+            tableRows.push([
+                '',
+                '',
+                `DESCUENTO COBERTURA PLAN ${packName}`,
+                '',
+                '',
+                `-${formatPeso(coverageTotal)}`
+            ]);
+        }
 
         autoTable(doc, {
             startY: y,
             theme: 'grid',
-            head: [['Franja horaria', 'Servicio', 'Descripción', 'Horas', 'Valor/h', 'Subtotal']],
+            head: [['Franja horaria', 'Servicio', 'Descripción', 'Horas', 'Valor Base', 'Subtotal']],
             body: tableRows,
-            styles: { fontSize: 8, cellPadding: 3, textColor: COLORS.TEXT, lineColor: [230, 230, 230] },
+            styles: { fontSize: 7.5, cellPadding: 2, textColor: COLORS.TEXT, lineColor: [230, 230, 230] },
             headStyles: { fillColor: [250, 250, 250], textColor: COLORS.PURPLE, fontStyle: 'bold' },
-            columnStyles: { 0: { cellWidth: 32 }, 1: { cellWidth: 30, fontStyle: 'bold' }, 2: { cellWidth: 65 }, 3: { cellWidth: 15, halign: 'center' }, 4: { cellWidth: 20, halign: 'center' }, 5: { cellWidth: 20, halign: 'center' } }
+            columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: 32, fontStyle: 'bold' }, 2: { cellWidth: 65 }, 3: { cellWidth: 12, halign: 'center' }, 4: { cellWidth: 25, halign: 'right' }, 5: { cellWidth: 25, halign: 'right' } }
         });
 
         y = doc.lastAutoTable.finalY + 12;
@@ -187,53 +220,54 @@ export const generateQuotationPDF = async (quo) => {
         const total = quo.financials?.totalValue || 0;
         const deposit = quo.financials?.deposit || (total * 0.3);
         const balance = total - deposit;
-        const extraHour = quo.financials?.extraHourPrice || 85000;
 
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.text('Costo de transporte:', pageWidth - margin - 50, y);
         doc.text('INCLUIDO', pageWidth - margin, y, { align: 'right' });
         y += 6;
-        doc.text('Hora extra adicional:', pageWidth - margin - 50, y);
-        doc.text(formatPeso(extraHour), pageWidth - margin, y, { align: 'right' });
+        doc.text('Hora extra base (adicional):', pageWidth - margin - 50, y);
+        doc.text(formatPeso(extraHourPrice), pageWidth - margin, y, { align: 'right' });
         y += 10;
 
-        doc.setFontSize(16);
+        doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...COLORS.PURPLE);
-        doc.text(`TOTAL:  ${formatPeso(total)}`, pageWidth - margin, y, { align: 'right' });
-        y += 15;
+        doc.text(`VALOR TOTAL CONTRATO:  ${formatPeso(total)}`, pageWidth - margin, y, { align: 'right' });
+        y += 12;
 
         // Financial Breakdown
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setTextColor(...COLORS.TEXT);
-        doc.text(`Abono realizado (30%): ${formatPeso(deposit)}`, margin, y);
-        doc.text(`Saldo pendiente a recaudar (70%): ${formatPeso(balance)}`, pageWidth - margin, y, { align: 'right' });
+        doc.text(`Reserva (30% Abono): ${formatPeso(deposit)}`, margin, y);
+        doc.text(`Saldo Pendiente (Día del Evento): ${formatPeso(balance)}`, pageWidth - margin, y, { align: 'right' });
         y += 15;
 
         // 5. LEGAL TERMS
-        if (y > pageHeight - 110) { doc.addPage(); y = 30; }
+        if (y > pageHeight - 120) { doc.addPage(); y = 30; }
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...COLORS.PURPLE);
-        doc.text('Condiciones y Políticas del Servicio', margin, y);
+        doc.text('Información del Servicio y Recomendaciones', margin, y);
         y += 8;
 
         const conditions = [
-            "PAGO: El saldo pendiente (70%) debe ser cancelado al personal encargado ANTES de iniciar el servicio.",
-            "CANCELACIÓN: Notificar con mínimo 2 días de antelación para evitar penalidad del 35%. El abono no es reembolsable.",
-            "LOGÍSTICA: Los datos del personal se entregan un día antes por seguridad y disponibilidad.",
-            "DURACIÓN: La puntualidad garantiza el cumplimiento total. En caso de retraso de personal, se repone el tiempo.",
-            "RESPONSABILIDAD: Cualquier daño a los equipos causado por los asistentes será responsabilidad del cliente."
+            "PAGO DEL SERVICIO: El saldo pendiente se pagará en su totalidad el día del evento ANTES de dar inicio al servicio (Nequi/Daviplata 3002596935).",
+            "CUMPLIMIENTO: El servicio no se prestará sin haber cancelado el saldo total. La puntualidad es responsabilidad mutua.",
+            "CANCELACIONES: Notificar con mínimo 2 días de antelación. En caso contrario, se cobrará una penalidad del 35% del valor total.",
+            "LOGÍSTICA: Los datos del personal se entregan un día antes por seguridad. El montaje inicia 1 hora antes de la franja contratada.",
+            "RESPONSABILIDAD: El cliente es responsable por daños a equipos (cabinas, cámaras, luces) causados por invitados.",
+            "ENTREGA: Videos de 360 son de entrega inmediata. Fotos se entregan al finalizar el evento mediante Micro SD o link digital.",
+            "CRONOGRAMA: El personal acatará el cronograma establecido. Horas adicionales no pactadas deben ser autorizadas y pagadas en sitio."
         ];
 
-        doc.setFontSize(8);
+        doc.setFontSize(7.5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...COLORS.TEXT_SOFT);
         conditions.forEach(c => {
             const splitC = doc.splitTextToSize(`• ${c}`, pageWidth - (margin * 2));
             doc.text(splitC, margin, y);
-            y += (splitC.length * 4.5);
+            y += (splitC.length * 4);
         });
 
         // IMPORTANT FOOTNOTE

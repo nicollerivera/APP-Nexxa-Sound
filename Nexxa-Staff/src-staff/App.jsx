@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.89-it-works-now'; 
+const APP_VERSION = 'v1.4.92-pricing-disclosed'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -1652,7 +1652,16 @@ function App() {
       xp: xpSum,
       extras: extrasPrice,
       items: { djXP, photoXP, camXP, avXP },
-      durs: { dDur, pDur, cDur, aDur }
+      durs: { dDur, pDur, cDur, aDur },
+      isActive: {
+        av: isActive('extra_av'),
+        photo: isActive('extra_photo'),
+        cam: isActive('extra_cam360'),
+        makeup: isActive('extra_makeup'),
+        decorOnix: isActive('extra_decor_onix'),
+        decorMultii: isActive('extra_decor_multii'),
+        decorKaizen: isActive('extra_decor_kaizen')
+      }
     };
   };
 
@@ -4445,44 +4454,70 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                             const isMULTII = pack.includes('MULTII');
                             const isKAIZEN = pack.includes('KAIZEN');
 
-                            const decorCost = isKAIZEN ? 550000 : (isMULTII ? 340000 : 200000);
-                            const makeupCost = isKAIZEN ? 200000 : 0;
+                            const dCost = isKAIZEN ? STITCH_DATA.extras.decor_kaizen : (isMULTII ? STITCH_DATA.extras.decor_multii : STITCH_DATA.extras.decor_onix);
 
                             const services = [
-                              { id: 'av', label: 'Audiovisuales (Incl. DJ)', dur: currentBreakdown.durs.aDur, base: (isONIX || isMULTII || isKAIZEN) ? 0 : 450000, xp: currentBreakdown.items.avXP + (!!newEvent.selectedExtras?.['extra_av'] ? 0 : currentBreakdown.items.djXP), incl: isONIX || isMULTII || isKAIZEN },
-                              { id: 'photo', label: 'Fotografía', dur: currentBreakdown.durs.pDur, base: (isONIX || isMULTII || isKAIZEN) ? 0 : 200000, xp: currentBreakdown.items.photoXP, incl: isONIX || isMULTII || isKAIZEN },
-                              { id: 'cam', label: 'Cámara 360', dur: currentBreakdown.durs.cDur, base: (isMULTII || isKAIZEN) ? 0 : 550000, xp: currentBreakdown.items.camXP, incl: isMULTII || isKAIZEN },
-                              { id: 'makeup', label: 'Maquillaje Neón', dur: 0, base: isKAIZEN ? 0 : makeupCost, xp: 0, incl: isKAIZEN },
-                              { id: 'decor', label: 'Decoración', base: (isONIX || isMULTII || isKAIZEN) ? 0 : decorCost, xp: 0, incl: isONIX || isMULTII || isKAIZEN }
+                              { id: 'av', label: 'Audiovisuales (Incl. DJ)', dur: currentBreakdown.durs.aDur, base: STITCH_DATA.extras.av, xp: currentBreakdown.items.avXP, incl: isONIX || isMULTII || isKAIZEN },
+                              { id: 'photo', label: 'Fotografía', dur: currentBreakdown.durs.pDur, base: STITCH_DATA.extras.photo, xp: currentBreakdown.items.photoXP, incl: isONIX || isMULTII || isKAIZEN },
+                              { id: 'cam', label: 'Cámara 360', dur: currentBreakdown.durs.cDur, base: STITCH_DATA.extras.cam360, xp: currentBreakdown.items.camXP, incl: isMULTII || isKAIZEN },
+                              { id: 'makeup', label: 'Maquillaje Neón', dur: 0, base: STITCH_DATA.extras.makeup, xp: 0, incl: isKAIZEN },
+                              { id: 'decor', label: 'Decoración', dur: 0, base: dCost, xp: 0, incl: isONIX || isMULTII || isKAIZEN }
                             ];
 
-                           return (
-                             <div style={{ marginTop: '8px' }}>
-                               {services.map(s => (s.incl || s.xp > 0 || (!!newEvent.selectedExtras?.['extra_' + s.id] || !!newEvent.selectedExtras?.[s.id])) && (
-                                 <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#ff3860', fontSize: '0.65rem', marginBottom: '2px' }}>
-                                   <span style={{ color: '#aaa' }}>• {s.label} {s.dur > 0 ? `(${Math.ceil(s.dur)}h)` : ''}:</span>
-                                   <strong style={{ color: '#fff' }}>${(s.base + s.xp).toLocaleString()}</strong>
-                                 </div>
-                               ))}
-                             </div>
-                           );
+                            return (
+                              <div style={{ marginTop: '8px' }}>
+                                {services.map(s => {
+                                  const activeExtra = newEvent.selectedExtras?.[s.id === 'av' ? 'extra_av' : (s.id === 'cam' ? 'extra_cam360' : 'extra_' + s.id)];
+                                  if (!s.incl && !activeExtra && s.xp === 0) return null;
+
+                                  const totalSrv = s.base + s.xp;
+                                  return (
+                                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#ff3860', fontSize: '0.65rem', marginBottom: '4px' }}>
+                                      <span style={{ color: '#aaa' }}>
+                                        • {s.label} {s.dur > 0 ? `(${Math.ceil(s.dur)}h)` : ''}:
+                                      </span>
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                        <strong style={{ color: '#fff' }}>
+                                          {formatPeso(totalSrv)}
+                                        </strong>
+                                        {s.incl && (
+                                          <span style={{ color: 'var(--success-green)', fontSize: '0.55rem', opacity: 0.8, fontWeight: '900' }}>
+                                            (CUBIERTO POR PAQUETE {pack})
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+
+                                {hasPlan && (
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--success-green)', fontSize: '0.65rem', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed rgba(0,255,0,0.2)' }}>
+                                    <span style={{ fontWeight: '900' }}>COBERTURA TOTAL PAQUETE:</span>
+                                    <strong style={{ fontWeight: '950' }}>-{formatPeso(services.reduce((acc, s) => acc + (s.incl ? s.base : 0), 0))}</strong>
+                                  </div>
+                                )}
+                              </div>
+                            );
                         })()}
 
 
-                        {/* ADICIONALES SELECCIONADOS (KITS, NEON, ETC) */}
+                        {/* ADICIONALES SELECCIONADOS (KITS, ETC) */}
                         {(() => {
                           const activeExtrasList = getDynamicExtras(newEvent).filter(ex => newEvent.selectedExtras?.[ex.id] || ex.isIncluded);
                           if (activeExtrasList.length === 0) return null;
                           return (
                             <div style={{ marginTop: '5px', paddingTop: '5px', borderTop: hasPlan ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
                                 {activeExtrasList.map(ex => {
-                                  // No mostrar en esta lista lo que ya desglosamos arriba (AV, Photo, Cam, Decor)
-                                  if (['extra_av', 'extra_photo', 'extra_cam360', 'extra_decor_onix', 'extra_decor_multii', 'extra_decor_kaizen'].includes(ex.id)) return null;
+                                  // Don't show already itemized services
+                                  if (['extra_av', 'extra_photo', 'extra_cam360', 'extra_decor_onix', 'extra_decor_multii', 'extra_decor_kaizen', 'extra_makeup'].includes(ex.id)) return null;
                                   
                                   return (
                                     <div key={ex.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#C9A84C', fontSize: '0.65rem', marginBottom: '2px' }}>
                                       <span>+ {ex.name} {ex.qty > 1 ? `(x${ex.qty})` : ''}:</span>
-                                      <strong>${(ex.isIncluded ? ex.basePrice : ex.price).toLocaleString()}</strong>
+                                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                        <strong>${(ex.isIncluded ? ex.basePrice : ex.price).toLocaleString()}</strong>
+                                        {ex.isIncluded && <span style={{ color: 'var(--success-green)', fontSize: '0.55rem', opacity: 0.8 }}>(CUBIERTO)</span>}
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -4510,7 +4545,7 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       style={{ 
                         fontWeight: '950', 
                         color: Number(newEvent.totalValue) === computedTotal ? '#00d4ff' : '#facc15', 
-                        fontSize: '2.2rem', 
+                        fontSize: '2.5rem', 
                         height: '70px',
                         background: 'rgba(0, 212, 255, 0.05)',
                         border: `2px solid ${Number(newEvent.totalValue) === computedTotal ? 'var(--primary-cyan)' : '#facc15'}`,
@@ -4549,14 +4584,17 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       value={formatInputNumber(newEvent.deposit)}
                       onChange={e => updateEvent('deposit', parseInputNumber(e.target.value))}
                       style={{
-                        paddingLeft: '12px !important',
-                        paddingRight: '10px !important',
+                        paddingLeft: '15px !important',
+                        paddingRight: '15px !important',
                         width: '100% !important',
-                        fontSize: '1.1rem',
-                        fontWeight: '900',
+                        fontSize: '1.2rem',
+                        fontWeight: '1000',
                         color: 'var(--primary-cyan)',
-                        height: '42px',
+                        height: '48px',
                         margin: 0,
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(0, 242, 255, 0.2)',
+                        borderRadius: '12px',
                         boxSizing: 'border-box'
                       }}
                     />

@@ -12,13 +12,15 @@ export const formatPeso = (amount) => {
 
 export const formatInputNumber = (val) => {
   if (!val && val !== 0) return '';
-  const num = Math.round(Number(String(val).replace(/\D/g, '')));
-  if (isNaN(num)) return '';
-  return num.toLocaleString('es-CO');
+  const numStr = String(val).replace(/\D/g, '');
+  if (!numStr) return '';
+  return numStr.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 
 export const parseInputNumber = (val) => {
-  return String(val).replace(/\D/g, '');
+  if (!val) return '0';
+  const clean = String(val).replace(/\D/g, '');
+  return clean || '0';
 };
 
 export const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
