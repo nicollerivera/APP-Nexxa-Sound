@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.87-calc-fix'; 
+const APP_VERSION = 'v1.4.88-extra-hour-fix'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -1595,16 +1595,22 @@ function App() {
     const cDur = getHours(evt.cam360StartTime || sFallback, evt.cam360EndTime || eFallback);
     const aDur = getHours(evt.avStartTime || sFallback, evt.avEndTime || eFallback);
 
-    // 2. Extra Hours
-    const xDJ = Math.max(0, Math.ceil(dDur - 4));
-    const xPhoto = evt.selectedExtras?.['extra_photo'] ? Math.max(0, Math.ceil(pDur - 4)) : 0;
-    const xCam = evt.selectedExtras?.['extra_cam360'] ? Math.max(0, Math.ceil(cDur - 2)) : 0;
-    const xAV = evt.selectedExtras?.['extra_av'] ? Math.max(0, Math.ceil(aDur - 4)) : 0;
-
     const pName = (evt.packName || '').toUpperCase();
     const isONIX = pName.includes('ONIX');
     const isMULTII = pName.includes('MULTII');
     const isKAIZEN = pName.includes('KAIZEN');
+
+    // 2. Extra Hours (Check if active: Included in pack OR Selected as extra)
+    const isActive = (id) => {
+      const protocols = STITCH_DATA.protocols[pName] || [];
+      const included = protocols.includes(id) || (id === 'dj'); // DJ is always the pivot
+      return included || !!evt.selectedExtras?.[id];
+    };
+
+    const xDJ = Math.max(0, Math.ceil(dDur - 4));
+    const xPhoto = isActive('extra_photo') ? Math.max(0, Math.ceil(pDur - 4)) : 0;
+    const xCam = isActive('extra_cam360') ? Math.max(0, Math.ceil(cDur - 2)) : 0;
+    const xAV = isActive('extra_av') ? Math.max(0, Math.ceil(aDur - 4)) : 0;
 
     // 3. Extensions Cost
     const djXP = xDJ * (STITCH_DATA.hourlyRates.dj || 85000);
