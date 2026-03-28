@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.80-fixed-baseline'; 
+const APP_VERSION = 'v1.4.82-dynamic-contract'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -2223,7 +2223,7 @@ function App() {
 
 
   const generateQuotationPDF = async (quo) => {
-    return pdfService.generateQuotationPDF(quo, getDynamicExtras);
+    return pdfService.generateQuotationPDF(quo);
   };
 
 
@@ -4395,12 +4395,17 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                             <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(0,212,255,0.2)' }}>
                               <label style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '4px' }}>COSTO BASE (SERVICIOS PRINCIPALES)</label>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <input 
-                                  type="text"
-                                  value={formatInputNumber(newEvent.manualBasePrice || 0)}
-                                  onChange={e => updateEvent('manualBasePrice', parseInputNumber(e.target.value))}
-                                  style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--primary-cyan)', fontSize: '1.2rem', fontWeight: '950', outline: 'none', padding: 0 }}
-                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <input 
+                                    type="text"
+                                    value={formatInputNumber(newEvent.manualBasePrice || 0)}
+                                    onChange={e => updateEvent('manualBasePrice', parseInputNumber(e.target.value))}
+                                    style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--primary-cyan)', fontSize: '1.2rem', fontWeight: '950', outline: 'none', padding: 0 }}
+                                  />
+                                  <button type="button" onClick={() => updateEvent('manualBasePrice', 0)} style={{ background: 'none', border: 'none', color: '#ff4444', opacity: 0.6, cursor: 'pointer' }}>
+                                    <IconTrash size={16} />
+                                  </button>
+                                </div>
                                 <input 
                                   type="text"
                                   placeholder="Detalle: DJ, Sonido, Luces, etc..."

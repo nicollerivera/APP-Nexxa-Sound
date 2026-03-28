@@ -442,15 +442,13 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
     }
 };
 
-export const generateQuotationPDF = async (quo, getDynamicExtras) => {
+export const generateQuotationPDF = async (quo) => {
     try {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = 297;
-        const margin = 20; // Increased margin for cleaner look
-        const contractClientName = (quo.client?.name || 'Cliente').toUpperCase();
+        const margin = 20;
 
-        // Load Logo Logic (Base64)
         const getBase64 = async (url) => {
             try {
                 const response = await fetch(url);
@@ -464,404 +462,225 @@ export const generateQuotationPDF = async (quo, getDynamicExtras) => {
             } catch (error) { return null; }
         };
 
-        const logoData = await getBase64('/nexxa-app-icon.png');
+        const logoData = await getBase64('/logo_staff_new.jpg');
         const signatureData = await getBase64('/firma_sharon.jpg');
 
-        // 3. COLORS (Clean White Theme)
         const THEME = {
             TEXT_MAIN: [17, 17, 17],
             TEXT_SUB: [51, 51, 51],
             TEXT_LEGAL: [119, 119, 119],
             ACCENT: [188, 111, 241],
-            BG_LIGHT: [250, 250, 252],
-            WHITE: [255, 255, 255]
+            CYAN: [0, 242, 255]
         };
 
-        // 4. HEADER
-        let y = 30;
-
+        // 1. HEADER (CENTERED)
+        let y = 15;
         if (logoData) {
-            doc.addImage(logoData, 'PNG', margin, 15, 25, 25);
+            doc.addImage(logoData, 'JPEG', (pageWidth / 2) - 15, y, 30, 30);
+            y += 42;
         }
 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(18);
+        doc.setFontSize(16);
         doc.setTextColor(...THEME.TEXT_MAIN);
-        doc.text('Contrato de Prestación de Servicios', pageWidth / 2, 22, { align: 'center' });
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(...THEME.TEXT_SUB);
-        doc.text('Producción de eventos · Sonido · Iluminación · DJ', pageWidth / 2, 29, { align: 'center' });
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(...THEME.TEXT_LEGAL);
-        doc.text(`Bogotá D.C. • ${new Date().toLocaleDateString('es-CO')}`, pageWidth / 2, 36, { align: 'center' });
-
-        doc.setDrawColor(...THEME.ACCENT);
-        doc.setLineWidth(0.5);
-        doc.line(margin, 45, pageWidth - margin, 45);
-
-        y = 55;
-
-        // 5. SECCIÓN 1 - DATOS DEL EVENTO
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.setTextColor(...THEME.TEXT_MAIN);
-        doc.text('DATOS DEL EVENTO', margin, y);
-
-        doc.setDrawColor(200, 200, 200);
-        doc.setLineWidth(0.5);
-        doc.line(margin, y + 3, pageWidth - margin, y + 3);
-        y += 12;
-
-        const evtTime = `${formatT(quo.eventDetails?.startTime)} - ${formatT(quo.eventDetails?.endTime)}`;
-        const evtLoc = (quo.eventDetails?.location || 'Ubicación por confirmar');
-        const clientN = (quo.client?.name || 'Cliente');
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(...THEME.TEXT_MAIN);
-
-        const col1X = margin + 10;
-        const colVal1X = margin + 40;
-        const col2X = (pageWidth / 2) + 5;
-        const colVal2X = (pageWidth / 2) + 30;
-
-        // Col 1
-        doc.text('Cliente:', col1X, y + 10);
-        doc.setFont('helvetica', 'normal'); doc.text(clientN, colVal1X, y + 10);
-
-        doc.setFont('helvetica', 'bold');
-        doc.text('Ubicación:', col1X, y + 20);
-        doc.setFont('helvetica', 'normal'); doc.text(evtLoc, colVal1X, y + 20);
-
-        // Col 2
-        // Format Date
-        const rawDate = quo.eventDetails?.date;
-        const formattedDate = rawDate ? new Date(rawDate + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' }) : '---';
-
-        doc.setFont('helvetica', 'bold');
-        doc.text('Fecha:', col2X, y + 10);
-        doc.setFont('helvetica', 'normal'); doc.text(formattedDate, colVal2X, y + 10);
-
-        doc.setFont('helvetica', 'bold');
-        doc.text('H. Evento:', col2X, y + 20);
-        doc.setFont('helvetica', 'normal'); doc.text(evtTime, colVal2X, y + 20);
-
-        // Extra timings if they exist
-        if (quo.eventDetails?.photoStartTime) {
-            y += 10;
-            doc.setFont('helvetica', 'bold');
-            doc.text('H. Fotografía:', col2X, y + 20);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`${formatT(quo.eventDetails.photoStartTime)} - ${formatT(quo.eventDetails.photoEndTime)}`, colVal2X, y + 20);
-        }
-        if (quo.eventDetails?.decorStartTime) {
-            y += 10;
-            doc.setFont('helvetica', 'bold');
-            doc.text('H. Decoración:', col2X, y + 20);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`${formatT(quo.eventDetails.decorStartTime)} - ${formatT(quo.eventDetails.decorEndTime)}`, colVal2X, y + 20);
-        }
-        if (quo.eventDetails?.avStartTime) {
-            y += 10;
-            doc.setFont('helvetica', 'bold');
-            doc.text('H. Audiovisual:', col2X, y + 20);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`${formatT(quo.eventDetails.avStartTime)} - ${formatT(quo.eventDetails.avEndTime)}`, colVal2X, y + 20);
-        }
-
-        y += 45;
-
-        // 6. SECCIÓN 2 - IDENTIFICACIÓN
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.setTextColor(...THEME.TEXT_MAIN);
-        doc.text('IDENTIFICACIÓN', margin, y);
-
-        doc.line(margin, y + 3, pageWidth - margin, y + 3);
-        y += 12;
-
-        // Labels Row
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(...THEME.TEXT_MAIN);
-
-        doc.text('Proveedor del servicio', margin + 10, y);
-
-        const holderX = (pageWidth / 2) + 10;
-        doc.text('Titular del servicio', holderX, y);
-
-        // Content Row
-        y += 8;
-
-        // Provider Content
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.setTextColor(...THEME.TEXT_MAIN);
-        doc.text('NEXXA SOUND', margin + 10, y + 2);
-
-        // Holder Content
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(...THEME.TEXT_SUB);
-        doc.text('Sharon Nicolle Rivera Tocasuche', holderX, y);
-        doc.text('C.C. 1024488302', holderX, y + 5);
-
-        y += 20;
-
-        // 7. SECCIÓN 3 - SERVICIOS INCLUIDOS
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.setTextColor(...THEME.TEXT_SUB);
-        doc.text('Servicios incluidos', margin, y);
+        doc.text('NEXXA SOUND', pageWidth / 2, y, { align: 'center' });
         y += 6;
 
-        const scopeData = [
-            ['Paquete / Experiencia:', quo.logistics.packName?.toUpperCase() || 'PERSONALIZADO'],
-            ['Servicio principal:', 'Producción de Evento (Sonido/Iluminación)']
+        doc.setFontSize(10);
+        doc.setTextColor(...THEME.TEXT_SUB);
+        doc.text('Cotización de Servicios Audiovisuales', pageWidth / 2, y, { align: 'center' });
+        y += 5;
+        doc.text('Sonido - Iluminación - DJ - Producción de eventos', pageWidth / 2, y, { align: 'center' });
+        y += 15;
+
+        // 2. DATOS DEL CLIENTE
+        doc.setFontSize(11);
+        doc.setTextColor(...THEME.ACCENT);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Datos del Cliente', margin, y);
+        y += 8;
+
+        doc.setFontSize(10);
+        doc.setTextColor(...THEME.TEXT_MAIN);
+        
+        const clientData = [
+            ['Nombre del cliente:', (quo.client?.name || '---').toUpperCase()],
+            ['Teléfono:', quo.client?.phone || '---'],
+            ['Fecha del evento:', quo.eventDetails?.date ? new Date(quo.eventDetails.date + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' }) : '---'],
+            ['Lugar del evento:', (quo.eventDetails?.location || 'Por confirmar').toUpperCase()],
+            ['Tipo de evento:', (quo.eventDetails?.occasion || 'SOCIAL').toUpperCase()]
         ];
 
-        const activeExtras = getDynamicExtras(quo.eventDetails.guestCount || 100, quo.logistics.makeupCount || 0)
-            .filter(ex => quo.logistics.selectedExtras && quo.logistics.selectedExtras[ex.id]);
+        clientData.forEach(([label, val]) => {
+            doc.setFont('helvetica', 'bold');
+            doc.text(label, margin, y);
+            doc.setFont('helvetica', 'normal');
+            doc.text(val, margin + 45, y);
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.1);
+            doc.line(margin + 45, y + 1, pageWidth - margin, y + 1);
+            y += 7;
+        });
 
-        if (activeExtras.length > 0) {
-            const extrasText = activeExtras.map(ex => {
-                const config = quo.logistics.selectedExtras[ex.id];
-                const qtyText = (config.qty > 1) ? ` (x${config.qty})` : '';
-                const timeText = (config.startTime && config.startTime !== '08:00') ? ` [${formatT(config.startTime)} - ${formatT(config.endTime)}]` : '';
-                return `• ${ex.name}${qtyText}${timeText}: ${ex.details}`;
-            }).join('\n');
-            scopeData.push(['Complementos incluidos:', extrasText]);
-        } else {
-            scopeData.push(['Complementos incluidos:', 'Ninguno seleccionado']);
-        }
+        y += 10;
+
+        // 3. DETALLE DEL SERVICIO (TABLE)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...THEME.ACCENT);
+        doc.text('Detalle del Servicio', margin, y);
+        y += 8;
+
+        const tableRows = [];
+        const pack = (quo.logistics?.packName || '').toUpperCase();
+        const isONIX = pack === 'ONIX';
+        const isMULTII = pack === 'MULTII';
+        const isKAIZEN = pack === 'KAIZEN';
+
+        const serviceDescriptions = {
+            av: "SISTEMA SONIDO PRO (2 Cabinas), 2 Micrófonos Inalambricos, 4 Luces Rítmicas, Cámara de Humo, DJ Crossover en vivo, Montaje y Desmontaje.",
+            photo: "FOTOGRAFÍA PROFESIONAL: Cámara Reflex/Mirrorless, Cobertura del cronograma, Entrega digital, Edición profesional.",
+            cam: "PRODUCTO 360 XL: Plataforma giratoria, Iluminación LED, Operador, Videos inmediatos editados para redes sociales.",
+            makeup: "STAND MAQUILLAJE NEÓN: Personal maquillador, Kit de pintura UV especial, Accesorios neón/flúor.",
+            decor: `DECORACIÓN ${pack}: Mobiliario temático, Arco de globos orgánico, Cilindros, Accesorios exclusivos del set.`
+        };
+
+        const services = [
+            { id: 'av', label: 'AUDIOVISUALES (+DJ)', start: quo.eventDetails?.avStartTime || quo.eventDetails?.startTime, end: quo.eventDetails?.avEndTime || quo.eventDetails?.endTime, desc: serviceDescriptions.av, incl: isONIX || isMULTII || isKAIZEN || quo.logistics?.selectedExtras?.['extra_av'] },
+            { id: 'photo', label: 'FOTOGRAFÍA PRO', start: quo.eventDetails?.photoStartTime || quo.eventDetails?.startTime, end: quo.eventDetails?.photoEndTime || quo.eventDetails?.endTime, desc: serviceDescriptions.photo, incl: isONIX || isMULTII || isKAIZEN || quo.logistics?.selectedExtras?.['extra_photo'] },
+            { id: 'cam', label: 'CÁMARA 360 XL', start: quo.eventDetails?.cam360StartTime || quo.eventDetails?.startTime, end: quo.eventDetails?.cam360EndTime || quo.eventDetails?.endTime, desc: serviceDescriptions.cam, incl: isMULTII || isKAIZEN || quo.logistics?.selectedExtras?.['extra_cam360'] },
+            { id: 'makeup', label: 'MAQUILLAJE NEÓN', start: quo.eventDetails?.makeupStartTime || quo.eventDetails?.startTime, end: quo.eventDetails?.makeupEndTime || quo.eventDetails?.endTime, desc: serviceDescriptions.makeup, incl: isKAIZEN || quo.logistics?.selectedExtras?.['extra_makeup'] },
+            { id: 'decor', label: 'DECORACIÓN', start: quo.eventDetails?.decorStartTime || quo.eventDetails?.startTime, end: quo.eventDetails?.decorEndTime || quo.eventDetails?.endTime, desc: serviceDescriptions.decor, incl: isONIX || isMULTII || isKAIZEN || quo.logistics?.selectedExtras?.['extra_decor_onix'] || quo.logistics?.selectedExtras?.['extra_decor_multii'] || quo.logistics?.selectedExtras?.['extra_decor_kaizen'] }
+        ];
+
+        services.filter(s => s.incl).forEach(s => {
+            const h1 = s.start || '20:00';
+            const h2 = s.end || '00:00';
+            const [ho1, mo1] = h1.split(':').map(Number);
+            const [ho2, mo2] = h2.split(':').map(Number);
+            let diff = (ho2 * 60 + mo2) - (ho1 * 60 + mo1);
+            if (diff < 0) diff += 24 * 60;
+            const hours = (diff / 60).toFixed(1);
+
+            tableRows.push([
+                `${formatT(h1)} - ${formatT(h2)}`,
+                s.label,
+                s.desc,
+                `${hours}h`,
+                'INCLUIDO',
+                'INCLUIDO'
+            ]);
+        });
 
         autoTable(doc, {
             startY: y,
-            theme: 'plain',
-            body: scopeData,
-            styles: { fontSize: 11, cellPadding: 6, textColor: THEME.TEXT_MAIN, lineWidth: 0, overflow: 'linebreak' },
+            theme: 'grid',
+            head: [['Franja horaria', 'Servicio', 'Descripción', 'Horas', 'Valor/h', 'Subtotal']],
+            body: tableRows.length > 0 ? tableRows : [['---', 'SELECCIÓN A LA CARTA', 'Consultar detalle en presupuesto digital', '---', '---', '---']],
+            styles: { fontSize: 8, cellPadding: 3, textColor: THEME.TEXT_MAIN, lineColor: [230, 230, 230] },
+            headStyles: { fillColor: [245, 245, 245], textColor: THEME.ACCENT, fontStyle: 'bold' },
             columnStyles: {
-                0: { fontStyle: 'bold', width: 60, textColor: THEME.TEXT_SUB },
-                1: { width: 110 }
-            },
-            didDrawCell: (data) => {
-                if (data.section === 'body') {
-                    doc.setDrawColor(200, 200, 200); // 200 is visible light grey
-                    doc.setLineWidth(0.1);
-                    doc.line(data.cell.x, data.cell.y + data.cell.height, data.cell.x + data.cell.width, data.cell.y + data.cell.height);
-                }
+                0: { cellWidth: 35 },
+                1: { cellWidth: 30, fontStyle: 'bold' },
+                2: { cellWidth: 60 },
+                3: { cellWidth: 15, halign: 'center' },
+                4: { cellWidth: 20, halign: 'center' },
+                5: { cellWidth: 20, halign: 'center' }
             }
         });
 
-        y = doc.lastAutoTable.finalY + 15;
+        y = doc.lastAutoTable.finalY + 12;
 
-        // 8. SECCIÓN 4 - INVERSIÓN
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.setTextColor(...THEME.TEXT_SUB);
-        doc.text('Inversión del servicio', margin, y);
-        y += 10;
+        const total = quo.financials?.totalValue || 0;
+        const deposit = quo.financials?.deposit || (total * 0.3);
+        const finalBalance = total - deposit;
 
-        const totalVal = quo.financials.totalValue || 0;
-        const payToReserve = totalVal * 0.3;
-        const payFinal = totalVal - payToReserve;
-
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        doc.setTextColor(...THEME.TEXT_MAIN);
-
-        // 1. Anticipo
-        doc.text('Anticipo (30%):', margin, y);
-        doc.setFont('helvetica', 'bold'); doc.text(formatPeso(payToReserve), margin + 40, y);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...THEME.TEXT_LEGAL);
-        doc.text('(confirma reserva de fecha)', margin + 80, y);
-
-        y += 8;
-        // 2. Saldo
-        doc.setFontSize(11); doc.setTextColor(...THEME.TEXT_MAIN);
-        doc.text('Saldo (70%):', margin, y);
-        doc.setFont('helvetica', 'bold'); doc.text(formatPeso(payFinal), margin + 40, y);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...THEME.TEXT_LEGAL);
-        doc.text('(antes del inicio del evento)', margin + 80, y);
-
-        y += 12; // Extra space before total for emphasis
-        // 3. Total
-        doc.setFontSize(12); doc.setTextColor(...THEME.TEXT_MAIN);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Valor total:', margin, y);
-        doc.text(formatPeso(totalVal), margin + 40, y);
-
-        y += 25;
-
-        // 9. CONDICIONES Y POLÍTICAS
-        if (y > pageHeight - 120) { doc.addPage(); y = 30; }
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
         doc.setTextColor(...THEME.TEXT_SUB);
-        doc.text('Información del Servicio y Recomendaciones', margin, y);
-        y += 10;
+        doc.text('Costo de transporte:', pageWidth - margin - 50, y);
+        doc.text('INCLUIDO', pageWidth - margin, y, { align: 'right' });
+        y += 6;
+        doc.text('Opcional / Extras:', pageWidth - margin - 50, y);
+        doc.text('$0', pageWidth - margin, y, { align: 'right' });
+        y += 8;
 
-        const fullConditions = [
-            {
-                title: "PAGO DEL SERVICIO",
-                items: [
-                    "El saldo pendiente se pagará en su totalidad el día del evento. Se podrá cancelar en efectivo o mediante transferencia a las cuentas autorizadas (Nequi/Daviplata: 3002596935).",
-                    "El pago correspondiente debe ser realizado al Gestor asignado ANTES de dar inicio al servicio.",
-                    "Sin excepción alguna, el servicio no podrá dar inicio si el saldo pendiente no ha sido cancelado en su totalidad."
-                ]
-            },
-            {
-                title: "CANCELACIÓN",
-                items: [
-                    "En caso de necesitar cancelar el servicio, es necesario hacerlo con un mínimo de 2 días de anticipación. De lo contrario, se deberá asumir el 35% del valor total del servicio.",
-                    "Si el servicio es cancelado después de haber realizado el abono, NO se realizarán devoluciones debido a costos administrativos y de reserva."
-                ]
-            },
-            {
-                title: "APLAZAMIENTO",
-                items: [
-                    "En caso de que el servicio sea aplazado, la reserva se mantendrá únicamente por un plazo máximo de un (1) mes. De lo contrario, se considerará como una cancelación.",
-                    "La reprogramación del servicio solo será posible si disponemos de disponibilidad para la nueva fecha solicitada."
-                ]
-            },
-            {
-                title: "TENER EN CUENTA (LOGÍSTICA)",
-                items: [
-                    "Los datos del Gestor (nombre y cédula) podrán ser solicitados SOLAMENTE un día antes del servicio sin excepciones, ya que la programación se realiza basada en la disponibilidad del personal en esa fecha.",
-                    "En caso de que el Gestor llegue tarde, se repondrá el tiempo perdido. Si no es posible debido al horario, se descontarán $5.000 por cada media hora de retraso, cubriendo la nómina del Gestor."
-                ]
-            },
-            {
-                title: "INCONVENIENTES Y RECLAMOS",
-                items: [
-                    "La empresa se compromete a garantizar la entrega de todos los elementos descritos en este contrato.",
-                    "Cualquier inconformidad relacionada con la prestación del servicio deberá ser abordada y resuelta EN EL MOMENTO por el personal presente en el evento para dar solución inmediata."
-                ]
-            }
-        ];
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...THEME.ACCENT);
+        doc.text('TOTAL:', pageWidth - margin - 50, y);
+        doc.text(formatPeso(total), pageWidth - margin, y, { align: 'right' });
+
+        y += 12;
 
         doc.setFontSize(10);
+        doc.setTextColor(...THEME.TEXT_MAIN);
+        doc.text(`Abono (30%): ${formatPeso(deposit)}`, margin, y);
+        doc.text(`Saldo a recaudar (70%): ${formatPeso(finalBalance)}`, margin + 80, y);
 
-        fullConditions.forEach((section) => {
-            // Force Page Break for Specific Section
-            if (section.title === "INCONVENIENTES Y RECLAMOS") {
-                doc.addPage(); y = 30;
-            } else if (y > pageHeight - 40) {
-                doc.addPage(); y = 30;
-            }
+        y += 15;
 
-            // Title
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...THEME.TEXT_MAIN);
-            doc.text(section.title, margin, y);
-            y += 7; // More space after title
+        if (y > pageHeight - 110) { doc.addPage(); y = 30; }
 
-            // Items
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...THEME.TEXT_SUB);
-
-            section.items.forEach(item => {
-                // Fix Overflow: Reduce width by extra 10 units to accommodate indent
-                const splitItem = doc.splitTextToSize(`• ${item}`, pageWidth - (margin * 2) - 10);
-
-                if (y + (splitItem.length * 6) > pageHeight - 25) {
-                    doc.addPage(); y = 30;
-                    doc.setFont('helvetica', 'bold'); // Reset font if needed logic was complex, but here simplistic is fine
-                    // We are in loop, so just continue
-                    doc.setFont('helvetica', 'normal');
-                }
-
-                doc.text(splitItem, margin + 5, y); // Indent 5
-                y += (splitItem.length * 5) + 4; // Increased line height and paragraph spacing
-            });
-            y += 8; // More space between sections
-        });
-
-        y += 5;
-
-        // IMPORTANT WARNING
-        if (y > pageHeight - 45) { doc.addPage(); y = 30; }
-
-        doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
-        doc.setTextColor(220, 20, 60); // Crimson Red
-        doc.text('¡IMPORTANTE!', pageWidth / 2, y, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...THEME.ACCENT);
+        doc.text('Condiciones y Políticas del Servicio', margin, y);
         y += 6;
 
+        const conditions = [
+            "El saldo pendiente (70%) debe ser cancelado al personal encargado ANTES de iniciar el servicio.",
+            "No se aceptan devoluciones de abono por cancelación de parte del cliente.",
+            "En caso de mora o retraso en el pago, la empresa se reserva el derecho de no iniciar o suspender el servicio.",
+            "El cliente se hace responsable por daños causados a los equipos por parte de los asistentes.",
+            "Cualquier servicio extra no pactado en este contrato tendrá un costo de " + formatPeso(quo.financials?.extraHourPrice || 85000) + " por hora."
+        ];
+
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.setTextColor(...THEME.TEXT_MAIN);
-        const warningText = "Cualquier servicio, equipo o indicación que NO esté especificada explícitamente dentro de este contrato no tendrá derecho a reclamos ni devoluciones. Solo se cumplirá estrictamente con los ítems y servicios pactados en este documento.";
-
-        const splitWarning = doc.splitTextToSize(warningText, pageWidth - (margin * 2));
-        doc.text(splitWarning, pageWidth / 2, y, { align: 'center' });
-
-        y += (splitWarning.length * 5) + 10;
-
-        // 10. CIERRE
-        if (y > pageHeight - 40) { doc.addPage(); y = 30; }
-        y += 5;
-        doc.setFontSize(9);
-        doc.setTextColor(...THEME.TEXT_LEGAL);
-        doc.text(`Este contrato se rige por las leyes de la República de Colombia.\nPara constancia se firma en Bogotá D.C. el ${new Date().toLocaleDateString('es-CO')}.`, margin, y);
-        y += 50;
-
-        // 11. FIRMAS
-        if (y > pageHeight - 60) { doc.addPage(); y = 60; }
-
-        doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.5);
-
-        // Client
-        doc.line(margin, y, margin + 70, y);
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...THEME.TEXT_MAIN);
-        doc.text('EL CLIENTE', margin, y + 5);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...THEME.TEXT_SUB);
-        doc.text(`Nombre: ${quo.client?.name || ''}`, margin, y + 10);
-        doc.text(`Cédula: ${quo.client?.id || ''}`, margin, y + 15);
-
-        // Provider
-        if (signatureData) {
-            doc.addImage(signatureData, 'JPEG', pageWidth - margin - 20, y - 30, 40, 30, null, 'NONE', 90);
-        }
-        doc.line(pageWidth - margin - 70, y, pageWidth - margin, y);
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...THEME.TEXT_MAIN);
-        doc.text('EL PROVEEDOR', pageWidth - margin - 70, y + 5);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-        doc.text('Nombre: Sharon Nicolle Rivera Tocasuche', pageWidth - margin - 70, y + 10);
-        doc.text('Cédula: 1024488302', pageWidth - margin - 70, y + 15);
-
-        // Commercial Name (No Color Accent)
         doc.setTextColor(...THEME.TEXT_SUB);
-        doc.text('Nombre comercial: NEXXA', pageWidth - margin - 70, y + 20);
+        conditions.forEach(c => {
+            const splitC = doc.splitTextToSize(`• ${c}`, pageWidth - (margin * 2));
+            doc.text(splitC, margin, y);
+            y += (splitC.length * 4.5);
+        });
 
-        // 12. FOOTER
+        y += 20;
+
+        if (y > pageHeight - 60) { doc.addPage(); y = 40; }
+
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.5);
+        
+        doc.line(margin, y, margin + 65, y);
+        doc.text('ACEPTACIÓN DEL CLIENTE', margin, y + 5);
+        doc.setFontSize(7);
+        doc.text(`Nombre: ${(quo.client?.name || '').toUpperCase()}`, margin, y + 10);
+        doc.text(`C.C: ______________`, margin, y + 15);
+
+        if (signatureData) {
+            doc.addImage(signatureData, 'JPEG', pageWidth - margin - 45, y - 22, 35, 20);
+        }
+        doc.line(pageWidth - margin - 65, y, pageWidth - margin, y);
+        doc.setFontSize(8.5);
+        doc.text('POR NEXXA SOUND', pageWidth - margin, y + 5, { align: 'right' });
+        doc.setFontSize(7);
+        doc.text('Sharon Nicolle Rivera Tocasuche', pageWidth - margin, y + 10, { align: 'right' });
+        doc.text('C.C. 1024488302', pageWidth - margin, y + 15, { align: 'right' });
+
         const totalPages = doc.internal.getNumberOfPages();
         for (let i = 1; i <= totalPages; i++) {
             doc.setPage(i);
-            doc.setFontSize(8);
+            doc.setFontSize(7);
             doc.setTextColor(...THEME.TEXT_LEGAL);
-            doc.text('NEXXA · Producción de eventos', margin, pageHeight - 10);
-            doc.text(`${i}/${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+            doc.text(`NEXXA SOUND - BOGOTÁ D.C. - ${new Date().toLocaleDateString()}  |  Página ${i} de ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
         }
 
-        // Output
-        const pdfData = doc.output('arraybuffer');
-        const blob = new Blob([pdfData], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        // Timestamp added to bust cache
-        link.setAttribute('download', `CONTRATO_NEXXA_${contractClientName.replace(/\s+/g, '_')}_${Date.now()}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(() => document.body.removeChild(link), 500);
+        const fileName = `CONTRATO_NEXXA_${(quo.client?.name || 'CLIENTE').replace(/\s+/g, '_')}.pdf`;
+        doc.save(fileName);
 
     } catch (err) {
-        alert('Error en Cotización: ' + err.message);
+        console.error("PDF ERROR:", err);
+        alert('Error generando contrato: ' + err.message);
     }
 };
