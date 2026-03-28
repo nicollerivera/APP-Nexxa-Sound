@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.92-pricing-disclosed'; 
+const APP_VERSION = 'v1.4.93-finalized-sync'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
