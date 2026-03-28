@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.4.84-layout-perfect'; 
+const APP_VERSION = 'v1.4.85-lead-protection'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -435,14 +435,14 @@ function App() {
         if (Array.isArray(rawExtras)) {
           rawExtras.forEach(item => {
             const searchStr = processStr(typeof item === 'string' ? item : (item.id + ' ' + item.name + ' ' + (item.category || '')));
-            if (searchStr.includes('photo') || searchStr.includes('foto')) cleanExtras['extra_photo'] = true;
-            else if (searchStr.includes('360') || searchStr.includes('cam') || searchStr.includes('master')) cleanExtras['extra_cam360'] = true;
-            else if (searchStr.includes('makeup') || searchStr.includes('maquillaje') || searchStr.includes('neon')) cleanExtras['extra_makeup'] = true;
-            else if (searchStr.includes('av') || searchStr.includes('audiovisual') || searchStr.includes('sonido')) cleanExtras['extra_av'] = true;
+            if (searchStr.includes('photo') || searchStr.includes('foto') || searchStr.includes('fotografia')) cleanExtras['extra_photo'] = true;
+            else if (searchStr.includes('360') || searchStr.includes('cam') || searchStr.includes('plataforma') || searchStr.includes('video')) cleanExtras['extra_cam360'] = true;
+            else if (searchStr.includes('makeup') || searchStr.includes('maquillaje') || searchStr.includes('neon') || searchStr.includes('pintura')) cleanExtras['extra_makeup'] = true;
+            else if (searchStr.includes('av') || searchStr.includes('audiovisual') || searchStr.includes('sonido') || searchStr.includes('iluminacion') || searchStr.includes('dj')) cleanExtras['extra_av'] = true;
             else if (searchStr.includes('111') || (searchStr.includes('essential') && searchStr.includes('kit'))) cleanExtras['acc_essential'] = true;
             else if (searchStr.includes('444') || (searchStr.includes('memories') && searchStr.includes('kit'))) cleanExtras['acc_memories'] = true;
             else if (searchStr.includes('777') || (searchStr.includes('celebration') && searchStr.includes('kit'))) cleanExtras['acc_celebration'] = true;
-            else if (searchStr.includes('onix') || searchStr.includes('decor')) cleanExtras['extra_decor_onix'] = true;
+            else if (searchStr.includes('onix') || searchStr.includes('decor') || searchStr.includes('globos') || searchStr.includes('mobiliario')) cleanExtras['extra_decor_onix'] = true;
             else if (searchStr.includes('multii')) cleanExtras['extra_decor_multii'] = true;
             else if (searchStr.includes('kaizen')) cleanExtras['extra_decor_kaizen'] = true;
             else if (typeof item === 'string') cleanExtras[item] = true;
@@ -453,14 +453,14 @@ function App() {
             const val = rawExtras[k];
             if (val) {
               const searchStr = processStr(typeof val === 'string' ? (k + ' ' + val) : k);
-              if (searchStr.includes('photo') || searchStr.includes('foto')) cleanExtras['extra_photo'] = true;
-              else if (searchStr.includes('360') || searchStr.includes('cam') || searchStr.includes('master')) cleanExtras['extra_cam360'] = true;
-              else if (searchStr.includes('makeup') || searchStr.includes('maquillaje') || searchStr.includes('neon')) cleanExtras['extra_makeup'] = true;
-              else if (searchStr.includes('av') || searchStr.includes('audiovisual') || searchStr.includes('sonido')) cleanExtras['extra_av'] = true;
+              if (searchStr.includes('photo') || searchStr.includes('foto') || searchStr.includes('fotografia')) cleanExtras['extra_photo'] = true;
+              else if (searchStr.includes('360') || searchStr.includes('cam') || searchStr.includes('plataforma') || searchStr.includes('video')) cleanExtras['extra_cam360'] = true;
+              else if (searchStr.includes('makeup') || searchStr.includes('maquillaje') || searchStr.includes('neon') || searchStr.includes('pintura')) cleanExtras['extra_makeup'] = true;
+              else if (searchStr.includes('av') || searchStr.includes('audiovisual') || searchStr.includes('sonido') || searchStr.includes('iluminacion') || searchStr.includes('dj')) cleanExtras['extra_av'] = true;
               else if (searchStr.includes('111') || (searchStr.includes('essential') && searchStr.includes('kit'))) cleanExtras['acc_essential'] = true;
               else if (searchStr.includes('444') || (searchStr.includes('memories') && searchStr.includes('kit'))) cleanExtras['acc_memories'] = true;
               else if (searchStr.includes('777') || (searchStr.includes('celebration') && searchStr.includes('kit'))) cleanExtras['acc_celebration'] = true;
-              else if (searchStr.includes('onix') || searchStr.includes('decor')) cleanExtras['extra_decor_onix'] = true;
+              else if (searchStr.includes('onix') || searchStr.includes('decor') || searchStr.includes('globos') || searchStr.includes('mobiliario')) cleanExtras['extra_decor_onix'] = true;
               else if (searchStr.includes('multii')) cleanExtras['extra_decor_multii'] = true;
               else if (searchStr.includes('kaizen')) cleanExtras['extra_decor_kaizen'] = true;
               else cleanExtras[k] = true;
@@ -7522,7 +7522,15 @@ ${extrasList.length > 0 ? extrasList.join('\n') : '✨ _Sin extras seleccionados
                       decorTheme: quo.eventDetails?.decorTheme || '',
                       paymentMethod: quo.financials?.paymentMethod || 'Nequi',
                       deposit: Number(quo.financials?.deposit) || Math.round((Number(quo.financials?.totalValue) || 0) * 0.3),
-                      manualBasePrice: Number(quo.financials?.manualBasePrice) || 0,
+                      manualBasePrice: Number(quo.financials?.manualBasePrice) || (() => {
+                        const totalFromQuo = Number(quo.financials?.totalValue) || 0;
+                        // Engine check - approximate
+                        const tempState = { packName: 'A LA CARTA', selectedExtras: quo.logistics?.selectedExtras || {} };
+                        const engineRes = calculateEventTotalBreakdown(tempState).total;
+                        // If lead total is significantly higher than auto-calculated extras, protect it in manualBasePrice
+                        return (totalFromQuo > engineRes + 1000) ? (totalFromQuo - engineRes) : 0;
+                      })(),
+                      priceLocked: true,
                     });
                     setView('create');
                   }}
