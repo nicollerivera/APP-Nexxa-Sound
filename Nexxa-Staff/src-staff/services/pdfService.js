@@ -31,7 +31,15 @@ export const generateMissionPDF = async (evt, role = 'GENERAL', events = [], get
         doc.setFontSize(18);
         doc.setTextColor(188, 111, 241);
         doc.text(role === 'GENERAL' ? 'LEVEL PRODUCTIONS' : `ORDEN DE TRABAJO`, pageWidth - margin, 25, { align: 'right' });
-        doc.save(`ORDEN_${role}_${(evt.client?.name || 'EVENTO').replace(/\s+/g, '_')}.pdf`);
+        // Robust download method (better for all browsers/platforms)
+        const fileName = `ORDEN_${role}_${(evt.client?.name || 'EVENTO').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+        const blob = doc.output('blob');
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     } catch (e) { alert('Error Misión: ' + e.message); }
 };
 
@@ -336,7 +344,15 @@ export const generateQuotationPDF = async (quo) => {
             doc.text(`NEXXA SOUND · CONTRATO OPERATIVO · PÁGINA ${i} DE ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
         }
 
-        doc.save(`CONTRATO_NEXXA_${(quo.client?.name || 'CLIENTE').replace(/\s+/g, '_')}.pdf`);
+        // Robust download method (better for all browsers/platforms)
+        const blob = doc.output('blob');
+        const fileName = `CONTRATO_NEXXA_${(quo.client?.name || 'CLIENTE').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
     } catch (e) { alert('Error: ' + e.message); }
 };
