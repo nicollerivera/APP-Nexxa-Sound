@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.5.1'; 
+const APP_VERSION = 'v1.5.2'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -1558,31 +1558,32 @@ function App() {
         const manualDecor = Object.keys(sel).find(k => k.startsWith('extra_decor_') && sel[k]);
         const manualKit = Object.keys(sel).find(k => k.startsWith('acc_') && !k.includes('item') && sel[k]);
 
-        if (/MULTII/i.test(packStr)) {
+        // Standardized Lookup Key
+        const pKey = ['ONIX', 'MULTII', 'KAIZEN'].find(k => packStr.includes(k)) || 'A LA CARTA';
+
+        if (pKey === 'MULTII') {
           const items = ['extra_photo', 'extra_cam360', 'extra_av', 'extra_decor_multii', 'acc_memories'];
           if (items.includes(ex.id)) {
             isIncluded = true;
-            // Exclude if another decor/kit is manually selected
             if (ex.id.startsWith('extra_decor_') && manualDecor && manualDecor !== ex.id) isIncluded = false;
             if (ex.id.startsWith('acc_') && manualKit && manualKit !== ex.id) isIncluded = false;
           }
-        } else if (/ONIX/i.test(packStr)) {
+        } else if (pKey === 'ONIX') {
           const items = ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'];
           if (items.includes(ex.id)) {
             isIncluded = true;
             if (ex.id.startsWith('extra_decor_') && manualDecor && manualDecor !== ex.id) isIncluded = false;
             if (ex.id.startsWith('acc_') && manualKit && manualKit !== ex.id) isIncluded = false;
           }
-        } else if (/KAIZEN/i.test(packStr)) {
-          const items = ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_av', 'acc_celebration'];
+        } else if (pKey === 'KAIZEN') {
+          const items = ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'];
           if (items.includes(ex.id)) {
             isIncluded = true;
             if (ex.id.startsWith('extra_decor_') && manualDecor && manualDecor !== ex.id) isIncluded = false;
             if (ex.id.startsWith('acc_') && manualKit && manualKit !== ex.id) isIncluded = false;
           }
         } else {
-          const packKey = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => packStr.includes(k)) || packStr;
-          const proto = STITCH_DATA.protocols[packKey];
+          const proto = STITCH_DATA.protocols[pKey] || STITCH_DATA.protocols[packStr];
           isIncluded = proto?.includedExtras?.includes(ex.id) || false;
         }
 
