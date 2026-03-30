@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.5.3'; 
+const APP_VERSION = 'v1.5.2'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -1418,10 +1418,10 @@ function App() {
   // ==========================================
   const STITCH_DATA = {
     protocols: {
-      'ONIX':        { price: 850000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'], baseHours: 4, camHours: 2 },
-      'MULTII':      { price: 1540000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'], baseHours: 4, camHours: 2 },
-      'KAIZEN':      { price: 1950000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'], baseHours: 6, camHours: 6 },
-      'A LA CARTA':  { price: 0, roles: [], items: [], includedExtras: [], baseHours: 4, camHours: 2 }
+      'ONIX':        { price: 850000, roles: ['DJs Profesionales', 'Fotografía Profesional'], items: ['Sonido Line Array', 'Pantallas LED', 'Luces Beam', 'Montaje Ónix'], includedExtras: ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'] },
+      'MULTII':      { price: 1540000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°'], items: ['Sonido Premium', 'Pantallas LED', 'Luces Beam', 'Montaje Elite'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'] },
+      'KAIZEN':      { price: 1950000, roles: ['DJs Profesionales', 'Fotografía Profesional', 'Cámara 360°', 'Maquillaje Neón'], items: ['Máximo Sonido', 'Producción de Escenario', 'Efectos Especiales', 'Montaje Kaizen'], includedExtras: ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_makeup', 'extra_av', 'acc_celebration'] },
+      'A LA CARTA':  { price: 0, roles: [], items: [], includedExtras: [] }
     },
     extras: {
       photo: 200000,   // Base for 4h
@@ -1628,14 +1628,10 @@ function App() {
       return !!(ex?.isIncluded || (evt.selectedExtras && evt.selectedExtras[id]));
     };
 
-    const proto_ = STITCH_DATA.protocols[pName] || { baseHours: 4, camHours: 2 };
-    const bH = proto_.baseHours || 4;
-    const cH = proto_.camHours || 2;
-
-    const xDJ = Math.max(0, Math.ceil(dDur - bH));
-    const xPhoto = isActive('extra_photo') ? Math.max(0, Math.ceil(pDur - bH)) : 0;
-    const xCam = isActive('extra_cam360') ? Math.max(0, Math.ceil(cDur - cH)) : 0;
-    const xAV = isActive('extra_av') ? Math.max(0, Math.ceil(aDur - bH)) : 0;
+    const xDJ = Math.max(0, Math.ceil(dDur - 4));
+    const xPhoto = isActive('extra_photo') ? Math.max(0, Math.ceil(pDur - 4)) : 0;
+    const xCam = isActive('extra_cam360') ? Math.max(0, Math.ceil(cDur - 2)) : 0;
+    const xAV = isActive('extra_av') ? Math.max(0, Math.ceil(aDur - 4)) : 0;
 
     // 3. Extensions Cost
     const djXP = xDJ * (STITCH_DATA.hourlyRates.dj || 85000);
