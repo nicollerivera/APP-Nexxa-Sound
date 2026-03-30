@@ -254,7 +254,7 @@ const MiniTimeInput = ({ startVal, endVal, onStartChange, onEndChange, label, la
 
 
 
-const APP_VERSION = 'v1.5.0'; 
+const APP_VERSION = 'v1.5.1'; 
 
 function App() {
   // --- VERSIONING & CLEANUP ---
@@ -1554,12 +1554,32 @@ function App() {
         
         // ULTIMATE REGEX OVERRIDE (Case Insensitive)
         let isIncluded = false;
+        const sel = evt?.selectedExtras || {};
+        const manualDecor = Object.keys(sel).find(k => k.startsWith('extra_decor_') && sel[k]);
+        const manualKit = Object.keys(sel).find(k => k.startsWith('acc_') && !k.includes('item') && sel[k]);
+
         if (/MULTII/i.test(packStr)) {
-          if (['extra_photo', 'extra_cam360', 'extra_decor_multii', 'extra_av', 'acc_memories'].includes(ex.id)) isIncluded = true;
+          const items = ['extra_photo', 'extra_cam360', 'extra_av', 'extra_decor_multii', 'acc_memories'];
+          if (items.includes(ex.id)) {
+            isIncluded = true;
+            // Exclude if another decor/kit is manually selected
+            if (ex.id.startsWith('extra_decor_') && manualDecor && manualDecor !== ex.id) isIncluded = false;
+            if (ex.id.startsWith('acc_') && manualKit && manualKit !== ex.id) isIncluded = false;
+          }
         } else if (/ONIX/i.test(packStr)) {
-          if (['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'].includes(ex.id)) isIncluded = true;
+          const items = ['extra_photo', 'extra_decor_onix', 'extra_av', 'acc_essential'];
+          if (items.includes(ex.id)) {
+            isIncluded = true;
+            if (ex.id.startsWith('extra_decor_') && manualDecor && manualDecor !== ex.id) isIncluded = false;
+            if (ex.id.startsWith('acc_') && manualKit && manualKit !== ex.id) isIncluded = false;
+          }
         } else if (/KAIZEN/i.test(packStr)) {
-          if (['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_av', 'acc_celebration'].includes(ex.id)) isIncluded = true;
+          const items = ['extra_photo', 'extra_cam360', 'extra_decor_kaizen', 'extra_av', 'acc_celebration'];
+          if (items.includes(ex.id)) {
+            isIncluded = true;
+            if (ex.id.startsWith('extra_decor_') && manualDecor && manualDecor !== ex.id) isIncluded = false;
+            if (ex.id.startsWith('acc_') && manualKit && manualKit !== ex.id) isIncluded = false;
+          }
         } else {
           const packKey = ['ONIX', 'MULTII', 'KAIZEN', 'CELEBRATION', 'MEMORIES'].find(k => packStr.includes(k)) || packStr;
           const proto = STITCH_DATA.protocols[packKey];
@@ -1601,10 +1621,10 @@ function App() {
     const isKAIZEN = pName.includes('KAIZEN');
 
     // 2. Extra Hours (Check if active: Included in pack OR Selected as extra)
+    const activeExtras = getDynamicExtras(evt);
     const isActive = (id) => {
-      const proto = STITCH_DATA.protocols[pName] || { includedExtras: [] };
-      const included = (proto.includedExtras || []).includes(id) || (id === 'dj'); 
-      return included || !!evt.selectedExtras?.[id];
+      const ex = activeExtras.find(e => e.id === id);
+      return !!(ex?.isIncluded || (evt.selectedExtras && evt.selectedExtras[id]));
     };
 
     const xDJ = Math.max(0, Math.ceil(dDur - 4));
@@ -3936,10 +3956,26 @@ function App() {
           } else if (field === 'toggleExtra') {
             const currentExtras = { ...(updated.selectedExtras || {}) };
             const isTurningOn = !currentExtras[value];
+            
+            // 🔥 DIGITAL INSTRUMENT: Exclusividad en Decoraciones
+            // Si el usuario activa una decoración, apagamos las demás para evitar duplicidad
+            if (isTurningOn && value.startsWith('extra_decor_')) {
+              Object.keys(currentExtras).forEach(k => {
+                if (k.startsWith('extra_decor_')) delete currentExtras[k];
+              });
+            }
+
+            // También para Kits (Accesorios)
+            if (isTurningOn && value.startsWith('acc_')) {
+              Object.keys(currentExtras).forEach(k => {
+                if (k.startsWith('acc_') && !k.includes('item')) delete currentExtras[k];
+              });
+            }
+
             currentExtras[value] = isTurningOn;
             updated.selectedExtras = currentExtras;
 
-            const baseS = updated.djStartTime || updated.startTime;
+            const baseS = updated.djStartTime || updated.startTime || '20:00';
             if (isTurningOn && baseS) {
               if (value === 'extra_photo' && !updated.photoStartTime) {
                 updated.photoStartTime = baseS;
@@ -3950,6 +3986,9 @@ function App() {
               } else if (value === 'extra_cam360' && !updated.cam360StartTime) {
                 updated.cam360StartTime = baseS;
                 updated.cam360EndTime = subtractMinutes(baseS, -120);
+              } else if (value.includes('_decor_') && !updated.decorStartTime) {
+                updated.decorStartTime = baseS;
+                updated.decorEndTime = subtractMinutes(baseS, -60);
               }
             }
           } else if (field === 'packName') {
